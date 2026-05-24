@@ -1,18 +1,29 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+
+// Create admin client with service role key to bypass RLS
+function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+  
+  return createSupabaseClient(supabaseUrl, serviceRoleKey);
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
     const lotteryId = searchParams.get('lottery_id');
-    const customerId = searchParams.get('customer_id');
 
     let query = supabase
       .from('blocked_numbers')
       .select(`
         *,
-        lottery:lotteries(id, name, date)
+        lottery:lotteries(id, name)
       `)
       .order('created_at', { ascending: false });
 
@@ -23,18 +34,20 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
+      console.error('GET blocked_numbers error:', error);
       return NextResponse.json([]);
     }
 
     return NextResponse.json(data || []);
-  } catch {
+  } catch (error) {
+    console.error('GET blocked_numbers catch error:', error);
     return NextResponse.json([]);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const body = await request.json();
     
     // Validate required fields (lottery_id is optional for global blocked numbers)
@@ -111,7 +124,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const body = await request.json();
     const { id, ...updates } = body;
 
@@ -155,7 +168,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -185,12 +198,4 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// API สำหรับตรวจสอบเลขอั้นก่อนแทง
-export async function OPTIONS(request: NextRequest) {
-  // This is just for CORS, but we can also provide a check endpoint
-  return NextResponse.json({ 
-    message: 'Use POST /api/blocked-numbers/check to verify numbers before betting' 
-  });
 }
