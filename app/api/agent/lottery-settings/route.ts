@@ -75,9 +75,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST/PATCH - อัพเดทการตั้งค่าหวยของเอเย่น
+// POST/PATCH - อัพเดทการตั้งค่าหวยของเอเย่น - AGENT OR HIGHER
 export async function POST(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher for updating settings
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     const { agent_id, lottery_id, status, close_time, custom_payout_rate, max_per_number } = body;
