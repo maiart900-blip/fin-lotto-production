@@ -1,6 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/api-auth';
 
+/**
+ * GET /api/lotteries/[id] - PUBLIC ROUTE
+ * Returns lottery details with payout rates
+ * Public because customer pages need this data
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -40,10 +46,18 @@ export async function GET(
   });
 }
 
+/**
+ * PUT /api/lotteries/[id] - ADMIN ONLY
+ * Update lottery settings
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Auth guard - require admin for updating lottery
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
+
   const { id } = await params;
   const supabase = await createClient();
   const body = await request.json();
@@ -83,10 +97,18 @@ export async function PUT(
   return NextResponse.json(data);
 }
 
+/**
+ * DELETE /api/lotteries/[id] - ADMIN ONLY
+ * Delete a lottery
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Auth guard - require admin for deleting lottery
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
+
   const { id } = await params;
   const supabase = await createClient();
   
