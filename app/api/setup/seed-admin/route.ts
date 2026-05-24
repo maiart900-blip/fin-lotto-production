@@ -2,6 +2,93 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import bcrypt from 'bcryptjs';
 
+// Default admin credentials
+const DEFAULT_ADMIN = {
+  username: 'admin',
+  password: 'admin123',
+  name: 'Super Admin',
+  display_name: 'Super Admin',
+  role: 'super_admin',
+};
+
+/**
+ * GET - Auto seed admin if none exists (for first-time setup)
+ */
+export async function GET() {
+  try {
+    const supabase = await createClient();
+
+    // Check if any admin exists
+    const { data: existingAdmins, error: checkError } = await supabase
+      .from('users')
+      .select('id, username, role')
+      .in('role', ['super_admin', 'admin'])
+      .limit(1);
+
+    if (checkError) {
+      console.error('[v0] Check admin error:', checkError);
+      return NextResponse.json({ 
+        error: 'Database error', 
+        details: checkError.message 
+      }, { status: 500 });
+    }
+
+    if (existingAdmins && existingAdmins.length > 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'Admin already exists',
+        admin: {
+          username: existingAdmins[0].username,
+          role: existingAdmins[0].role,
+        },
+      });
+    }
+
+    // No admin exists - create default admin
+    const passwordHash = await bcrypt.hash(DEFAULT_ADMIN.password, 10);
+
+    const { data: admin, error: createError } = await supabase
+      .from('users')
+      .insert({
+        username: DEFAULT_ADMIN.username,
+        password_hash: passwordHash,
+        name: DEFAULT_ADMIN.name,
+        display_name: DEFAULT_ADMIN.display_name,
+        role: DEFAULT_ADMIN.role,
+        is_active: true,
+        created_at: new Date().toISOString(),
+      })
+      .select('id, username, role')
+      .single();
+
+    if (createError) {
+      console.error('[v0] Create admin error:', createError);
+      return NextResponse.json({ 
+        error: 'Failed to create admin', 
+        details: createError.message 
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Default admin created successfully',
+      admin: {
+        username: admin.username,
+        role: admin.role,
+      },
+      credentials: {
+        username: DEFAULT_ADMIN.username,
+        password: DEFAULT_ADMIN.password,
+      },
+    });
+  } catch (error) {
+    console.error('[v0] Seed admin error:', error);
+    return NextResponse.json({ 
+      error: error instanceof Error ? error.message : 'Failed to seed admin' 
+    }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -69,6 +156,93 @@ export async function POST(request: Request) {
     console.error('Seed admin error:', error);
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : 'Failed to create admin' 
+    }, { status: 500 });
+  }
+}
+
+/**
+ * PUT - Force create or update admin (for setup/recovery)
+ * This creates 'admin' user with password 'admin123' regardless of existing users
+ */
+export async function PUT() {
+  try {
+    const supabase = await createClient();
+
+    // Check if admin user exists
+    const { data: existingAdmin } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', DEFAULT_ADMIN.username)
+      .maybeSingle();
+
+    const passwordHash = await bcrypt.hash(DEFAULT_ADMIN.password, 10);
+
+    if (existingAdmin) {
+      // Update existing admin
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          password_hash: passwordHash,
+          role: DEFAULT_ADMIN.role,
+          is_active: true,
+        })
+        .eq('id', existingAdmin.id);
+
+      if (updateError) {
+        return NextResponse.json({ 
+          error: 'Failed to update admin', 
+          details: updateError.message 
+        }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Admin password reset successfully',
+        credentials: {
+          username: DEFAULT_ADMIN.username,
+          password: DEFAULT_ADMIN.password,
+        },
+      });
+    }
+
+    // Create new admin user
+    const { data: admin, error: createError } = await supabase
+      .from('users')
+      .insert({
+        username: DEFAULT_ADMIN.username,
+        password_hash: passwordHash,
+        name: DEFAULT_ADMIN.name,
+        display_name: DEFAULT_ADMIN.display_name,
+        role: DEFAULT_ADMIN.role,
+        is_active: true,
+        created_at: new Date().toISOString(),
+      })
+      .select('id, username, role')
+      .single();
+
+    if (createError) {
+      return NextResponse.json({ 
+        error: 'Failed to create admin', 
+        details: createError.message 
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Admin created successfully',
+      admin: {
+        username: admin.username,
+        role: admin.role,
+      },
+      credentials: {
+        username: DEFAULT_ADMIN.username,
+        password: DEFAULT_ADMIN.password,
+      },
+    });
+  } catch (error) {
+    console.error('[v0] Force seed admin error:', error);
+    return NextResponse.json({ 
+      error: error instanceof Error ? error.message : 'Failed to seed admin' 
     }, { status: 500 });
   }
 }
