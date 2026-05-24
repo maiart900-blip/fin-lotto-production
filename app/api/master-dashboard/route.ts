@@ -1,10 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireSuperAdmin } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Master Dashboard API - SUPER ADMIN ONLY
+ * Returns financial overview stats for the Financial Hub page
+ */
 export async function GET() {
   try {
+    // Auth guard - require super admin for master dashboard
+    const authResult = await requireSuperAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     
     // Get today's date range
@@ -190,40 +199,42 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      // Map to field names expected by Financial Hub page
+      totalRevenue: totalVolume,
+      totalBets: totalVolume,
+      totalPayouts: totalPayout,
+      totalAgents,
+      totalCustomers: totalMembers,
+      todayRevenue: todayVolume,
+      todayBets: todayVolume,
+      todayPayouts: todayPayout,
+      netProfit: totalProfit,
+      pendingPayouts,
+      totalSites,
+      totalLotteries: 0, // Can be added later
+      yesterdayBets: 0, // For growth calculation
       data: {
-        // Global Stats
+        // Also keep original structure for backward compatibility
         totalVolume,
         todayVolume,
         monthVolume,
         totalProfit,
         todayProfit,
         monthProfit,
-        
-        // Sites  
         totalSites,
         activeSites,
-        
-        // Users
         totalMembers,
         activeToday: activeToday || 0,
-        
-        // Agents
         totalAgents,
         totalCreditsIssued,
-        
-        // Risk
         riskLevel: pendingPayouts > 1000000 ? 'high' : pendingPayouts > 100000 ? 'normal' : 'low',
         pendingPayouts,
-        
-        // Alerts
         alerts: alerts.length > 0 ? alerts.map(a => ({
           id: a.id,
           type: a.type || 'info',
           message: a.message,
           time: a.created_at,
         })) : [],
-        
-        // Sites list (empty if no sites table)
         sites: [],
       },
     });
@@ -232,6 +243,20 @@ export async function GET() {
     return NextResponse.json({ 
       success: false, 
       error: error.message,
+      // Provide default values for Financial Hub to display
+      totalRevenue: 0,
+      totalBets: 0,
+      totalPayouts: 0,
+      totalAgents: 0,
+      totalCustomers: 0,
+      todayRevenue: 0,
+      todayBets: 0,
+      todayPayouts: 0,
+      netProfit: 0,
+      pendingPayouts: 0,
+      totalSites: 0,
+      totalLotteries: 0,
+      yesterdayBets: 0,
       data: {
         totalVolume: 0,
         todayVolume: 0,
