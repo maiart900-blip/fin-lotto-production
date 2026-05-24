@@ -12,7 +12,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { sendDailySummaryReport, sendLineNotify } from '@/lib/notifications/line-notify';
 import { auditLogger } from '@/lib/audit-logger';
-import { getBusinessDate } from '@/lib/daily-reset';
+import { getBusinessDay } from '@/lib/daily-reset';
 
 // =============================================
 // TYPES
@@ -121,7 +121,7 @@ export class DailyOwnerSummaryService {
    */
   async generateDailySummary(date?: string): Promise<DailyOwnerSummary> {
     const supabase = await this.getClient();
-    const targetDate = date || getBusinessDate();
+    const targetDate = date || getBusinessDay();
     const startOfDay = `${targetDate}T00:00:00+07:00`;
     const endOfDay = `${targetDate}T23:59:59+07:00`;
 
@@ -539,7 +539,7 @@ export class DailyOwnerSummaryService {
     } else if (data.risk.riskLevel === 'high') {
       alerts.push({
         type: 'warning',
-        message: `ความเสี่ยงสูง: Exposure ${data.risk.totalExposure.toLocaleString()} บาท`,
+        message: `ความเสี่ยงส���ง: Exposure ${data.risk.totalExposure.toLocaleString()} บาท`,
       });
     }
 
