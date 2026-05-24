@@ -70,7 +70,6 @@ import {
   Keyboard,
   Zap,
   GitBranch,
-  Target,
   Scale,
   FileBarChart,
   Coins,
