@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createDailyClosing, saveDailyClosing } from '@/lib/daily-closing';
-import { getBusinessDate } from '@/lib/daily-reset';
+import { getBusinessDay } from '@/lib/daily-reset';
 
 // Cron Job: Auto Daily Closing
 // Schedule: 0 18 * * * (18:00 UTC = 01:00 Thailand Time)
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const targetDate = body.date || getBusinessDate();
+    const targetDate = body.date || getBusinessDay();
 
     console.log(`[Daily Closing Cron] Manual trigger for date: ${targetDate}`);
 

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { getBusinessDate } from '@/lib/daily-reset';
+import { getBusinessDay } from '@/lib/daily-reset';
 import { auditLogger } from '@/lib/audit-logger';
 
 // =====================================================
@@ -496,7 +496,7 @@ async function getCustomerStatsForDate(supabase: ReturnType<typeof createClient>
 // สร้าง Daily Closing snapshot
 export async function createDailyClosing(date?: string): Promise<DailyClosingData> {
   const supabase = await createClient();
-  const closingDate = date || getBusinessDate();
+  const closingDate = date || getBusinessDay();
 
   // ดึงข้อมูลทั้งหมดพร้อมกัน
   const [transactions, bets, agentStats, customers] = await Promise.all([
@@ -1126,7 +1126,7 @@ export async function getYearlySummaries() {
 // ตรวจสอบสถานะ Daily Closing ของวันนี้
 export async function getTodayClosingStatus(): Promise<{ isOpen: boolean; closingData?: DailyClosingSummary }> {
   const supabase = await createClient();
-  const today = getBusinessDate();
+  const today = getBusinessDay();
 
   const { data } = await supabase
     .from('daily_closings')
