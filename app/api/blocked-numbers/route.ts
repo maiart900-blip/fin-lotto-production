@@ -1,0 +1,188 @@
+import { createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { searchParams } = new URL(request.url);
+    const lotteryId = searchParams.get('lottery_id');
+    const customerId = searchParams.get('customer_id');
+
+    let query = supabase
+      .from('blocked_numbers')
+      .select(`
+        *,
+        lottery:lotteries(id, name, date)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (lotteryId) {
+      query = query.eq('lottery_id', lotteryId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return NextResponse.json([]);
+    }
+
+    return NextResponse.json(data || []);
+  } catch {
+    return NextResponse.json([]);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const body = await request.json();
+    
+    // Validate required fields
+    if (!body.lottery_id || !body.number || !body.entry_type) {
+      return NextResponse.json(
+        { error: 'กรุณากรอกข้อมูลให้ครบถ้วน (หวย, เลข, ประเภท)' }, 
+        { status: 400 }
+      );
+    }
+
+    // Clean number - only digits
+    const cleanNumber = body.number.replace(/\D/g, '');
+    if (!cleanNumber) {
+      return NextResponse.json(
+        { error: 'เลขต้องเป็นตัวเลขเท่านั้น' }, 
+        { status: 400 }
+      );
+    }
+
+    // Check for duplicate
+    const { data: existing } = await supabase
+      .from('blocked_numbers')
+      .select('id')
+      .eq('lottery_id', body.lottery_id)
+      .eq('number', cleanNumber)
+      .eq('entry_type', body.entry_type)
+      .single();
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'เลขนี้มีในรายการอั้นของหวยนี้แล้ว' }, 
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from('blocked_numbers')
+      .insert({
+        lottery_id: body.lottery_id,
+        number: cleanNumber,
+        entry_type: body.entry_type,
+        limit_amount: body.limit_amount || null,
+        is_blocked: body.is_blocked || false,
+        note: body.note || null,
+        current_amount: body.current_amount || 0,
+        created_by: body.created_by || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json(
+        { error: 'ไม่สามารถบันทึกข้อมูลได้' }, 
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch {
+    return NextResponse.json(
+      { error: 'เกิดข้อผิดพลาดในระบบ' }, 
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const body = await request.json();
+    const { id, ...updates } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ไม่พบ ID ของรายการ' }, 
+        { status: 400 }
+      );
+    }
+
+    // Clean number if provided
+    if (updates.number) {
+      updates.number = updates.number.replace(/\D/g, '');
+    }
+
+    const { data, error } = await supabase
+      .from('blocked_numbers')
+      .update({ 
+        ...updates, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json(
+        { error: 'ไม่สามารถบันทึกการแก้ไขได้' }, 
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch {
+    return NextResponse.json(
+      { error: 'เกิดข้อผิดพลาดในระบบ' }, 
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'กรุณาระบุ ID ของรายการที่ต้องการลบ' }, 
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase
+      .from('blocked_numbers')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return NextResponse.json(
+        { error: 'ไม่สามารถลบรายการได้' }, 
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json(
+      { error: 'เกิดข้อผิดพลาดในระบบ' }, 
+      { status: 500 }
+    );
+  }
+}
+
+// API สำหรับตรวจสอบเลขอั้นก่อนแทง
+export async function OPTIONS(request: NextRequest) {
+  // This is just for CORS, but we can also provide a check endpoint
+  return NextResponse.json({ 
+    message: 'Use POST /api/blocked-numbers/check to verify numbers before betting' 
+  });
+}
