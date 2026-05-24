@@ -1,10 +1,16 @@
 /**
- * LINE Notify Integration
- * ส่งแจ้งเตือนไปยัง LINE ของแอดมินเว็บแม่
+ * LINE Messaging API Integration
+ * ส่งแจ้งเตือนไปยัง LINE Group ของแอดมินเว็บแม่
+ * 
+ * ใช้ LINE Messaging API (Push Message) แทน LINE Notify
+ * ENV Variables:
+ * - LINE_CHANNEL_ACCESS_TOKEN: Channel Access Token จาก LINE Developers
+ * - LINE_GROUP_ID: Group ID สำหรับส่งข้อความ (หลัก)
+ * - LINE_GROUP_IDS: Comma-separated Group IDs (optional สำหรับส่งหลายกลุ่ม)
  */
 
-// LINE Notify API URL
-const LINE_NOTIFY_API = 'https://notify-api.line.me/api/notify';
+// LINE Messaging API URL
+const LINE_MESSAGING_API = 'https://api.line.me/v2/bot/message/push';
 
 // Alert Types
 export type AlertType = 
@@ -37,66 +43,88 @@ const ALERT_ICONS: Record<AlertType, string> = {
   big_winner: '🎉',
 };
 
-interface LineNotifyOptions {
-  token?: string;
-  stickerPackageId?: number;
-  stickerId?: number;
-  imageUrl?: string;
-  notificationDisabled?: boolean;
+interface LineMessageOptions {
+  channelAccessToken?: string;
+  groupId?: string;
+  groupIds?: string[];  // ส่งหลายกลุ่ม
 }
 
 /**
- * Send LINE Notify Message
+ * Send LINE Push Message to Group
+ * ใช้ LINE Messaging API แทน LINE Notify
  */
 export async function sendLineNotify(
   message: string,
-  options: LineNotifyOptions = {}
+  options: LineMessageOptions = {}
 ): Promise<{ success: boolean; error?: string }> {
-  const token = options.token || process.env.LINE_NOTIFY_TOKEN;
+  const channelAccessToken = options.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN;
   
-  if (!token) {
-    console.warn('[LINE Notify] Token not configured');
-    return { success: false, error: 'LINE_NOTIFY_TOKEN not configured' };
+  // รับ Group IDs จาก options หรือ ENV
+  let groupIds: string[] = [];
+  
+  if (options.groupIds && options.groupIds.length > 0) {
+    groupIds = options.groupIds;
+  } else if (options.groupId) {
+    groupIds = [options.groupId];
+  } else if (process.env.LINE_GROUP_IDS) {
+    groupIds = process.env.LINE_GROUP_IDS.split(',').map(id => id.trim()).filter(Boolean);
+  } else if (process.env.LINE_GROUP_ID) {
+    groupIds = [process.env.LINE_GROUP_ID];
+  }
+  
+  if (!channelAccessToken) {
+    console.warn('[LINE Messaging] Channel Access Token not configured');
+    return { success: false, error: 'LINE_CHANNEL_ACCESS_TOKEN not configured' };
+  }
+  
+  if (groupIds.length === 0) {
+    console.warn('[LINE Messaging] No Group ID configured');
+    return { success: false, error: 'LINE_GROUP_ID not configured' };
   }
 
-  try {
-    const formData = new URLSearchParams();
-    formData.append('message', message);
-    
-    if (options.stickerPackageId && options.stickerId) {
-      formData.append('stickerPackageId', options.stickerPackageId.toString());
-      formData.append('stickerId', options.stickerId.toString());
-    }
-    
-    if (options.imageUrl) {
-      formData.append('imageThumbnail', options.imageUrl);
-      formData.append('imageFullsize', options.imageUrl);
-    }
-    
-    if (options.notificationDisabled) {
-      formData.append('notificationDisabled', 'true');
-    }
+  const results: { groupId: string; success: boolean; error?: string }[] = [];
 
-    const response = await fetch(LINE_NOTIFY_API, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData.toString(),
-    });
+  // ส่งไปทุกกลุ่ม
+  for (const groupId of groupIds) {
+    try {
+      const response = await fetch(LINE_MESSAGING_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${channelAccessToken}`,
+        },
+        body: JSON.stringify({
+          to: groupId,
+          messages: [
+            {
+              type: 'text',
+              text: message,
+            },
+          ],
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('[LINE Notify] Error:', error);
-      return { success: false, error };
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[LINE Messaging] Error sending to ${groupId}:`, errorText);
+        results.push({ groupId, success: false, error: errorText });
+      } else {
+        results.push({ groupId, success: true });
+      }
+    } catch (error) {
+      console.error(`[LINE Messaging] Exception sending to ${groupId}:`, error);
+      results.push({ groupId, success: false, error: String(error) });
     }
-
-    return { success: true };
-  } catch (error) {
-    console.error('[LINE Notify] Exception:', error);
-    return { success: false, error: String(error) };
   }
+
+  // Return success if at least one group succeeded
+  const anySuccess = results.some(r => r.success);
+  const errors = results.filter(r => !r.success).map(r => r.error).join('; ');
+  
+  return { 
+    success: anySuccess, 
+    error: anySuccess ? undefined : errors 
+  };
 }
 
 /**
@@ -105,12 +133,12 @@ export async function sendLineNotify(
 export async function sendLineAlert(
   type: AlertType,
   message: string,
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 ): Promise<{ success: boolean; error?: string }> {
   const icon = ALERT_ICONS[type];
   const timestamp = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
   
-  let formattedMessage = `\n${icon} ${message}`;
+  let formattedMessage = `${icon} ${message}`;
   
   if (details) {
     formattedMessage += '\n---';
@@ -220,7 +248,7 @@ export async function sendBigWinnerAlert(
   agentName: string
 ): Promise<void> {
   await sendLineNotify(
-    `\n🎉 ถูกรางวัล!\n---\nลูกค้า: ${customerName}\nเลข: ${number}\nประเภท: ${betType}\nจำนวน: ${amount.toLocaleString()} บาท\nสาย: ${agentName}\n---\n🕐 ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`
+    `🎉 ถูกรางวัล!\n---\nลูกค้า: ${customerName}\nเลข: ${number}\nประเภท: ${betType}\nจำนวน: ${amount.toLocaleString()} บาท\nสาย: ${agentName}\n---\n🕐 ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`
   );
 }
 
@@ -332,7 +360,7 @@ export async function sendDailySummaryReport(
 ): Promise<void> {
   const profitStatus = report.netProfit >= 0 ? '📈 กำไร' : '📉 ขาดทุน';
   
-  let message = `\n📊 รายงานสรุปประจำวัน\n📅 ${date}\n`;
+  let message = `📊 รายงานสรุปประจำวัน\n📅 ${date}\n`;
   message += `━━━━━━━━━━━━━━━━\n`;
   message += `💰 ฝากเงิน: ${report.deposits.total.toLocaleString()} (${report.deposits.count} รายการ)\n`;
   message += `💸 ถอนเงิน: ${report.withdrawals.total.toLocaleString()} (${report.withdrawals.count} รายการ)\n`;
@@ -359,4 +387,15 @@ export async function sendDailySummaryReport(
   message += `🕐 ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`;
 
   await sendLineNotify(message);
+}
+
+/**
+ * Test LINE Connection
+ * ทดสอบการเชื่อมต่อและส่งข้อความ
+ */
+export async function testLineConnection(): Promise<{ success: boolean; error?: string }> {
+  const timestamp = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+  const testMessage = `🔔 ทดสอบการเชื่อมต่อ LINE\n━━━━━━━━━━━━━━━━\nระบบ FIN LOTTO P+ ทำงานปกติ\n🕐 ${timestamp}`;
+  
+  return sendLineNotify(testMessage);
 }
