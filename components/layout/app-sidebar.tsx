@@ -103,8 +103,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useState } from 'react';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { fetcher } from '@/lib/fetcher';
 
 interface PendingCounts {
   topupPending: number;
