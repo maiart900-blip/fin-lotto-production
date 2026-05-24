@@ -10,13 +10,25 @@
  * - Export ข้อมูลก่อนลบ
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { logAudit } from './audit-logger';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy initialization to avoid build-time errors when env vars aren't available
+let _supabase: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!url || !key) {
+      throw new Error('Supabase credentials not configured');
+    }
+    
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
+}
 
 // Default retention policies (in days)
 export const DEFAULT_RETENTION_POLICIES = {
@@ -88,6 +100,7 @@ export interface RetentionStats {
  * ดึง retention policies ทั้งหมด
  */
 export async function getRetentionPolicies(): Promise<RetentionPolicy[]> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('data_retention_policies')
     .select('*')
@@ -106,6 +119,7 @@ export async function updateRetentionPolicy(
   archiveBeforeDelete: boolean,
   adminId: string
 ): Promise<void> {
+  const supabase = getSupabase();
   const { error } = await supabase
     .from('data_retention_policies')
     .upsert({
@@ -134,6 +148,7 @@ export async function updateRetentionPolicy(
  * ดึงสถิติข้อมูลสำหรับแต่ละประเภท
  */
 export async function getRetentionStats(dataType: DataType): Promise<RetentionStats> {
+  const supabase = getSupabase();
   const tableMapping: Record<DataType, string> = {
     transactions: 'transactions',
     deposits: 'deposits',
@@ -222,6 +237,7 @@ export async function archiveOldData(
   adminId: string,
   dryRun: boolean = false
 ): Promise<{ archivedCount: number; message: string }> {
+  const supabase = getSupabase();
   const retentionDays = DEFAULT_RETENTION_POLICIES[dataType];
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
@@ -319,6 +335,7 @@ export async function deleteExpiredData(
   adminId: string,
   dryRun: boolean = false
 ): Promise<{ deletedCount: number; message: string }> {
+  const supabase = getSupabase();
   // Only allow deletion for specific types
   const allowedTypes: DataType[] = [
     'otp_codes',
@@ -451,6 +468,7 @@ export async function runRetentionCleanup(
 export async function getRetentionHistory(
   limit: number = 50
 ): Promise<any[]> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('audit_logs')
     .select('*')
