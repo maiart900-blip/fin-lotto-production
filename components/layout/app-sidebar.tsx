@@ -1,6 +1,6 @@
 'use client';
 
-// Sidebar navigation component - FIN LOTTO R+ v2
+// Sidebar navigation component - FIN LOTTO R+ v3 Production
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
