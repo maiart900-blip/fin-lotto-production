@@ -1,8 +1,17 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
+/**
+ * Transactions API - AGENT OR HIGHER
+ * Manages financial transactions (deposits, withdrawals, bets, wins)
+ */
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher for viewing transactions
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     
@@ -90,6 +99,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher for creating transactions
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     
