@@ -21,7 +21,6 @@ import {
 import useSWR from 'swr';
 import { BannerCarousel } from '@/components/customer/banner-carousel';
 import { FeatureBar } from '@/components/customer/feature-bar';
-import { PopularLotteries } from '@/components/customer/popular-lotteries';
 
 interface CustomerData {
   id: string;
@@ -218,9 +217,6 @@ export default function CustomerDashboard() {
             </Link>
           ))}
         </div>
-
-        {/* Popular Lotteries Section */}
-        <PopularLotteries />
 
         </div>
       </main>
