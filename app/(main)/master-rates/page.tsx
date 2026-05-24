@@ -167,7 +167,6 @@ export default function MasterRatesPage() {
 
   // Add blocked number
   const handleAdd = async () => {
-    console.log('[v0] handleAdd called with formData:', formData);
     if (!formData.number.trim()) {
       toast.error('กรุณากรอกเลข');
       return;
@@ -175,7 +174,6 @@ export default function MasterRatesPage() {
 
     setSubmitting(true);
     try {
-      console.log('[v0] Sending POST request to /api/blocked-numbers');
       const res = await fetch('/api/blocked-numbers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -189,9 +187,7 @@ export default function MasterRatesPage() {
         }),
       });
 
-      console.log('[v0] Response status:', res.status);
       const data = await res.json();
-      console.log('[v0] Response data:', data);
       
       if (!res.ok) {
         toast.error(data.error || 'ไม่สามารถเพิ่มเลขอั้นได้');
@@ -203,7 +199,7 @@ export default function MasterRatesPage() {
       resetForm();
       fetchBlockedNumbers();
     } catch (error) {
-      console.error('[v0] handleAdd error:', error);
+      console.error('handleAdd error:', error);
       toast.error('เกิดข้อผิดพลาด');
     } finally {
       setSubmitting(false);
