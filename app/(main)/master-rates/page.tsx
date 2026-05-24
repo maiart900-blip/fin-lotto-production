@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { 
   Crown, Settings, Lock, Unlock, Globe, AlertTriangle,
   Save, RotateCcw, Shield, Building2, ChevronRight,
@@ -57,13 +58,7 @@ const defaultRates = {
 // Limited numbers (เลขอั้น) - จะถูก replace ด้วยข้อมูลจาก database
 const initialLimitedNumbers: BlockedNumber[] = [];
 
-// Mock sites for override
-const mockSites = [
-  { id: 'site_001', name: 'LottoKing', useGlobalRates: true, useGlobalLimits: true },
-  { id: 'site_002', name: 'HuayVIP', useGlobalRates: true, useGlobalLimits: false },
-  { id: 'site_003', name: 'LottoPro', useGlobalRates: false, useGlobalLimits: true },
-  { id: 'site_004', name: 'MegaLotto', useGlobalRates: true, useGlobalLimits: true },
-];
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 // Types
 interface BlockedNumber {
@@ -98,6 +93,15 @@ export default function MasterRatesPage() {
   const [forceGlobalRates, setForceGlobalRates] = useState(false);
   const [forceGlobalLimits, setForceGlobalLimits] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  
+  // ดึง sites จาก API
+  const { data: sitesData } = useSWR('/api/sites', fetcher);
+  const sites = (sitesData?.sites || sitesData || []).map((s: any) => ({
+    id: s.id,
+    name: s.name || s.site_name || 'Unknown',
+    useGlobalRates: s.use_global_rates ?? true,
+    useGlobalLimits: s.use_global_limits ?? true,
+  }));
   
   // Blocked numbers state
   const [blockedNumbers, setBlockedNumbers] = useState<BlockedNumber[]>([]);
@@ -241,7 +245,7 @@ export default function MasterRatesPage() {
       resetForm();
       fetchBlockedNumbers();
     } catch (error) {
-      toast.error('เกิดข้อผิดพลาด');
+      toast.error('เกิ��ข้อผิดพลาด');
     } finally {
       setSubmitting(false);
     }
@@ -381,7 +385,7 @@ export default function MasterRatesPage() {
               </div>
               {forceGlobalRates && (
                 <Badge className="mt-3 bg-red-500/20 text-red-400 border-red-500/30">
-                  บังคับใช้กับ {mockSites.length} เว็บ
+                  บังคับใช้กับ {sites.length} เว็บ
                 </Badge>
               )}
             </div>
@@ -407,7 +411,7 @@ export default function MasterRatesPage() {
               </div>
               {forceGlobalLimits && (
                 <Badge className="mt-3 bg-red-500/20 text-red-400 border-red-500/30">
-                  บังคับใช้กับ {mockSites.length} เว็บ
+                  บังคับใช้กับ {sites.length} เว็บ
                 </Badge>
               )}
             </div>
@@ -796,7 +800,7 @@ export default function MasterRatesPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockSites.map((site) => (
+                {sites.map((site) => (
                   <div 
                     key={site.id}
                     className="flex items-center justify-between p-4 rounded-xl bg-black/40 border border-white/5 hover:border-amber-500/30 transition-colors"
