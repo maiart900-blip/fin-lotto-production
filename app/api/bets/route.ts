@@ -2,8 +2,13 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAuditLog, getClientIP, getUserAgent } from '@/lib/audit-log';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
+  // Auth guard - require authentication
+  const authResult = await requireAuth();
+  if (authResult instanceof NextResponse) return authResult;
+
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
   
@@ -62,6 +67,26 @@ export async function POST(request: NextRequest) {
     if (!lottery_id || !items || items.length === 0) {
       return NextResponse.json({ error: 'Missing lottery_id or items' }, { status: 400 });
     }
+
+    // Generate idempotency key for duplicate request protection
+    const idempotencyKey = body.idempotency_key;
+    if (idempotencyKey) {
+      const { data: existingBet } = await supabase
+        .from('bets')
+        .select('id')
+        .eq('idempotency_key', idempotencyKey)
+        .single();
+      
+      if (existingBet) {
+        console.log('[v0] Duplicate bet request detected:', idempotencyKey);
+        return NextResponse.json({ 
+          success: true, 
+          bet_id: existingBet.id,
+          duplicate: true,
+          message: 'Bet already processed'
+        });
+      }
+    }
     
     // Check lottery exists and is open
     const { data: lottery, error: lotteryError } = await supabase
@@ -84,7 +109,10 @@ export async function POST(request: NextRequest) {
       totalAmount += (item.amount_top || 0) + (item.amount_bottom || 0) + (item.amount_tod || 0);
     }
     
-    // Check customer balance
+    // Check customer balance with row-level locking (select for update via RPC)
+    // Note: Supabase doesn't support SELECT FOR UPDATE directly, so we use a combination of:
+    // 1. Check balance first
+    // 2. Update with a condition to prevent race conditions
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .select('credit_balance, name')
@@ -98,6 +126,30 @@ export async function POST(request: NextRequest) {
     if (customer.credit_balance < totalAmount) {
       return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
     }
+
+    // ATOMIC OPERATION: Deduct balance first with condition check
+    // This prevents race conditions by only updating if balance >= totalAmount
+    const newBalance = customer.credit_balance - totalAmount;
+    const { data: updatedCustomer, error: updateError } = await supabase
+      .from('customers')
+      .update({ 
+        credit_balance: newBalance, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', actualCustomerId)
+      .gte('credit_balance', totalAmount) // Atomic check: only update if balance sufficient
+      .select('credit_balance')
+      .single();
+    
+    if (updateError || !updatedCustomer) {
+      console.error('[v0] Balance deduction failed - race condition or insufficient balance');
+      return NextResponse.json({ 
+        error: 'Balance deduction failed. Please try again.',
+        code: 'BALANCE_RACE_CONDITION'
+      }, { status: 409 });
+    }
+    
+    const finalBalance = updatedCustomer.credit_balance;
     
     // Create bet with new fields
     const cancelDeadline = new Date();
@@ -117,6 +169,7 @@ export async function POST(request: NextRequest) {
         is_checked: false,
         total_win_amount: 0,
         source_type: betSourceType, // 'manual_key' or 'auto'
+        idempotency_key: idempotencyKey || null, // For duplicate request protection
       })
       .select()
       .single();
@@ -124,6 +177,12 @@ export async function POST(request: NextRequest) {
     console.log('[v0] Bet created:', { bet_id: bet?.id, source_type: betSourceType });
     
     if (betError) {
+      // ROLLBACK: คืนเงินให้ลูกค้า
+      console.error('[v0] Bet creation failed, rolling back balance');
+      await supabase
+        .from('customers')
+        .update({ credit_balance: customer.credit_balance })
+        .eq('id', actualCustomerId);
       return NextResponse.json({ error: betError.message }, { status: 500 });
     }
     
@@ -180,8 +239,13 @@ export async function POST(request: NextRequest) {
       .insert(betItems);
     
     if (itemsError) {
-      // Rollback bet
+      // ROLLBACK: ลบ bet และคืนเงินให้ลูกค้า
+      console.error('[v0] Bet items creation failed, rolling back');
       await supabase.from('bets').delete().eq('id', bet.id);
+      await supabase
+        .from('customers')
+        .update({ credit_balance: customer.credit_balance })
+        .eq('id', actualCustomerId);
       return NextResponse.json({ error: itemsError.message }, { status: 500 });
     }
     
@@ -209,13 +273,7 @@ export async function POST(request: NextRequest) {
       }
     })).catch(() => {});
     
-    // Deduct balance
-    const newBalance = customer.credit_balance - totalAmount;
-    await supabase
-      .from('customers')
-      .update({ credit_balance: newBalance, updated_at: new Date().toISOString() })
-      .eq('id', actualCustomerId);
-    
+    // Note: Balance already deducted atomically above
     // Log credit transaction
     await supabase
       .from('credit_transactions')
@@ -224,7 +282,7 @@ export async function POST(request: NextRequest) {
         amount: -totalAmount,
         type: 'bet',
         description: `แทงหวย ${lottery.name}`,
-        balance_after: newBalance,
+        balance_after: finalBalance,
         reference_id: bet.id,
         reference_type: 'bet',
       });
@@ -239,7 +297,7 @@ export async function POST(request: NextRequest) {
         lottery_name: lottery.name,
         item_count: items.length,
         total_amount: totalAmount,
-        new_balance: newBalance,
+        new_balance: finalBalance,
         created_by: adminId || actualCustomerId,
         customer_name: customer_name || customer.name,
       },
@@ -251,7 +309,7 @@ export async function POST(request: NextRequest) {
       success: true,
       bet_id: bet.id,
       total_amount: totalAmount,
-      new_balance: newBalance,
+      new_balance: finalBalance,
       item_count: items.length,
     });
     

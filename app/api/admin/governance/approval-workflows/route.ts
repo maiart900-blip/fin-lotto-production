@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/api-auth';
+import { logAudit } from '@/lib/audit-logger';
 
 // GET - ดึง approval workflows
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require admin
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     
@@ -42,6 +48,11 @@ export async function GET(request: NextRequest) {
 // POST - สร้าง approval workflow ใหม่
 export async function POST(request: NextRequest) {
   try {
+    // Auth guard - require admin
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+    const { user } = authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     
@@ -98,12 +109,18 @@ export async function POST(request: NextRequest) {
 // PATCH - อนุมัติ/ปฏิเสธ workflow
 export async function PATCH(request: NextRequest) {
   try {
+    // Auth guard - require admin
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+    const { user } = authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     
-    const { id, action, actor_id, rejection_reason } = body;
+    const { id, action, rejection_reason } = body;
+    const actor_id = user.id; // ใช้ user จาก session แทน body
 
-    if (!id || !action || !actor_id) {
+    if (!id || !action) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -141,6 +158,17 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    // Audit log
+    await logAudit({
+      action: action === 'approve' ? 'workflow_approve' : 'workflow_reject',
+      actor_id: user.id,
+      actor_type: 'admin',
+      target_type: 'approval_workflow',
+      target_id: id,
+      details: { action, rejection_reason },
+      ip_address: request.headers.get('x-forwarded-for') || 'unknown',
+    });
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
