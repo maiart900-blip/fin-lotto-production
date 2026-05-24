@@ -2,7 +2,12 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { requireAgentOrHigher } from '@/lib/api-auth';
+import { serializeAgentCustomers, serializeAgentCustomer } from '@/lib/api-serializers';
 
+/**
+ * Customers API - Agent/Admin level access
+ * Uses AGENT serializer to exclude sensitive fields like password_hash
+ */
 export async function GET(request: NextRequest) {
   try {
     // Auth guard - require agent or higher
@@ -63,8 +68,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
     
-    // Return array for backward compatibility (all existing pages expect array)
-    return NextResponse.json(data || []);
+    // Return serialized array - excludes password_hash and sensitive fields
+    return NextResponse.json(serializeAgentCustomers(data || []));
   } catch (err) {
     console.error('[v0] Customers GET exception:', err);
     return NextResponse.json([]);
@@ -121,7 +126,8 @@ export async function POST(request: Request) {
       throw error;
     }
     
-    return NextResponse.json(data);
+    // Return serialized response - excludes password_hash
+    return NextResponse.json(serializeAgentCustomer(data));
   } catch (err: any) {
     console.error('[v0] POST /api/customers error:', err?.message || err);
     return NextResponse.json({ error: 'Failed to create customer', details: err?.message }, { status: 500 });
@@ -160,7 +166,8 @@ export async function PUT(request: Request) {
       throw error;
     }
     
-    return NextResponse.json(data);
+    // Return serialized response
+    return NextResponse.json(serializeAgentCustomer(data));
   } catch {
     return NextResponse.json({ error: 'Failed to update customer' }, { status: 500 });
   }
