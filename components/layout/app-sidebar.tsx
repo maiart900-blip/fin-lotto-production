@@ -48,6 +48,7 @@ import {
   FileDown,
   ShieldAlert,
   ClipboardCheck,
+  Target,
   Bot,
   ChevronDown,
   Headphones,
@@ -206,6 +207,7 @@ const agentPartnerItems = [
 const reportItems = [
   { title: 'Omni-Channel', href: '/reports/omni-channel', icon: Globe },
   { title: 'รายงานย้อนหลัง', href: '/reports/daily-closing', icon: History },
+  { title: 'KPI Dashboard', href: '/kpi-dashboard', icon: Target },
   { title: 'วิเคราะห์ยอดเลข', href: '/analysis', icon: BarChart3 },
   { title: 'กำไร/ขาดทุน', href: '/profit-loss', icon: PieChart },
   { title: 'รายงาน', href: '/reports', icon: FileDown },
