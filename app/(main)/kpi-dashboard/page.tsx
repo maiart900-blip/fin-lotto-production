@@ -35,64 +35,56 @@ import { toast } from 'sonner';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
-// Mock data สำหรับ demo
-const mockKPIData = {
-  summary: {
-    dailyProfit: 125000,
-    dailyProfitChange: 12.5,
-    monthlyProfit: 3250000,
-    monthlyProfitChange: 8.3,
-    yearlyProfit: 38500000,
-    yearlyProfitChange: 15.2,
-    totalMembers: 1250,
-    activeMembers: 890,
-    totalAgents: 45,
-    activeAgents: 38,
-    avgTransactionValue: 1500,
-    conversionRate: 68.5,
-  },
-  topAgents: [
-    { rank: 1, id: 'A001', name: 'สายลม', sales: 2500000, commission: 75000, members: 150, growth: 15.2 },
-    { rank: 2, id: 'A002', name: 'สายฝน', sales: 2100000, commission: 63000, members: 120, growth: 10.5 },
-    { rank: 3, id: 'A003', name: 'สายฟ้า', sales: 1800000, commission: 54000, members: 95, growth: 8.3 },
-    { rank: 4, id: 'A004', name: 'สายน้ำ', sales: 1500000, commission: 45000, members: 80, growth: 5.1 },
-    { rank: 5, id: 'A005', name: 'สายดิน', sales: 1200000, commission: 36000, members: 65, growth: 3.8 },
-  ],
-  topMembers: [
-    { rank: 1, id: 'M001', name: 'นายทอง', bets: 500000, wins: 125000, profit: -375000, agent: 'สายลม' },
-    { rank: 2, id: 'M002', name: 'นางเงิน', bets: 450000, wins: 85000, profit: -365000, agent: 'สายฝน' },
-    { rank: 3, id: 'M003', name: 'นายนาค', bets: 400000, wins: 320000, profit: -80000, agent: 'สายลม' },
-    { rank: 4, id: 'M004', name: 'นางฟ้า', bets: 380000, wins: 95000, profit: -285000, agent: 'สายฟ้า' },
-    { rank: 5, id: 'M005', name: 'นายเพชร', bets: 350000, wins: 420000, profit: 70000, agent: 'สายน้ำ' },
-  ],
-  topLotteries: [
-    { rank: 1, name: 'หวยรัฐบาลไทย', sales: 5500000, profit: 550000, players: 850, profitRate: 10.0 },
-    { rank: 2, name: 'หวยลาว', sales: 3200000, profit: 320000, players: 650, profitRate: 10.0 },
-    { rank: 3, name: 'หวยฮานอย', sales: 2800000, profit: 252000, players: 520, profitRate: 9.0 },
-    { rank: 4, name: 'หวยยี่กี', sales: 1500000, profit: 180000, players: 380, profitRate: 12.0 },
-    { rank: 5, name: 'หวยหุ้นไทย', sales: 1200000, profit: 108000, players: 290, profitRate: 9.0 },
-  ],
-  riskySummary: {
-    highRiskNumbers: 12,
-    totalExposure: 2500000,
-    maxExposure: 500000,
-    avgExposure: 208333,
-  },
-  dailyTrend: [
-    { date: '2024-01-20', profit: 95000, bets: 850000, members: 45 },
-    { date: '2024-01-21', profit: 110000, bets: 920000, members: 52 },
-    { date: '2024-01-22', profit: 85000, bets: 780000, members: 38 },
-    { date: '2024-01-23', profit: 125000, bets: 1050000, members: 61 },
-    { date: '2024-01-24', profit: 140000, bets: 1150000, members: 55 },
-    { date: '2024-01-25', profit: 115000, bets: 980000, members: 48 },
-    { date: '2024-01-26', profit: 125000, bets: 1020000, members: 58 },
-  ],
-};
-
 export default function KPIDashboardPage() {
   const [period, setPeriod] = useState<'daily' | 'monthly' | 'yearly'>('daily');
-  const [isLoading, setIsLoading] = useState(false);
-  const [kpiData, setKpiData] = useState(mockKPIData);
+
+  // ดึงข้อมูลจาก APIs ที่มีอยู่แล้ว
+  const { data: dashboardStats, isLoading: statsLoading } = useSWR('/api/dashboard/stats', fetcher);
+  const { data: betSummary, isLoading: betLoading } = useSWR('/api/bet-summary', fetcher);
+  const { data: customersData } = useSWR('/api/customers', fetcher);
+  const { data: agentsData } = useSWR('/api/agents', fetcher);
+
+  const isLoading = statsLoading || betLoading;
+
+  // Extract arrays from API responses
+  const customers = Array.isArray(customersData) ? customersData : [];
+  const agents = agentsData?.agents || [];
+
+  // Map data จาก APIs เป็น KPI format
+  const kpiData = {
+    summary: {
+      dailyProfit: dashboardStats?.today?.netProfit || 0,
+      dailyProfitChange: 0,
+      monthlyProfit: dashboardStats?.month?.netProfit || 0,
+      monthlyProfitChange: 0,
+      yearlyProfit: betSummary?.profitLoss || 0,
+      yearlyProfitChange: 0,
+      totalMembers: customers.length,
+      activeMembers: customers.filter((c: any) => c.is_active).length,
+      totalAgents: agents.length,
+      activeAgents: agents.filter((a: any) => a.is_active).length,
+      avgTransactionValue: betSummary?.totalAmount && betSummary?.totalCount ? Math.round(betSummary.totalAmount / betSummary.totalCount) : 0,
+      conversionRate: 0,
+    },
+    topAgents: [],
+    topMembers: customers.slice(0, 5).map((c: any, i: number) => ({
+      rank: i + 1,
+      id: c.id,
+      name: c.name,
+      bets: 0,
+      wins: 0,
+      profit: 0,
+      agent: '-',
+    })),
+    topLotteries: [],
+    riskySummary: {
+      highRiskNumbers: 0,
+      totalExposure: 0,
+      maxExposure: 0,
+      avgExposure: 0,
+    },
+    dailyTrend: [],
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {
@@ -116,8 +108,34 @@ export default function KPIDashboardPage() {
   };
 
   const handleExport = async () => {
-    toast.success('กำลังส่งออกรายงาน KPI...');
-    // TODO: Implement export
+    const periodLabels = { daily: 'รายวัน', monthly: 'รายเดือน', yearly: 'รายปี' };
+    const csvContent = [
+      ['รายงาน KPI - ' + periodLabels[period]],
+      [''],
+      ['สรุปผลประกอบการ'],
+      ['กำไรวันนี้', kpiData.summary.dailyProfit],
+      ['กำไรเดือนนี้', kpiData.summary.monthlyProfit],
+      ['กำไรรวม', kpiData.summary.yearlyProfit],
+      [''],
+      ['ข้อมูลสมาชิก'],
+      ['สมาชิกทั้งหมด', kpiData.summary.totalMembers],
+      ['สมาชิกที่ใช้งาน', kpiData.summary.activeMembers],
+      ['ตัวแทนทั้งหมด', kpiData.summary.totalAgents],
+      ['ตัวแทนที่ใช้งาน', kpiData.summary.activeAgents],
+      [''],
+      ['สร้างเมื่อ', new Date().toLocaleString('th-TH')],
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `kpi-report-${period}-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('ส่งออกรายงาน KPI สำเร็จ');
   };
 
   return (

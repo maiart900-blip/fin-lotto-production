@@ -122,8 +122,32 @@ export default function FinanceReportsPage() {
   }, [data]);
 
   const handleExport = () => {
-    // TODO: Implement CSV export
-    alert('กำลังส่งออกรายงาน...');
+    if (!stats) return;
+    
+    const periodLabel = getPeriodLabel();
+    const csvContent = [
+      ['รายงานการเงิน - ' + periodLabel],
+      [''],
+      ['รายการ', 'จำนวนรายการ', 'ยอดเงิน (บาท)'],
+      ['ยอดฝาก', stats.depositCount, stats.totalDeposits],
+      ['ยอดถอน', stats.withdrawCount, stats.totalWithdrawals],
+      ['ยอดแทง', stats.betCount, stats.totalBets],
+      ['ยอดจ่ายรางวัล', stats.payoutCount, stats.totalPayouts],
+      [''],
+      ['กำไรสุทธิ', '', stats.netProfit],
+      [''],
+      ['สร้างเมื่อ', new Date().toLocaleString('th-TH')],
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `finance-report-${period}-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const getPeriodLabel = () => {
