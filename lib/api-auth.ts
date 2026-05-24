@@ -40,6 +40,9 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     // Check for lottery_session (localStorage backup in cookie)
     const sessionCookie = cookieStore.get('lottery_session')?.value;
     
+    // Debug log for troubleshooting auth issues
+    console.log('[v0] Auth check - admin_id:', !!adminId, 'admin_role:', adminRole, 'customer_id:', !!customerId, 'session_cookie:', !!sessionCookie);
+    
     let userId: string | null = null;
     let userRole: UserRole = 'customer';
     
