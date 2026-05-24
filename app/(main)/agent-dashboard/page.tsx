@@ -128,24 +128,9 @@ export default function AgentDashboardPage() {
 
   const teamMembers: TeamMember[] = teamData?.members || [];
 
-  // Mock chart data for demo
-  const turnoverChartData = chartData?.daily || [
-    { date: 'จ.', turnover: 45000, commission: 4500 },
-    { date: 'อ.', turnover: 52000, commission: 5200 },
-    { date: 'พ.', turnover: 38000, commission: 3800 },
-    { date: 'พฤ.', turnover: 61000, commission: 6100 },
-    { date: 'ศ.', turnover: 72000, commission: 7200 },
-    { date: 'ส.', turnover: 89000, commission: 8900 },
-    { date: 'อา.', turnover: 95000, commission: 9500 },
-  ];
-
-  const betTypeDistribution = chartData?.betTypes || [
-    { name: '3 ตัวบน', value: 35 },
-    { name: '2 ตัวบน', value: 25 },
-    { name: '2 ตัวล่าง', value: 20 },
-    { name: 'วิ่งบน', value: 12 },
-    { name: 'วิ่งล่าง', value: 8 },
-  ];
+  // ใช้ข้อมูลจาก API เท่านั้น - ถ้าไม่มีข้อมูลจะแสดง empty state
+  const turnoverChartData = chartData?.daily || [];
+  const betTypeDistribution = chartData?.betTypes || [];
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
