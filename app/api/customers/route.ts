@@ -2,11 +2,12 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { requireAgentOrHigher } from '@/lib/api-auth';
-import { serializeAgentCustomers, serializeAgentCustomer } from '@/lib/api-serializers';
+import { stripSensitiveFieldsArray, stripSensitiveFields } from '@/lib/api-serializers';
 
 /**
  * Customers API - Agent/Admin level access
- * Uses AGENT serializer to exclude sensitive fields like password_hash
+ * Uses stripSensitiveFields to remove only password_hash while keeping all operational fields
+ * Frontend depends on full customer data for management pages
  */
 export async function GET(request: NextRequest) {
   try {
@@ -68,8 +69,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
     
-    // Return serialized array - excludes password_hash and sensitive fields
-    return NextResponse.json(serializeAgentCustomers(data || []));
+    // Strip sensitive fields (password_hash) but keep all operational fields
+    return NextResponse.json(stripSensitiveFieldsArray(data || []));
   } catch (err) {
     console.error('[v0] Customers GET exception:', err);
     return NextResponse.json([]);
@@ -126,8 +127,8 @@ export async function POST(request: Request) {
       throw error;
     }
     
-    // Return serialized response - excludes password_hash
-    return NextResponse.json(serializeAgentCustomer(data));
+    // Strip sensitive fields but keep all operational data
+    return NextResponse.json(stripSensitiveFields(data));
   } catch (err: any) {
     console.error('[v0] POST /api/customers error:', err?.message || err);
     return NextResponse.json({ error: 'Failed to create customer', details: err?.message }, { status: 500 });
@@ -166,8 +167,8 @@ export async function PUT(request: Request) {
       throw error;
     }
     
-    // Return serialized response
-    return NextResponse.json(serializeAgentCustomer(data));
+    // Strip sensitive fields but keep all operational data
+    return NextResponse.json(stripSensitiveFields(data));
   } catch {
     return NextResponse.json({ error: 'Failed to update customer' }, { status: 500 });
   }
