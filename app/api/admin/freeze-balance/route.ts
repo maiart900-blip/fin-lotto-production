@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createMultiWalletService } from '@/lib/multi-wallet';
-import { logAuditAction } from '@/lib/audit-logger';
+import { logAudit } from '@/lib/audit-logger';
 
 // GET - Get freeze requests
 export async function GET(req: NextRequest) {
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       });
 
       // Audit log
-      await logAuditAction({
+      await logAudit({
         action: 'freeze_balance',
         targetType: 'user',
         targetId: userId,
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Audit log
-      await logAuditAction({
+      await logAudit({
         action: 'release_frozen_balance',
         targetType: 'freeze_request',
         targetId: freezeId,

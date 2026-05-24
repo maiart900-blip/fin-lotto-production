@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { generateDailyOwnerSummary, sendOwnerSummaryToLINE } from '@/lib/daily-owner-summary';
+import { dailyOwnerSummary } from '@/lib/daily-owner-summary';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -25,10 +25,10 @@ export async function GET(request: Request) {
     console.log(`[Daily Owner Report] Generating report for ${dateStr}`);
 
     // Generate summary
-    const summary = await generateDailyOwnerSummary(dateStr);
+    const summary = await dailyOwnerSummary.generateSummary(dateStr);
 
     // Send to LINE
-    await sendOwnerSummaryToLINE(summary);
+    await dailyOwnerSummary.sendToLINE(summary);
 
     console.log(`[Daily Owner Report] Report sent successfully for ${dateStr}`);
 
