@@ -1,7 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { serializeAdminCustomer } from '@/lib/api-serializers';
 
+/**
+ * Single Customer API - Admin level access
+ * Uses ADMIN serializer - full data but excludes password_hash
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -19,7 +24,8 @@ export async function GET(
     return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
   }
   
-  return NextResponse.json(data);
+  // Return serialized response - excludes password_hash
+  return NextResponse.json(serializeAdminCustomer(data));
 }
 
 export async function PATCH(
@@ -74,7 +80,8 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   
-  return NextResponse.json(data);
+  // Return serialized response - excludes password_hash
+  return NextResponse.json(serializeAdminCustomer(data));
 }
 
 export async function PUT(
