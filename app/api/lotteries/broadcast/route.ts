@@ -1,14 +1,17 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/api-auth';
 
 /**
  * API สำหรับ Broadcast การเปลี่ยนแปลงหวยไปทุกเว็บลูก
- * - เมื่อเพิ่มหวยใหม่
- * - เมื่อเปลี่ยนสถานะเปิด/ปิด
- * - เมื่อเปลี่ยนเวลาเปิด-ปิด
+ * ADMIN ONLY - ใช้สำหรับ sync ข้อมูลหวยไปยัง sub-sites
  */
 export async function POST(request: Request) {
   try {
+    // Auth guard - require admin for broadcasting
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { action, lottery, lotteryId } = await request.json();
     
@@ -97,10 +100,14 @@ export async function POST(request: Request) {
 }
 
 /**
- * GET: ดูสถานะ Sync ของทุกเว็บลูก
+ * GET: ดูสถานะ Sync ของทุกเว็บลูก - ADMIN ONLY
  */
 export async function GET() {
   try {
+    // Auth guard - require admin for viewing sync status
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     
     const { data: tenants } = await supabase

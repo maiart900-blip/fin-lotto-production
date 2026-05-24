@@ -1,9 +1,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireSuperAdmin } from '@/lib/api-auth';
+
+/**
+ * Tenants API - SUPER ADMIN ONLY
+ * Manages multi-tenant sites (Sub-Sites)
+ */
 
 // GET - List all tenants with stats (supports pagination for 100,000+ tenants)
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require super admin for tenant management
+    const authResult = await requireSuperAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const searchParams = request.nextUrl.searchParams;
     
@@ -104,6 +114,10 @@ export async function GET(request: NextRequest) {
 // POST - Create new tenant (Sub-Site)
 export async function POST(request: Request) {
   try {
+    // Auth guard - require super admin for creating tenants
+    const authResult = await requireSuperAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await request.json();
     const { 
       name, 

@@ -1,9 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { requireAdmin } from '@/lib/api-auth';
 
+/**
+ * Users API - ADMIN ONLY
+ * Manages system admin users (not customers)
+ */
 export async function GET() {
   try {
+    // Auth guard - require admin for viewing users
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('users')
@@ -25,6 +34,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // Auth guard - require admin for creating users
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const { username, password, displayName, role, is_unlimited_credit, parent_id, hierarchy_level } = await request.json();
     
     const supabase = await createClient();

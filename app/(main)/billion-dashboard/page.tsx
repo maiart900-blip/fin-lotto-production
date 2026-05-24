@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { 
   Crown, Globe, Wallet, Shield, TrendingUp,
   AlertTriangle, Activity, Users, 
@@ -12,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useBetSummary, formatAmount, formatAmountShort, getProfitLossColor } from '@/hooks/use-bet-summary';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const formatCurrency = (amount: number) => {
   if (amount >= 1000000000) {
@@ -46,18 +49,22 @@ export default function BillionDashboard() {
     refreshInterval: 30000,
   });
   
+  // ===== ดึง count จาก sites และ agents =====
+  const { data: sitesData } = useSWR('/api/sites?count_only=true', fetcher);
+  const { data: agentsData } = useSWR('/api/agents?count_only=true', fetcher);
+  
   // Map data to stats format
   const stats = {
     totalVolume: betSummary.totalAmount,
     todayVolume: betSummary.todayAmount,
     totalProfit: betSummary.profitLoss,
     todayProfit: betSummary.todayAmount - (betSummary.totalPayoutAmount - betSummary.pendingPayoutAmount),
-    totalSites: 0, // TODO: ดึงจาก sites table
-    activeSites: 0,
+    totalSites: sitesData?.count ?? sitesData?.length ?? 0,
+    activeSites: sitesData?.activeCount ?? 0,
     totalMembers: betSummary.totalCount,
     activeToday: betSummary.todayCount,
-    totalAgents: 0, // TODO: ดึงจาก agents table
-    totalCreditsIssued: 0,
+    totalAgents: agentsData?.count ?? agentsData?.length ?? 0,
+    totalCreditsIssued: agentsData?.totalCredits ?? 0,
     riskLevel: betSummary.profitLoss < -50000 ? 'high' : betSummary.profitLoss < 0 ? 'medium' : 'low',
     pendingPayouts: betSummary.pendingPayoutAmount,
     alerts: [] as string[],

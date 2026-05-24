@@ -1,9 +1,20 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { requireAgentOrHigher } from '@/lib/api-auth';
+import { stripSensitiveFieldsArray, stripSensitiveFields } from '@/lib/api-serializers';
 
+/**
+ * Customers API - Agent/Admin level access
+ * Uses stripSensitiveFields to remove only password_hash while keeping all operational fields
+ * Frontend depends on full customer data for management pages
+ */
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -58,8 +69,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
     
-    // Return array for backward compatibility (all existing pages expect array)
-    return NextResponse.json(data || []);
+    // Strip sensitive fields (password_hash) but keep all operational fields
+    return NextResponse.json(stripSensitiveFieldsArray(data || []));
   } catch (err) {
     console.error('[v0] Customers GET exception:', err);
     return NextResponse.json([]);
@@ -116,7 +127,8 @@ export async function POST(request: Request) {
       throw error;
     }
     
-    return NextResponse.json(data);
+    // Strip sensitive fields but keep all operational data
+    return NextResponse.json(stripSensitiveFields(data));
   } catch (err: any) {
     console.error('[v0] POST /api/customers error:', err?.message || err);
     return NextResponse.json({ error: 'Failed to create customer', details: err?.message }, { status: 500 });
@@ -155,7 +167,8 @@ export async function PUT(request: Request) {
       throw error;
     }
     
-    return NextResponse.json(data);
+    // Strip sensitive fields but keep all operational data
+    return NextResponse.json(stripSensitiveFields(data));
   } catch {
     return NextResponse.json({ error: 'Failed to update customer' }, { status: 500 });
   }

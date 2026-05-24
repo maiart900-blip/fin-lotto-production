@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { get2FARequirements, update2FARequirement } from '@/lib/2fa-guard';
+import { requireSuperAdmin } from '@/lib/api-auth';
 
 // GET - ดึงการตั้งค่า 2FA requirements ทั้งหมด
 export async function GET() {
   try {
+    // Auth guard - require super_admin for 2FA settings
+    const authResult = await requireSuperAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const requirements = await get2FARequirements();
     
     return NextResponse.json({

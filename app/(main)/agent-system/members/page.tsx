@@ -106,8 +106,8 @@ export default function AutoAgentMembersPage() {
 
   const fetchMembers = async () => {
     try {
-      // ใช้ API กลางจากเว็บแม่ พร้อม filter system_type
-      const res = await fetch('/api/customers?system_type=auto');
+      // ใช้ API กลางจากเว็บแม่ พร้อม filter account_type=staff เพื่อแสดงเฉพาะพนักงาน/ทีมงาน (ไม่ใช่ลูกค้าแทงหวย)
+      const res = await fetch('/api/customers?account_type=staff');
       const data = await res.json();
       setMembers(data || []);
     } catch (error) {
@@ -134,13 +134,14 @@ export default function AutoAgentMembersPage() {
     }
 
     try {
-      // ใช้ API กลางจากเว็บแม่ พร้อมระบุ system_type
+      // ใช้ API กลางจากเว็บแม่ พร้อมระบุ account_type=staff เพื่อบันทึกเป็นพนักงาน (ไม่ใช่ลูกค้าแทงหวย)
       const res = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newMember,
-          system_type: 'auto' // ระบุว่าเป็นระบบออโต้
+          account_type: 'staff', // ระบุว่าเป็นพนักงาน/ทีมงาน ไม่ใช่ลูกค้า
+          system_type: 'auto'
         }),
       });
 
@@ -243,23 +244,23 @@ export default function AutoAgentMembersPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">จัดการแมมเบอร์ (ออโต้)</h1>
-          <p className="text-muted-foreground">เปิดและจัดการพนักงาน/แมมเบอร์ใต้สายงานเอเย่นออโต้</p>
+          <h1 className="text-2xl font-bold text-foreground">จัดการพนักงาน/ทีมงาน</h1>
+          <p className="text-muted-foreground">จัดการพนักงาน (Staff) และผู้ดูแลระบบ (Operator) ใต้สายงาน - ไม่ใช่ลูกค้าแทงหวย</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              เพิ่มแมมเบอร์
+              เพิ่มพนักงาน
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>เพิ่มแมมเบอร์ใหม่</DialogTitle>
+              <DialogTitle>เพิ่มพนักงานใหม่</DialogTitle>
               <DialogDescription>
                 {isAgent 
-                  ? 'แมมเบอร์จะเชื่อมตรงเข้าสายงานของคุณอัตโนมัติ'
-                  : 'เปิดแมมเบอร์/พนักงานใต้สายงานเอเย่นออโต้'
+                  ? 'พนักงานจะเชื่อมตรงเข้าสายงานของคุณอัตโนมัติ'
+                  : 'เปิดพนักงาน/ทีมงานใต้สายงาน (ไม่ใช่ลูกค้าแทงหวย)'
                 }
               </DialogDescription>
             </DialogHeader>
@@ -350,7 +351,7 @@ export default function AutoAgentMembersPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">แมมเบอร์ทั้งหมด</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">พนักงานทั้งหมด</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -399,21 +400,21 @@ export default function AutoAgentMembersPage() {
       {/* Members Table */}
       <Card>
         <CardHeader>
-          <CardTitle>รายชื่อแมมเบอร์ ({filteredMembers.length})</CardTitle>
-          <CardDescription>แมมเบอร์/พนักงานใต้สายงานเอเย่นออโต้</CardDescription>
+          <CardTitle>รายชื่อพนักงาน ({filteredMembers.length})</CardTitle>
+          <CardDescription>พนักงาน (Staff) / ผู้ดูแลระบบ (Operator) - ไม่แสดงลูกค้าแทงหวย</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
           ) : filteredMembers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              ยังไม่มีแมมเบอร์ในระบบ
+              ยังไม่มีพนักงานในระบบ
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>แมมเบอร์</TableHead>
+                  <TableHead>พนักงาน</TableHead>
                   <TableHead>เอเย่นต้นสังกัด</TableHead>
                   <TableHead>ตำแหน่ง</TableHead>
                   <TableHead>สถานะ</TableHead>

@@ -1,11 +1,29 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireSuperAdmin } from '@/lib/api-auth';
+import { logAudit } from '@/lib/audit-logger';
 
 export async function POST(request: Request) {
   try {
+    // Auth guard - require super_admin for restore
+    const authResult = await requireSuperAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+    const { user } = authResult;
+
     const { backupData } = await request.json();
     const supabase = await createClient();
-    
+
+    // Audit log before restore
+    await logAudit({
+      action: 'backup_restore',
+      actor_id: user.id,
+      actor_type: 'admin',
+      target_type: 'system',
+      target_id: 'database',
+      details: { backup_tables: Object.keys(backupData || {}) },
+      ip_address: request.headers.get('x-forwarded-for') || 'unknown',
+    });
+
     // Clear existing data (except users to prevent lockout)
     await supabase.from('entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('customers').delete().neq('id', '00000000-0000-0000-0000-000000000000');

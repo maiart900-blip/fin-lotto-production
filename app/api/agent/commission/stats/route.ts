@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     
     const now = new Date();

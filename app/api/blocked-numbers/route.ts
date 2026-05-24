@@ -1,18 +1,34 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/api-auth';
+
+// Create admin client with service role key to bypass RLS
+function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+  
+  return createSupabaseClient(supabaseUrl, serviceRoleKey);
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Auth guard - require admin for blocked numbers management
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
+    const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
     const lotteryId = searchParams.get('lottery_id');
-    const customerId = searchParams.get('customer_id');
 
     let query = supabase
       .from('blocked_numbers')
       .select(`
         *,
-        lottery:lotteries(id, name, date)
+        lottery:lotteries(id, name)
       `)
       .order('created_at', { ascending: false });
 
@@ -23,24 +39,26 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
+      console.error('GET blocked_numbers error:', error);
       return NextResponse.json([]);
     }
 
     return NextResponse.json(data || []);
-  } catch {
+  } catch (error) {
+    console.error('GET blocked_numbers catch error:', error);
     return NextResponse.json([]);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const body = await request.json();
     
-    // Validate required fields
-    if (!body.lottery_id || !body.number || !body.entry_type) {
+    // Validate required fields (lottery_id is optional for global blocked numbers)
+    if (!body.number || !body.entry_type) {
       return NextResponse.json(
-        { error: 'กรุณากรอกข้อมูลให้ครบถ้วน (หวย, เลข, ประเภท)' }, 
+        { error: 'กรุณากรอกข้อมูลให้ครบถ้วน (เลข, ประเภท)' }, 
         { status: 400 }
       );
     }
@@ -54,18 +72,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate
-    const { data: existing } = await supabase
+    // Check for duplicate - handle both global (null lottery_id) and specific lottery
+    let duplicateQuery = supabase
       .from('blocked_numbers')
       .select('id')
-      .eq('lottery_id', body.lottery_id)
       .eq('number', cleanNumber)
-      .eq('entry_type', body.entry_type)
-      .single();
+      .eq('entry_type', body.entry_type);
+    
+    if (body.lottery_id) {
+      duplicateQuery = duplicateQuery.eq('lottery_id', body.lottery_id);
+    } else {
+      duplicateQuery = duplicateQuery.is('lottery_id', null);
+    }
+
+    const { data: existing } = await duplicateQuery.single();
 
     if (existing) {
       return NextResponse.json(
-        { error: 'เลขนี้มีในรายการอั้นของหวยนี้แล้ว' }, 
+        { error: 'เลขนี้มีในรายการอั้นแล้ว' }, 
         { status: 400 }
       );
     }
@@ -73,7 +97,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('blocked_numbers')
       .insert({
-        lottery_id: body.lottery_id,
+        lottery_id: body.lottery_id || null,
         number: cleanNumber,
         entry_type: body.entry_type,
         limit_amount: body.limit_amount || null,
@@ -86,6 +110,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      console.error('Insert blocked number error:', error);
       return NextResponse.json(
         { error: 'ไม่สามารถบันทึกข้อมูลได้' }, 
         { status: 500 }
@@ -93,7 +118,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(data);
-  } catch {
+  } catch (error) {
+    console.error('Blocked numbers POST error:', error);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาดในระบบ' }, 
       { status: 500 }
@@ -103,7 +129,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const body = await request.json();
     const { id, ...updates } = body;
 
@@ -147,7 +173,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -177,12 +203,4 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// API สำหรับตรวจสอบเลขอั้นก่อนแทง
-export async function OPTIONS(request: NextRequest) {
-  // This is just for CORS, but we can also provide a check endpoint
-  return NextResponse.json({ 
-    message: 'Use POST /api/blocked-numbers/check to verify numbers before betting' 
-  });
 }

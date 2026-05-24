@@ -44,6 +44,7 @@
     "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "1.6.1",
     "@vercel/blob": "^2.3.3",
+    "ai": "^6.0.191",
     "autoprefixer": "^10.4.20",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.76.8",

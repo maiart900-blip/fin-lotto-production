@@ -1,7 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { stripSensitiveFields } from '@/lib/api-serializers';
 
+/**
+ * Customer self-service API - returns own profile data
+ * Uses stripSensitiveFields to remove password_hash while keeping all self-access fields
+ */
 export async function GET() {
   try {
     const cookieStore = await cookies();
@@ -15,7 +20,7 @@ export async function GET() {
     
     const { data: customer, error } = await supabase
       .from('customers')
-      .select('id, name, phone, username, credit_balance, is_active, referral_code, bank_code, bank_account_number, bank_account_name, created_at, total_bets')
+      .select('*')
       .eq('id', customerId)
       .single();
 
@@ -23,7 +28,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
-    return NextResponse.json(customer);
+    // Strip sensitive fields but return full self-access data
+    return NextResponse.json(stripSensitiveFields(customer));
   } catch (error) {
     console.error('Error fetching customer:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -59,7 +65,12 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    // Return only safe fields for self-update response
+    return NextResponse.json({
+      success: true,
+      message: 'Profile updated',
+      updated_fields: ['name', 'bank_code', 'bank_account_number', 'bank_account_name'],
+    });
   } catch (error) {
     console.error('Error updating customer:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

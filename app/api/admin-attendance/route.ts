@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { requireAdmin } from '@/lib/api-auth';
 
 // ฟังก์ชันแปลงเวลาเป็นเวลาไทย (UTC+7)
 function getThaiTime(): Date {
@@ -27,6 +28,10 @@ const REST_DAYS_PER_WEEK = 1; // วันหยุด 1 วันต่อส�
 
 // GET - ดึงข้อมูลการเข้างานของแอดมิน
 export async function GET(request: NextRequest) {
+  // Auth guard - require admin
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
+
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
   

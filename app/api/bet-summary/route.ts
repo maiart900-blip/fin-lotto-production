@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // ===== BET SUMMARY API =====
 // ระบบกลางคำนวณยอดแทง - ทุกหน้าต้องใช้ API นี้เท่านั้น
@@ -117,6 +118,10 @@ function getTodayDate(): string {
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     

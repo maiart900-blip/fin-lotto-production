@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // GET - ดึงรายการเลขอั้นของเอเย่น
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agent_id');

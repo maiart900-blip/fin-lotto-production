@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireSuperAdmin } from '@/lib/api-auth';
 
 // API สำหรับเว็บกลาง - ดูรายงานส่วนแบ่งจากทุกเอเย่น
 // ไม่แก้ไข API เดิม - สร้างใหม่แยก
 
 export async function GET(request: Request) {
   try {
+    // Auth guard - require super_admin for master agent reports
+    const authResult = await requireSuperAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
