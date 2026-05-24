@@ -51,8 +51,7 @@ import { LotteryStatusList } from '@/components/lottery/lottery-status';
 import { Lottery } from '@/lib/lottery-utils';
 import { getBusinessDay, getTodayDateRange } from '@/lib/daily-reset';
 import { useAuth } from '@/hooks/use-auth';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { fetcher } from '@/lib/fetcher';
 
 const betTypes: BetType[] = ['3top', '3tod', '2top', '2bot', '1top', '1bot'];
 
