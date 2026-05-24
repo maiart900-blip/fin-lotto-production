@@ -43,26 +43,35 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Auth guard - require authentication for placing bets
+  const authResult = await requireAuth();
+  if (authResult instanceof NextResponse) return authResult;
+  const { user } = authResult;
+
   const supabase = await createClient();
   const cookieStore = await cookies();
   const customerId = cookieStore.get('customer_id')?.value;
   const adminId = cookieStore.get('admin_id')?.value; // แอดมินผู้รับโพย
   
-  if (!customerId && !adminId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Fallback to user.id if no customer_id/admin_id cookie
+  const effectiveCustomerId = customerId || user?.id;
+  const effectiveAdminId = adminId || (user?.role && ['admin', 'super_admin', 'manager'].includes(user.role) ? user.id : null);
+  
+  if (!effectiveCustomerId && !effectiveAdminId) {
+    return NextResponse.json({ error: 'Unauthorized - no valid session' }, { status: 401 });
   }
   
   try {
     const body = await request.json();
     const { lottery_id, items, customer_name, tenant_id, target_customer_id, source_type, agent_id } = body;
     
-    // ใช้ target_customer_id ถ้าแอดมินคีย์ให้ลูกค้า หรือใช้ customerId ปกติ
-    const actualCustomerId = target_customer_id || customerId;
+    // ใช้ target_customer_id ถ้าแอดมินคีย์ให้ลูกค้า หรือใช้ effectiveCustomerId ปกติ
+    const actualCustomerId = target_customer_id || effectiveCustomerId;
     
     // Determine source_type: manual_key (คีย์หวย) or auto (ลูกค้าแทงเอง)
-    const betSourceType = source_type || (adminId ? 'manual_key' : 'auto');
+    const betSourceType = source_type || (effectiveAdminId ? 'manual_key' : 'auto');
     
-    console.log('[v0] Creating bet:', { lottery_id, actualCustomerId, betSourceType, agent_id, adminId });
+    console.log('[v0] Creating bet:', { lottery_id, actualCustomerId, betSourceType, agent_id, adminId: effectiveAdminId });
     
     if (!lottery_id || !items || items.length === 0) {
       return NextResponse.json({ error: 'Missing lottery_id or items' }, { status: 400 });
@@ -170,6 +179,7 @@ export async function POST(request: NextRequest) {
         total_win_amount: 0,
         source_type: betSourceType, // 'manual_key' or 'auto'
         idempotency_key: idempotencyKey || null, // For duplicate request protection
+        keyed_by: effectiveAdminId || null, // Admin who keyed the bet (if any)
       })
       .select()
       .single();
@@ -298,7 +308,7 @@ export async function POST(request: NextRequest) {
         item_count: items.length,
         total_amount: totalAmount,
         new_balance: finalBalance,
-        created_by: adminId || actualCustomerId,
+        created_by: effectiveAdminId || actualCustomerId,
         customer_name: customer_name || customer.name,
       },
       ipAddress: getClientIP(request),
