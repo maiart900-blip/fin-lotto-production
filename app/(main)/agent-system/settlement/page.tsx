@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,23 +59,39 @@ interface Settlement {
 }
 
 export default function SettlementPage() {
-  // TODO: Get tenant_id from context or session
-  const tenantId = 'current-tenant-id'; // Replace with actual tenant context
+  const [tenantId, setTenantId] = useState<string | null>(null);
   
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // ดึง tenant_id จาก localStorage on mount
+  useEffect(() => {
+    let userStr = localStorage.getItem('lottery_session');
+    if (!userStr) {
+      userStr = localStorage.getItem('user');
+    }
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        // ใช้ tenant_id ถ้ามี หรือ fallback เป็น user.id
+        setTenantId(user.tenant_id || user.id);
+      } catch {
+        // Invalid user data
+      }
+    }
+  }, []);
+
   // ดึงยอดสรุปปัจจุบัน
   const { data: summary, mutate: mutateSummary } = useSWR(
-    `/api/tenant/settlements?tenant_id=${tenantId}&action=summary`,
+    tenantId ? `/api/tenant/settlements?tenant_id=${tenantId}&action=summary` : null,
     fetcher,
     { refreshInterval: 30000 }
   );
 
   // ดึงประวัติการส่งยอด
   const { data: historyData, mutate: mutateHistory } = useSWR<{ settlements: Settlement[] }>(
-    `/api/tenant/settlements?tenant_id=${tenantId}&action=history`,
+    tenantId ? `/api/tenant/settlements?tenant_id=${tenantId}&action=history` : null,
     fetcher
   );
 
