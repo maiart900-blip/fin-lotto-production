@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // API สำหรับเอเย่นส่งเลขไปวิเคราะห์ความเสี่ยงที่เว็บกลาง
 // ใช้ข้อมูลจากเว็บกลางในการคำนวณความเสี่ยง
@@ -7,6 +8,10 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await request.json();
     const { agent_id, lottery_id, entries, date } = body;
 

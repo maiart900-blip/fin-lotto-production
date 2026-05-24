@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // API สรุปยอดส่งเว็บกลาง (Settlement)
 // เอเย่นต้องส่ง % ส่วนแบ่งให้เว็บกลาง
 
 export async function GET(request: Request) {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agent_id');
     const period = searchParams.get('period') || 'daily'; // daily, weekly, monthly

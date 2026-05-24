@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import bcrypt from 'bcryptjs';
 import * as OTPAuth from 'otpauth';
+import { requireAdmin } from '@/lib/api-auth';
 
 // ระดับสายงาน 4 ระดับ
 const AGENT_LEVELS = {
@@ -16,6 +17,10 @@ const AGENT_LEVELS = {
 // GET - ดึงรายชื่อเอเย่นต์จาก agents table
 export async function GET(request: Request) {
   try {
+    // Auth guard - require admin
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const level = searchParams.get('level');
