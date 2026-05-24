@@ -40,9 +40,6 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     // Check for lottery_session (localStorage backup in cookie)
     const sessionCookie = cookieStore.get('lottery_session')?.value;
     
-    // Debug log for troubleshooting auth issues
-    console.log('[v0] Auth check - admin_id:', !!adminId, 'admin_role:', adminRole, 'customer_id:', !!customerId, 'session_cookie:', !!sessionCookie);
-    
     let userId: string | null = null;
     let userRole: UserRole = 'customer';
     
@@ -70,8 +67,8 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     // Verify user exists and is active
     const supabase = await createClient();
     
-    // Check in users table first (for admin/agent)
-    if (userRole !== 'customer') {
+    // Check in users table first (for admin/super_admin)
+    if (userRole === 'super_admin' || userRole === 'admin') {
       const { data: user } = await supabase
         .from('users')
         .select('id, username, role, is_active')
@@ -91,21 +88,66 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
       }
     }
     
-    // Check in customers table
+    // Check in agents table (for agent/partner roles)
+    if (userRole === 'agent' || userRole === 'partner' || userRole === 'agent_key') {
+      const { data: agent } = await supabase
+        .from('agents')
+        .select('id, code, role, status')
+        .eq('id', userId)
+        .single();
+      
+      if (agent && agent.status === 'active') {
+        return {
+          authenticated: true,
+          user: {
+            id: agent.id,
+            username: agent.code,
+            role: (agent.role || 'agent') as UserRole,
+            is_active: true,
+          },
+        };
+      }
+    }
+    
+    // Check in customers table (for customer/member/staff)
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, username, is_active')
+      .select('id, username, is_active, agent_level')
       .eq('id', userId)
       .single();
     
     if (customer && customer.is_active) {
+      // Determine role from agent_level
+      let customerRole: UserRole = 'customer';
+      if (customer.agent_level === 'agent') customerRole = 'agent';
+      else if (customer.agent_level === 'member') customerRole = 'member';
+      
       return {
         authenticated: true,
         user: {
           id: customer.id,
           username: customer.username,
-          role: 'customer',
+          role: customerRole,
           is_active: customer.is_active,
+        },
+      };
+    }
+    
+    // Also check users table as fallback for any role
+    const { data: fallbackUser } = await supabase
+      .from('users')
+      .select('id, username, role, is_active')
+      .eq('id', userId)
+      .single();
+    
+    if (fallbackUser && fallbackUser.is_active) {
+      return {
+        authenticated: true,
+        user: {
+          id: fallbackUser.id,
+          username: fallbackUser.username,
+          role: fallbackUser.role as UserRole,
+          is_active: fallbackUser.is_active,
         },
       };
     }
