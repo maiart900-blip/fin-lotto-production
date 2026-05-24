@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/api-auth';
 
 // Create admin client with service role key to bypass RLS
 function createAdminClient() {
@@ -15,6 +16,10 @@ function createAdminClient() {
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require admin for blocked numbers management
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
     const lotteryId = searchParams.get('lottery_id');

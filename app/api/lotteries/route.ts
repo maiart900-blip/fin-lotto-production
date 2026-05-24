@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 // Standard payout rates for auto-inheritance
 const STANDARD_PAYOUT_RATES = [
@@ -15,6 +16,10 @@ const STANDARD_PAYOUT_RATES = [
 
 export async function GET(request: Request) {
   try {
+    // Auth guard - require authentication
+    const authResult = await requireAuth();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenant_id');
