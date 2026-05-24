@@ -1,0 +1,29 @@
+{
+  "name": "FIN LOTTO R+ - เว็บหวยออนไลน์ระดับพรีเมี่ยม",
+  "short_name": "FIN LOTTO R+",
+  "description": "FIN LOTTO R+ เว็บหวยออนไลน์ระดับพรีเมี่ยม จ่ายสูงบาทละ 900 มั่นคง ปลอดภัย ฝาก-ถอนออโต้ 24 ชม.",
+  "start_url": "/c",
+  "display": "standalone",
+  "background_color": "#0A0F1C",
+  "theme_color": "#F59E0B",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "games"],
+  "lang": "th",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}
