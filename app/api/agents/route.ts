@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher (agents can see list for their own reference)
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
