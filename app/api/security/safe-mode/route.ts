@@ -1,8 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { isSafeModeEnabled, toggleSafeMode } from '@/lib/security';
+import { requireSuperAdmin } from '@/lib/api-auth';
 
 export async function GET() {
+  // Auth guard - require super_admin for safe mode
+  const authResult = await requireSuperAdmin();
+  if (authResult instanceof NextResponse) return authResult;
+
   const enabled = await isSafeModeEnabled();
 
   // Get recent logs

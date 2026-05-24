@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/api-auth';
 
 // GET - Get settlement data for all tenants
 export async function GET(request: Request) {
   try {
+    // Auth guard - require admin for settlement
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || new Date().toISOString().slice(0, 7);
     

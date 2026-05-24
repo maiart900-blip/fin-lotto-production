@@ -6,9 +6,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/api-auth';
+import { logAudit } from '@/lib/audit-logger';
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth guard - require admin for credit transfer
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+    const { user } = authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     const { agentId, type, amount, note } = body;
@@ -112,6 +119,23 @@ export async function POST(request: NextRequest) {
 
     // Try to insert into credit_transactions
     await supabase.from('credit_transactions').insert(transactionData);
+
+    // Audit log for credit transfer
+    await logAudit({
+      action: `credit_${type}`,
+      actor_id: user.id,
+      actor_type: 'admin',
+      target_type: 'agent',
+      target_id: agentId,
+      details: {
+        type,
+        amount: transferAmount,
+        balance_before: type === 'clear_debt' ? currentOutstanding : currentBalance,
+        balance_after: type === 'clear_debt' ? newOutstanding : newBalance,
+        note,
+      },
+      ip_address: request.headers.get('x-forwarded-for') || 'unknown',
+    });
 
     return NextResponse.json({
       success: true,
