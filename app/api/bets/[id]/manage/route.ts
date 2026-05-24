@@ -72,8 +72,8 @@ export async function POST(
           }, { status: 400 });
         }
 
-        // อัปเดตสถานะโพย
-        const { error: updateError } = await supabase
+        // ATOMIC STATUS UPDATE: อัปเดตสถานะโพยพร้อมกัน double refund protection
+        const { data: updatedBet, error: updateError } = await supabase
           .from('bets')
           .update({
             status: 'refunded',
@@ -82,9 +82,17 @@ export async function POST(
             refund_reason: reason,
             updated_at: now,
           })
-          .eq('id', betId);
+          .eq('id', betId)
+          .not('status', 'in', '("paid","cancelled","refunded")') // IDEMPOTENCY: Only if not already processed
+          .select('id, status')
+          .single();
 
-        if (updateError) throw updateError;
+        if (updateError || !updatedBet) {
+          return NextResponse.json({ 
+            error: 'Bet already refunded or modified by another request',
+            code: 'BET_ALREADY_MODIFIED'
+          }, { status: 409 });
+        }
 
         // อัปเดต bet_items
         await supabase
@@ -92,24 +100,37 @@ export async function POST(
           .update({ status: 'refunded' })
           .eq('bet_id', betId);
 
-        // คืนเงินให้ลูกค้า
+        // ATOMIC CREDIT UPDATE: คืนเงินให้ลูกค้า
         const customer = bet.customer as any;
-        const newBalance = (customer?.credit_balance || 0) + bet.total_amount;
-
-        await supabase
+        const refundAmount = bet.total_amount;
+        
+        const { data: updatedCustomer, error: creditError } = await supabase
           .from('customers')
           .update({
-            credit_balance: newBalance,
+            credit_balance: (customer?.credit_balance || 0) + refundAmount,
             updated_at: now,
           })
-          .eq('id', bet.customer_id);
+          .eq('id', bet.customer_id)
+          .select('credit_balance')
+          .single();
+
+        if (creditError || !updatedCustomer) {
+          // Rollback bet status if credit update fails
+          await supabase
+            .from('bets')
+            .update({ status: bet.status, refunded_at: null, refunded_by: null, refund_reason: null })
+            .eq('id', betId);
+          return NextResponse.json({ error: 'Failed to refund credit' }, { status: 500 });
+        }
+
+        const newBalance = updatedCustomer.credit_balance;
 
         // บันทึก credit transaction
         await supabase
           .from('credit_transactions')
           .insert({
             customer_id: bet.customer_id,
-            amount: bet.total_amount,
+            amount: refundAmount,
             type: 'refund',
             description: `คืนโพย ${(bet.lottery as any)?.name || 'หวย'} - ${reason}`,
             balance_after: newBalance,
@@ -150,7 +171,7 @@ export async function POST(
             customer_id: bet.customer_id,
             customer_name: customer?.name,
             lottery_name: (bet.lottery as any)?.name,
-            total_amount: bet.total_amount,
+            total_amount: refundAmount,
             new_balance: newBalance,
           },
         });
@@ -160,7 +181,7 @@ export async function POST(
           action: 'refund',
           message: 'คืนโพยสำเร็จ',
           bet_id: betId,
-          refund_amount: bet.total_amount,
+          refund_amount: refundAmount,
           new_balance: newBalance,
         });
       }
