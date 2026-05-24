@@ -1,6 +1,6 @@
 'use client';
 
-// Main layout for authenticated pages
+// Main layout for authenticated pages - v2
 import { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
