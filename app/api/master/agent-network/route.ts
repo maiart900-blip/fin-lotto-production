@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireSuperAdmin } from '@/lib/api-auth';
 
 // GET - ดึงข้อมูลเครือข่ายลูกสายทั้งหมดแบบ Real-time
 export async function GET() {
   try {
+    // Auth guard - require super_admin for master agent network
+    const authResult = await requireSuperAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
 
     // ดึงลูกสายทั้งหมดจาก customers table

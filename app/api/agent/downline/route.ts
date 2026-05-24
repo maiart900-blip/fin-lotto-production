@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // API สำหรับเอเย่นจัดการ downline (ลูก, หลาน, เหลน...)
 // GET - ดู downline ทั้งหมดของตัวเอง
@@ -8,6 +9,10 @@ import bcrypt from 'bcryptjs';
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agent_id');

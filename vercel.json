@@ -1,3 +1,17 @@
 {
-  "buildCommand": "node .v0/inject-built-with-v0.mjs && next build"
+  "buildCommand": "node .v0/inject-built-with-v0.mjs && next build",
+  "crons": [
+    {
+      "path": "/api/cron/daily-closing",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/daily-owner-report",
+      "schedule": "30 18 * * *"
+    },
+    {
+      "path": "/api/cron/data-retention",
+      "schedule": "0 20 * * 0"
+    }
+  ]
 }

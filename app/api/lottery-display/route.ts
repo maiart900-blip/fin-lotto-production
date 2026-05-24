@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/api-auth';
 
+/**
+ * GET /api/lottery-display - PUBLIC ROUTE
+ * Returns lottery display settings for customer-facing pages
+ */
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -50,8 +55,16 @@ export async function GET() {
   }
 }
 
+/**
+ * PUT /api/lottery-display - ADMIN ONLY
+ * Update display settings for a lottery
+ */
 export async function PUT(request: Request) {
   try {
+    // Auth guard - require admin for updating display settings
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     const { lottery_id, ...settings } = body;
@@ -80,8 +93,16 @@ export async function PUT(request: Request) {
   }
 }
 
+/**
+ * POST /api/lottery-display - ADMIN ONLY
+ * Update display order for multiple lotteries
+ */
 export async function POST(request: Request) {
   try {
+    // Auth guard - require admin for updating display orders
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     const { orders } = body;

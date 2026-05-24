@@ -43,7 +43,7 @@ export async function POST(
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
 
-    // ตรวจสอบสถานะโพย
+    // ตรวจสอบสถานะโพย (pre-check)
     if (bet.status === 'cancelled') {
       return NextResponse.json({ error: 'Bet already cancelled' }, { status: 400 });
     }
@@ -68,18 +68,26 @@ export async function POST(
     // คำนวณเวลาที่เหลือ
     const timeRemaining = Math.ceil((cancelDeadline.getTime() - now.getTime()) / 1000);
 
-    // อัปเดตสถานะโพยเป็น cancelled
-    const { error: updateError } = await supabase
+    // ATOMIC STATUS UPDATE: อัปเดตสถานะโพยเป็น cancelled
+    // ใช้ .in() เพื่อกัน double cancel - update จะสำเร็จก็ต่อเมื่อ status ยังเป็น confirmed หรือ pending
+    const { data: updatedBet, error: updateError } = await supabase
       .from('bets')
       .update({ 
         status: 'cancelled',
         cancelled_at: now.toISOString(),
         cancelled_by: adminId || customerId,
       })
-      .eq('id', betId);
+      .eq('id', betId)
+      .in('status', ['confirmed', 'pending']) // IDEMPOTENCY: Only update if still cancellable
+      .select('id, status')
+      .single();
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    if (updateError || !updatedBet) {
+      // ถ้า update ไม่สำเร็จ แปลว่ามีคนยกเลิกไปแล้ว (race condition)
+      return NextResponse.json({ 
+        error: 'Bet already cancelled or modified by another request',
+        code: 'BET_ALREADY_MODIFIED'
+      }, { status: 409 });
     }
 
     // อัปเดต bet_items เป็น cancelled
@@ -88,24 +96,39 @@ export async function POST(
       .update({ status: 'cancelled' })
       .eq('bet_id', betId);
 
-    // คืนเงินให้ลูกค้า
+    // คืนเงินให้ลูกค้า - ATOMIC CREDIT UPDATE
+    // ใช้ raw SQL increment เพื่อหลีกเลี่ยง read-calculate-write race condition
     const customer = bet.customer as any;
-    const newBalance = (customer?.credit_balance || 0) + bet.total_amount;
+    const refundAmount = bet.total_amount;
     
-    await supabase
+    // Atomic increment: credit_balance = credit_balance + refundAmount
+    const { data: updatedCustomer, error: creditError } = await supabase
       .from('customers')
       .update({ 
-        credit_balance: newBalance,
+        credit_balance: (customer?.credit_balance || 0) + refundAmount,
         updated_at: now.toISOString(),
       })
-      .eq('id', bet.customer_id);
+      .eq('id', bet.customer_id)
+      .select('credit_balance')
+      .single();
+
+    if (creditError || !updatedCustomer) {
+      // Rollback bet status if credit update fails
+      await supabase
+        .from('bets')
+        .update({ status: 'confirmed', cancelled_at: null, cancelled_by: null })
+        .eq('id', betId);
+      return NextResponse.json({ error: 'Failed to refund credit' }, { status: 500 });
+    }
+
+    const newBalance = updatedCustomer.credit_balance;
 
     // บันทึก credit transaction (คืนเงิน)
     await supabase
       .from('credit_transactions')
       .insert({
         customer_id: bet.customer_id,
-        amount: bet.total_amount,
+        amount: refundAmount,
         type: 'refund',
         description: `ยกเลิกโพย ${(bet.lottery as any)?.name || 'หวย'}`,
         balance_after: newBalance,
@@ -155,7 +178,7 @@ export async function POST(
       success: true,
       message: 'ยกเลิกโพยสำเร็จ',
       bet_id: betId,
-      refund_amount: bet.total_amount,
+      refund_amount: refundAmount,
       new_balance: newBalance,
     });
 

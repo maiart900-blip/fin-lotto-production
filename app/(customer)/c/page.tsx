@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import useSWR from 'swr';
 import { BannerCarousel } from '@/components/customer/banner-carousel';
+import { FeatureBar } from '@/components/customer/feature-bar';
 
 interface CustomerData {
   id: string;
@@ -109,9 +110,18 @@ export default function CustomerDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="px-4 pt-5 space-y-5 relative z-10">
+      <main className="relative z-10">
         {/* Banner Carousel */}
-        <BannerCarousel />
+        <div className="px-4 pt-5">
+          <BannerCarousel />
+        </div>
+        
+        {/* Feature Bar */}
+        <div className="mt-4">
+          <FeatureBar />
+        </div>
+        
+        <div className="px-4 pt-5 space-y-5 pb-24">
         
         {/* User Profile Card - Premium */}
         <div className="premium-card p-4">
@@ -208,7 +218,7 @@ export default function CustomerDashboard() {
           ))}
         </div>
 
-
+        </div>
       </main>
 
       {/* Bottom Navigation */}

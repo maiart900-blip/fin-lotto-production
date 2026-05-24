@@ -1,6 +1,32 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { cookies } from 'next/headers';
+
+/**
+ * Set authentication cookies for server-side auth verification
+ * These cookies are read by api-auth.ts to authenticate API requests
+ */
+async function setAuthCookies(userId: string, role: string, userType: 'admin' | 'customer') {
+  const cookieStore = await cookies();
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: '/',
+  };
+  
+  if (userType === 'admin') {
+    cookieStore.set('admin_id', userId, cookieOptions);
+    cookieStore.set('admin_role', role, cookieOptions);
+    // Also set lottery_session cookie for backup
+    cookieStore.set('lottery_session', JSON.stringify({ id: userId, role }), cookieOptions);
+  } else {
+    cookieStore.set('customer_id', userId, cookieOptions);
+    cookieStore.set('lottery_session', JSON.stringify({ id: userId, role: 'customer' }), cookieOptions);
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -53,6 +79,9 @@ export async function POST(request: Request) {
       if (permission) {
         permissionData = permission;
       }
+      
+      // Set auth cookies for server-side verification
+      await setAuthCookies(user.id, user.role, 'admin');
       
       return NextResponse.json({
         success: true,
@@ -172,6 +201,9 @@ export async function POST(request: Request) {
         redirectTo = '/';
       }
       
+      // Set auth cookies for server-side verification (treat as admin for API access)
+      await setAuthCookies(agent.id, agent.role || 'agent', 'admin');
+      
       return NextResponse.json({
         success: true,
         userType: 'agent_key',
@@ -282,6 +314,13 @@ export async function POST(request: Request) {
         redirectTo = '/agent-dashboard';
       } else if (isMember) {
         redirectTo = '/'; // พนักงานไปหน้า Admin
+      }
+      
+      // Set auth cookies for server-side verification
+      if (isAgent || isMember) {
+        await setAuthCookies(customer.id, isAgent ? 'agent' : 'member', 'admin');
+      } else {
+        await setAuthCookies(customer.id, 'customer', 'customer');
       }
       
       return NextResponse.json({

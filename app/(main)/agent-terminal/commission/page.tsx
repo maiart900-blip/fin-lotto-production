@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,34 +41,70 @@ interface DailySummary {
   betCount: number;
 }
 
-// Mock data
-const COMMISSION_RATE = 20;
-
-const MOCK_ENTRIES: CommissionEntry[] = [
-  { id: '1', date: '2024-01-15', lotteryName: 'หวยรัฐบาล', totalBets: 25000, commissionRate: 20, commissionAmount: 5000, netPayable: 20000, betCount: 45, status: 'pending' },
-  { id: '2', date: '2024-01-15', lotteryName: 'หวยลาว', totalBets: 15000, commissionRate: 20, commissionAmount: 3000, netPayable: 12000, betCount: 28, status: 'pending' },
-  { id: '3', date: '2024-01-15', lotteryName: 'หวยฮานอย', totalBets: 8000, commissionRate: 20, commissionAmount: 1600, netPayable: 6400, betCount: 15, status: 'pending' },
-  { id: '4', date: '2024-01-14', lotteryName: 'หวยรัฐบาล', totalBets: 32000, commissionRate: 20, commissionAmount: 6400, netPayable: 25600, betCount: 58, status: 'settled' },
-  { id: '5', date: '2024-01-14', lotteryName: 'หวยหุ้นนิเคอิ', totalBets: 12000, commissionRate: 20, commissionAmount: 2400, netPayable: 9600, betCount: 22, status: 'settled' },
-  { id: '6', date: '2024-01-13', lotteryName: 'หวยลาว', totalBets: 18000, commissionRate: 20, commissionAmount: 3600, netPayable: 14400, betCount: 35, status: 'settled' },
-];
-
-const MOCK_WEEKLY: DailySummary[] = [
-  { date: '2024-01-15', totalBets: 48000, totalCommission: 9600, netPayable: 38400, betCount: 88 },
-  { date: '2024-01-14', totalBets: 44000, totalCommission: 8800, netPayable: 35200, betCount: 80 },
-  { date: '2024-01-13', totalBets: 18000, totalCommission: 3600, netPayable: 14400, betCount: 35 },
-  { date: '2024-01-12', totalBets: 52000, totalCommission: 10400, netPayable: 41600, betCount: 95 },
-  { date: '2024-01-11', totalBets: 38000, totalCommission: 7600, netPayable: 30400, betCount: 70 },
-  { date: '2024-01-10', totalBets: 45000, totalCommission: 9000, netPayable: 36000, betCount: 82 },
-  { date: '2024-01-09', totalBets: 35000, totalCommission: 7000, netPayable: 28000, betCount: 65 },
-];
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function CommissionSummaryPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
-  const [entries, setEntries] = useState<CommissionEntry[]>(MOCK_ENTRIES);
+  const [agentId, setAgentId] = useState<string | null>(null);
+
+  // ดึง agent ID จาก localStorage
+  useEffect(() => {
+    let userStr = localStorage.getItem('lottery_session');
+    if (!userStr) userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setAgentId(user.id);
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  // คำนวณ date range ตาม period
+  const getDateRange = () => {
+    const now = new Date();
+    let start = new Date();
+    if (selectedPeriod === 'today') {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (selectedPeriod === 'week') {
+      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    return {
+      start: start.toISOString().split('T')[0],
+      end: now.toISOString().split('T')[0],
+    };
+  };
+
+  const dateRange = getDateRange();
+
+  // ดึงข้อมูลจาก API
+  const { data: profitData } = useSWR(
+    agentId ? `/api/agent/profit?agent_id=${agentId}&start_date=${dateRange.start}&end_date=${dateRange.end}` : null,
+    fetcher
+  );
+
+  const { data: entriesData } = useSWR(
+    agentId ? `/api/agent/entries?agent_id=${agentId}` : null,
+    fetcher
+  );
+
+  // Map entries data จาก API - ถ้าไม่มีข้อมูลจะแสดง empty array
+  const entries: CommissionEntry[] = (entriesData?.entries || []).map((e: any) => ({
+    id: e.id,
+    date: e.created_at?.split('T')[0] || '',
+    lotteryName: e.lottery_name || 'Unknown',
+    totalBets: e.total_amount || 0,
+    commissionRate: 20,
+    commissionAmount: (e.total_amount || 0) * 0.2,
+    netPayable: (e.total_amount || 0) * 0.8,
+    betCount: 1,
+    status: e.status === 'settled' ? 'settled' : 'pending' as const,
+  }));
 
   // Filter entries by period
-  const todayEntries = entries.filter(e => e.date === '2024-01-15');
+  const today = new Date().toISOString().split('T')[0];
+  const todayEntries = entries.filter(e => e.date === today);
   const displayEntries = selectedPeriod === 'today' ? todayEntries : entries;
 
   // Calculate totals
@@ -78,15 +115,24 @@ export default function CommissionSummaryPage() {
     totalCount: acc.totalCount + entry.betCount,
   }), { totalBets: 0, totalCommission: 0, totalNet: 0, totalCount: 0 });
 
+  // Weekly summary จาก profitData
+  const weeklyData: DailySummary[] = (profitData?.daily || []).map((d: any) => ({
+    date: d.date,
+    totalBets: d.total_amount || 0,
+    totalCommission: d.agent_share || 0,
+    netPayable: (d.total_amount || 0) - (d.agent_share || 0),
+    betCount: d.total_bets || 0,
+  }));
+
   // Weekly totals
-  const weeklyTotals = MOCK_WEEKLY.reduce((acc, day) => ({
+  const weeklyTotals = weeklyData.reduce((acc, day) => ({
     totalBets: acc.totalBets + day.totalBets,
     totalCommission: acc.totalCommission + day.totalCommission,
     totalNet: acc.totalNet + day.netPayable,
   }), { totalBets: 0, totalCommission: 0, totalNet: 0 });
 
   // Find max for chart scaling
-  const maxBets = Math.max(...MOCK_WEEKLY.map(d => d.totalBets));
+  const maxBets = Math.max(...weeklyData.map(d => d.totalBets), 1);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#030712] via-[#0a0f1a] to-[#030712] p-4 md:p-6">
@@ -198,7 +244,9 @@ export default function CommissionSummaryPage() {
           <CardContent>
             {/* Simple Bar Chart */}
             <div className="space-y-3">
-              {MOCK_WEEKLY.map((day, index) => {
+              {weeklyData.length === 0 ? (
+                <div className="text-center text-slate-500 py-8">ไม่มีข้อมูล</div>
+              ) : weeklyData.map((day, index) => {
                 const percentage = (day.totalBets / maxBets) * 100;
                 return (
                   <div key={day.date} className="flex items-center gap-3">

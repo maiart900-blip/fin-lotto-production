@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { 
   Palette, Upload, Eye, Save, RotateCcw, Globe,
   Monitor, Smartphone, Sun, Moon, Type, Image,
-  Layout, Paintbrush, CheckCircle2, AlertCircle
+  Layout, Paintbrush, CheckCircle2, AlertCircle, Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,13 +23,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-// Mock sites for brand settings
-const mockSites = [
-  { id: 'site_001', name: 'LottoKing', domain: 'lottoking.com' },
-  { id: 'site_002', name: 'HuayVIP', domain: 'huayvip.net' },
-  { id: 'site_003', name: 'LottoPro', domain: 'lottopro.co' },
-  { id: 'site_004', name: 'MegaLotto', domain: 'megalotto.asia' },
-];
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 // Default brand settings
 const defaultBranding = {
@@ -62,10 +57,27 @@ const defaultBranding = {
 };
 
 export default function BrandingPage() {
-  const [selectedSite, setSelectedSite] = useState(mockSites[0]);
+  // ดึงข้อมูล sites จาก API
+  const { data: sitesData, isLoading } = useSWR('/api/sites', fetcher);
+  
+  // Map sites from API - ถ้าไม่มีข้อมูลจะเป็น empty array
+  const sites = (sitesData?.sites || sitesData || []).map((s: any) => ({
+    id: s.id,
+    name: s.name || s.site_name || 'Unknown',
+    domain: s.domain || '-',
+  }));
+
+  const [selectedSite, setSelectedSite] = useState<{ id: string; name: string; domain: string } | null>(null);
   const [branding, setBranding] = useState(defaultBranding);
   const [hasChanges, setHasChanges] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
+
+  // Set default selected site when data loads
+  useEffect(() => {
+    if (sites.length > 0 && !selectedSite) {
+      setSelectedSite(sites[0]);
+    }
+  }, [sites, selectedSite]);
 
   const updateColor = (key: keyof typeof defaultBranding.colors, value: string) => {
     setBranding(prev => ({
@@ -91,22 +103,31 @@ export default function BrandingPage() {
         </div>
         
         <div className="flex gap-3">
-          <Select 
-            value={selectedSite.id} 
-            onValueChange={(id) => setSelectedSite(mockSites.find(s => s.id === id) || mockSites[0])}
-          >
-            <SelectTrigger className="w-[200px] bg-black/40 border-amber-500/30">
-              <Globe className="size-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-[#0a0f1a] border-amber-500/30">
-              {mockSites.map(site => (
-                <SelectItem key={site.id} value={site.id}>
-                  {site.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-slate-400">
+              <Loader2 className="size-4 animate-spin" />
+              กำลังโหลด...
+            </div>
+          ) : sites.length === 0 ? (
+            <div className="text-slate-400">ไม่พบข้อมูลเว็บลูก</div>
+          ) : (
+            <Select 
+              value={selectedSite?.id || ''} 
+              onValueChange={(id) => setSelectedSite(sites.find((s: any) => s.id === id) || sites[0])}
+            >
+              <SelectTrigger className="w-[200px] bg-black/40 border-amber-500/30">
+                <Globe className="size-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0a0f1a] border-amber-500/30">
+                {sites.map((site: any) => (
+                  <SelectItem key={site.id} value={site.id}>
+                    {site.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           
           <Button variant="outline" className="border-slate-600" onClick={() => setBranding(defaultBranding)}>
             <RotateCcw className="size-4 mr-2" />

@@ -1,5 +1,7 @@
 'use client';
 
+// Sidebar navigation component - FIN LOTTO R+ v3 Production
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
@@ -48,6 +50,7 @@ import {
   FileDown,
   ShieldAlert,
   ClipboardCheck,
+  Target,
   Bot,
   ChevronDown,
   Headphones,
@@ -69,7 +72,6 @@ import {
   Keyboard,
   Zap,
   GitBranch,
-  Target,
   Scale,
   FileBarChart,
   Coins,
@@ -137,12 +139,12 @@ const operationItems = [
   { title: 'รายการรอตรวจสอบ', href: '/pending-review', icon: ClipboardCheck },
 ];
 
-// 3. สมาชิก
+// 3. ลูกค้าแทงหวย (Customers - ไม่ใช่พนักงาน)
 const memberItems = [
-  { title: 'รายชื่อสมาชิก', href: '/customers', icon: Users },
-  { title: 'ประวัติสมาชิก', href: '/customer-history', icon: History },
+  { title: 'รายชื่อลูกค้าแทงหวย', href: '/customers', icon: Users },
+  { title: 'ประวัติลูกค้า', href: '/customer-history', icon: History },
   { title: 'ธนาคารลูกค้า', href: '/customer-banks', icon: Landmark },
-  { title: 'สรุปแมมเบอร์', href: '/member-summary', icon: UsersRound },
+  { title: 'สรุปลูกค้า', href: '/member-summary', icon: UsersRound },
 ];
 
 // 4. บัญชีและการเงิน
@@ -205,6 +207,8 @@ const agentPartnerItems = [
 // 8. รายงาน
 const reportItems = [
   { title: 'Omni-Channel', href: '/reports/omni-channel', icon: Globe },
+  { title: 'รายงานย้อนหลัง', href: '/reports/daily-closing', icon: History },
+  { title: 'KPI Dashboard', href: '/kpi-dashboard', icon: Target },
   { title: 'วิเคราะห์ยอดเลข', href: '/analysis', icon: BarChart3 },
   { title: 'กำไร/ขาดทุน', href: '/profit-loss', icon: PieChart },
   { title: 'รายงาน', href: '/reports', icon: FileDown },
@@ -297,7 +301,7 @@ const autoSystemItems = [
 // 14. สายงานเอเย่นต์ (รวม ออโต้ และ คีย์หวย)
 const agentSystemItems = [
   { title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
-  { title: 'จัดการแมมเบอร์', href: '/agent-system/members', icon: Users },
+  { title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
   { title: 'คอมมิชชั่น', href: '/agent-system/commission', icon: DollarSign },
   { title: 'ตั้งค่าธนาคาร', href: '/agent-system/bank-settings', icon: Building2 },
   { title: 'ตั้งค่าเว็บลูก', href: '/agent-system/site-settings', icon: Settings },
@@ -347,8 +351,8 @@ const comparisonReportItems = [
 const staffManagementItems = [
   { title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
   { title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck },
-  { title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
-  { title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings },
+  { title: 'สรุปเงินเด��อน', href: '/payroll', icon: Wallet },
+  { title: 'ตั���งค่า Payroll', href: '/payroll/settings', icon: Settings },
   { title: 'รายงานโ���ที', href: '/payroll/ot-report', icon: Clock },
   { title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3 },
 ];
@@ -415,7 +419,7 @@ const menuSections: MenuSection[] = [
   // === ADMIN MENUS (เฉพาะ Admin/Super Admin) ===
   { title: 'ศูนย์ปฏิบัติการ', icon: Headphones, items: operationItems, defaultOpen: true, adminOnly: true, staffVisible: true, memberVisible: true },
   { title: 'ศูนย์แอดมิน', icon: User, items: memberAdminItems, defaultOpen: false, adminOnly: true },
-  { title: 'สมาชิก', icon: Users, items: memberItems, defaultOpen: false, adminOnly: true, staffVisible: true },
+  { title: 'ลูกค้าแทงหวย', icon: Users, items: memberItems, defaultOpen: false, adminOnly: true, staffVisible: true },
   { title: 'บัญชีและการเงิน', icon: Wallet, items: financeItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
   { title: 'หวย', icon: Ticket, items: lotteryItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
   { title: 'ระบบออโต้', icon: Zap, items: autoSystemItems, defaultOpen: false, adminOnly: true },

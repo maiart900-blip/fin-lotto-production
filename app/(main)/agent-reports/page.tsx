@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -42,37 +42,99 @@ export default function AgentReportsPage() {
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year'>('month');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [agentId, setAgentId] = useState<string | null>(null);
 
-  // Mock data - ในระบบจริงจะดึงจาก API
-  const incomeData = {
-    today: { income: 15000, bets: 50000, wins: 35000, profit: 15000 },
-    week: { income: 85000, bets: 350000, wins: 265000, profit: 85000 },
-    month: { income: 350000, bets: 1500000, wins: 1150000, profit: 350000 },
-    year: { income: 4200000, bets: 18000000, wins: 13800000, profit: 4200000 },
+  // ดึง agent ID จาก localStorage
+  useEffect(() => {
+    let userStr = localStorage.getItem('lottery_session');
+    if (!userStr) userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setAgentId(user.id);
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  // คำนวณ date range จาก period
+  const getDateRange = () => {
+    const now = new Date();
+    let start = new Date();
+    if (period === 'today') {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (period === 'week') {
+      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else {
+      start = new Date(now.getFullYear(), 0, 1);
+    }
+    return {
+      start: start.toISOString().split('T')[0],
+      end: now.toISOString().split('T')[0],
+    };
   };
 
-  const currentData = incomeData[period];
+  const dateRange = getDateRange();
 
-  const dailyBreakdown = [
-    { date: '2026-05-19', bets: 50000, wins: 35000, profit: 15000, members: 12 },
-    { date: '2026-05-18', bets: 48000, wins: 33000, profit: 15000, members: 10 },
-    { date: '2026-05-17', bets: 52000, wins: 38000, profit: 14000, members: 14 },
-    { date: '2026-05-16', bets: 45000, wins: 32000, profit: 13000, members: 11 },
-    { date: '2026-05-15', bets: 55000, wins: 40000, profit: 15000, members: 15 },
-  ];
+  // ดึงข้อมูลจาก API /api/agent/profit
+  const { data: profitData, mutate: refreshProfit, isLoading } = useSWR(
+    agentId ? `/api/agent/profit?agent_id=${agentId}&start_date=${dateRange.start}&end_date=${dateRange.end}` : null,
+    fetcher
+  );
 
-  const commissionHistory = [
-    { id: 1, date: '2026-05-15', amount: 5000, status: 'completed', method: 'ธนาคาร' },
-    { id: 2, date: '2026-05-01', amount: 8000, status: 'completed', method: 'ธนาคาร' },
-    { id: 3, date: '2026-04-15', amount: 6500, status: 'completed', method: 'ธนาคาร' },
-  ];
+  // ดึงข้อมูลจาก API /api/agent/entries สำหรับ betting stats
+  const { data: entriesData, mutate: refreshEntries } = useSWR(
+    agentId ? `/api/agent/entries?agent_id=${agentId}` : null,
+    fetcher
+  );
 
-  const bettingStats = [
-    { lottery: 'หวยรัฐบาล', bets: 250000, wins: 180000, profit: 70000, count: 150 },
-    { lottery: 'หวยลาว', bets: 180000, wins: 140000, profit: 40000, count: 120 },
-    { lottery: 'หวยฮานอย', bets: 150000, wins: 110000, profit: 40000, count: 100 },
-    { lottery: 'หวยยี่กี', bets: 320000, wins: 250000, profit: 70000, count: 200 },
-  ];
+  // Map data จาก API - ถ้าไม่มีข้อมูลจะแสดง empty state
+  const currentData = {
+    income: profitData?.summary?.agent_share || 0,
+    bets: profitData?.summary?.total_amount || 0,
+    wins: profitData?.summary?.total_payout || 0,
+    profit: profitData?.summary?.profit || 0,
+  };
+
+  const dailyBreakdown = profitData?.daily || [];
+  const commissionHistory: any[] = []; // ยังไม่มี API - ใช้ empty array
+  const bettingStats: any[] = []; // ยังไม่มี API สำหรับสถิติตามหวย - ใช้ empty array
+
+  const handleRefresh = async () => {
+    await refreshProfit();
+    await refreshEntries();
+  };
+
+  const handleExport = () => {
+    if (!profitData) return;
+    const periodLabels = { today: 'วันนี้', week: 'สัปดาห์นี้', month: 'เดือนนี้', year: 'ปีนี้' };
+    const csvContent = [
+      ['รายงานเอเย่น - ' + periodLabels[period]],
+      [''],
+      ['สรุป'],
+      ['รายได้ (คอมมิชชั่น)', currentData.income],
+      ['ยอดแทงรวม', currentData.bets],
+      ['ยอดถูกรางวัล', currentData.wins],
+      ['กำไร/ขาดทุน', currentData.profit],
+      [''],
+      ['รายละเอียดรายวัน'],
+      ['วันที่', 'ยอดแทง', 'จ่ายรางวัล', 'กำไร'],
+      ...dailyBreakdown.map((d: any) => [d.date, d.total_amount, d.total_payout, d.profit]),
+      [''],
+      ['สร้างเมื่อ', new Date().toLocaleString('th-TH')],
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `agent-report-${period}-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -85,13 +147,13 @@ export default function AgentReportsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <RefreshCw className="mr-2 size-4" />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={`mr-2 size-4 ${isLoading ? 'animate-spin' : ''}`} />
             รีเฟรช
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={!profitData}>
             <Download className="mr-2 size-4" />
-            ส่งออก Excel
+            ส่งออก CSV
           </Button>
         </div>
       </div>

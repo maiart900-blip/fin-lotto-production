@@ -32,7 +32,8 @@ import {
   Search,
   Filter,
   Download,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,142 +80,52 @@ export default function SuperAdminDownlinePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'warning' | 'locked'>('all');
 
-  // Mock data - replace with real API
-  const totalCreditReleased = 25750000;
+  // ดึงข้อมูลจาก APIs
+  const { data: downlineData, isLoading: loadingDownline } = useSWR('/api/agent/downline', fetcher);
+  const { data: dashboardStats, isLoading: loadingStats } = useSWR('/api/dashboard/stats', fetcher);
+  const { data: agentsData, isLoading: loadingAgents } = useSWR('/api/agents', fetcher);
+
+  const isLoading = loadingDownline || loadingStats || loadingAgents;
+
+  // Map API data - ถ้าไม่มีข้อมูลจะเป็น 0 หรือ empty array
+  const agents = agentsData?.agents || agentsData || [];
+  const stats = dashboardStats || {};
+
+  // Calculate totals from API data
+  const totalCreditReleased = stats?.total?.totalCredit || agents.reduce((sum: number, a: any) => sum + (a.credit_limit || a.creditLimit || 0), 0);
   const totalFlow: TotalFlow = {
-    incoming: 12500000,
-    outgoing: 8200000,
-    net: 4300000
+    incoming: stats?.flow?.incoming || 0,
+    outgoing: stats?.flow?.outgoing || 0,
+    net: stats?.flow?.net || 0
   };
-  const totalAgents = 32;
-  const totalMembers = 1850;
-  const todayBets = 5850000;
-  const todayWinLoss = 485000;
+  const totalAgents = agents.length || 0;
+  const totalMembers = stats?.total?.members || 0;
+  const todayBets = stats?.today?.totalBets || 0;
+  const todayWinLoss = stats?.today?.netProfit || 0;
 
-  // Revenue chart data (7 days)
-  const revenueData = [
-    { date: '7 พ.ค.', revenue: 520000, bets: 6200000 },
-    { date: '8 พ.ค.', revenue: 385000, bets: 4800000 },
-    { date: '9 พ.ค.', revenue: 610000, bets: 7100000 },
-    { date: '10 พ.ค.', revenue: 295000, bets: 3900000 },
-    { date: '11 พ.ค.', revenue: 720000, bets: 8200000 },
-    { date: '12 พ.ค.', revenue: 480000, bets: 5800000 },
-    { date: '13 พ.ค.', revenue: 485000, bets: 5850000 },
-  ];
-  const maxRevenue = Math.max(...revenueData.map(d => d.revenue));
+  // Revenue chart data - empty for now (would need specific API)
+  const revenueData: { date: string; revenue: number; bets: number }[] = [];
+  const maxRevenue = Math.max(...revenueData.map(d => d.revenue), 1);
 
-  // Mock agent tree
-  const agentTree: AgentNode[] = [
-    {
-      id: 'M001',
-      username: 'master_north',
-      name: 'สายเหนือ (เจ้าเก่ง)',
-      level: 'master',
-      creditLimit: 8000000,
-      creditUsed: 5200000,
-      commission: 30,
-      pt: 20,
-      todayBets: 1850000,
-      todayWinLoss: 185000,
-      memberCount: 650,
-      downlineCount: 12,
-      status: 'active',
-      children: [
-        {
-          id: 'S001',
-          username: 'senior_cm',
-          name: 'เชียงใหม่ (พี่หนึ่ง)',
-          level: 'senior',
-          creditLimit: 3000000,
-          creditUsed: 2400000,
-          commission: 27,
-          pt: 17,
-          todayBets: 650000,
-          todayWinLoss: 72000,
-          memberCount: 220,
-          downlineCount: 5,
-          status: 'active',
-        },
-        {
-          id: 'S002',
-          username: 'senior_cr',
-          name: 'เชียงราย (พี่สอง)',
-          level: 'senior',
-          creditLimit: 2500000,
-          creditUsed: 2450000,
-          commission: 25,
-          pt: 15,
-          todayBets: 480000,
-          todayWinLoss: -35000,
-          memberCount: 180,
-          downlineCount: 4,
-          status: 'warning',
-        },
-      ]
-    },
-    {
-      id: 'M002',
-      username: 'master_south',
-      name: 'สายใต้ (เจ้าหนุ่ม)',
-      level: 'master',
-      creditLimit: 6000000,
-      creditUsed: 4800000,
-      commission: 28,
-      pt: 18,
-      todayBets: 1250000,
-      todayWinLoss: -85000,
-      memberCount: 480,
-      downlineCount: 8,
-      status: 'active',
-      children: [
-        {
-          id: 'S003',
-          username: 'senior_hkt',
-          name: 'ภูเก็ต (พี่เก็ต)',
-          level: 'senior',
-          creditLimit: 2000000,
-          creditUsed: 1950000,
-          commission: 25,
-          pt: 15,
-          todayBets: 520000,
-          todayWinLoss: 45000,
-          memberCount: 150,
-          downlineCount: 3,
-          status: 'warning',
-        },
-      ]
-    },
-    {
-      id: 'M003',
-      username: 'master_central',
-      name: 'สายกลาง (เจ้าโต้ง)',
-      level: 'master',
-      creditLimit: 5500000,
-      creditUsed: 3100000,
-      commission: 32,
-      pt: 22,
-      todayBets: 1480000,
-      todayWinLoss: 185000,
-      memberCount: 420,
-      downlineCount: 7,
-      status: 'active',
-    },
-    {
-      id: 'M004',
-      username: 'master_east',
-      name: 'สายตะวันออก (เจ้าบอย)',
-      level: 'master',
-      creditLimit: 3500000,
-      creditUsed: 3480000,
-      commission: 25,
-      pt: 15,
-      todayBets: 620000,
-      todayWinLoss: -55000,
-      memberCount: 200,
-      downlineCount: 5,
-      status: 'locked',
-    },
-  ];
+  // Map downline tree from API
+  const mapToAgentNode = (data: any): AgentNode => ({
+    id: data.id || '',
+    username: data.username || '',
+    name: data.name || data.username || '',
+    level: data.level || data.role || 'agent',
+    creditLimit: data.credit_limit || data.creditLimit || 0,
+    creditUsed: data.credit_used || data.creditUsed || 0,
+    commission: data.commission || data.commission_rate || 0,
+    pt: data.pt || data.position_taking || 0,
+    todayBets: data.today_bets || 0,
+    todayWinLoss: data.today_win_loss || data.profit_loss || 0,
+    memberCount: data.member_count || 0,
+    downlineCount: data.downline_count || 0,
+    status: data.is_locked ? 'locked' : (data.is_warning ? 'warning' : 'active'),
+    children: data.children ? data.children.map(mapToAgentNode) : undefined,
+  });
+
+  const agentTree: AgentNode[] = (downlineData?.tree || []).map(mapToAgentNode);
 
   const toggleExpand = (nodeId: string) => {
     const newExpanded = new Set(expandedNodes);
@@ -559,7 +470,7 @@ export default function SuperAdminDownlinePage() {
 
           {/* Today Win/Loss */}
           <div>
-            <p className="text-sm text-slate-400">กำไร/ขาดทุนวันนี้</p>
+            <p className="text-sm text-slate-400">กำไร/ขาดทุนวัน���ี้</p>
             <p className={cn("text-xl md:text-2xl font-bold mt-1", todayWinLoss >= 0 ? "text-emerald-400" : "text-red-400")}>
               {todayWinLoss >= 0 ? '+' : ''}{todayWinLoss.toLocaleString()}
             </p>
@@ -588,7 +499,11 @@ export default function SuperAdminDownlinePage() {
         </div>
 
         <div className="h-40 flex items-end gap-2">
-          {revenueData.map((data, index) => (
+          {revenueData.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+              ไม่มีข้อมูลกราฟ
+            </div>
+          ) : revenueData.map((data, index) => (
             <div key={index} className="flex-1 flex flex-col items-center gap-2">
               <div 
                 className="w-full rounded-t-lg bg-gradient-to-t from-emerald-600 to-emerald-400 transition-all duration-300 hover:from-emerald-500 hover:to-emerald-300 relative group cursor-pointer"
@@ -644,7 +559,19 @@ export default function SuperAdminDownlinePage() {
 
       {/* Agent Tree */}
       <div className="space-y-3">
-        {agentTree.map(node => renderAgentNode(node))}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="size-8 animate-spin text-amber-400" />
+            <span className="ml-3 text-slate-400">กำลังโหลดข้อมูล...</span>
+          </div>
+        ) : agentTree.length === 0 ? (
+          <div className="text-center py-12 text-slate-400">
+            <Users className="size-12 mx-auto mb-3 opacity-50" />
+            <p>ไม่พบข้อมูลสายงาน</p>
+          </div>
+        ) : (
+          agentTree.map(node => renderAgentNode(node))
+        )}
       </div>
     </div>
   );

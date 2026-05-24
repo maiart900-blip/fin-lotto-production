@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // API สำหรับดึงข้อมูลทีมของ Agent (Scoped Data - เฉพาะสายงานของตัวเอง)
 export async function GET(request: Request) {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agent_id');
     const range = searchParams.get('range') || 'today';

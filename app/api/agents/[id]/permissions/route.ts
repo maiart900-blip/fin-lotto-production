@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/api-auth';
 
 // รายการเมนูทั้งหมดในระบบ
 const ALL_MENUS = {
@@ -41,6 +42,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Auth guard - require admin
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const { id } = await params;
     const supabase = await createClient();
 
