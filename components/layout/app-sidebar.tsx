@@ -1,5 +1,7 @@
 'use client';
 
+// Sidebar navigation component - FIN LOTTO R+
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
@@ -350,7 +352,7 @@ const staffManagementItems = [
   { title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
   { title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck },
   { title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
-  { title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings },
+  { title: 'ตั���งค่า Payroll', href: '/payroll/settings', icon: Settings },
   { title: 'รายงานโ���ที', href: '/payroll/ot-report', icon: Clock },
   { title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3 },
 ];
