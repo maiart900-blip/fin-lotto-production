@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAuditLog, getClientIP, getUserAgent } from '@/lib/audit-log';
 import { requireAuth } from '@/lib/api-auth';
-import { serializeAgentBets } from '@/lib/api-serializers';
+import { deepStripSensitiveFields } from '@/lib/api-serializers';
 
 export async function GET(request: NextRequest) {
   // Auth guard - require authentication
@@ -39,16 +39,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   
-  // Serialize bets with agent-level access (includes customer info)
-  // Lottery and bet_items are nested relations - keep them as-is
-  const serializedBets = (data || []).map((bet: Record<string, unknown>) => ({
-    ...serializeAgentBets([bet])[0],
-    lottery: bet.lottery,
-    bet_items: bet.bet_items,
-  }));
-  
+  // Strip sensitive fields but keep all operational data including nested relations
   console.log('[v0] Bets fetched:', data?.length, 'source_type filter:', source_type);
-  return NextResponse.json(serializedBets);
+  return NextResponse.json(deepStripSensitiveFields(data || []));
 }
 
 export async function POST(request: NextRequest) {

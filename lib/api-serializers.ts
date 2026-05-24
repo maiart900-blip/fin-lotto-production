@@ -2,18 +2,118 @@
  * API Response Serializers
  * 
  * Centralized serializers to ensure consistent, secure API responses.
- * Uses allow-list approach - only explicitly listed fields are exposed.
+ * Uses allow-list approach for PUBLIC APIs - only explicitly listed fields are exposed.
+ * Uses deny-list approach for OPERATIONAL APIs - removes only sensitive fields.
  * 
  * SECURITY PRINCIPLES:
- * 1. Never return raw database entities directly
- * 2. Use allow-list (whitelist) field selection only
- * 3. Different serializers for different access levels (public, agent, admin)
+ * 1. Never return raw database entities with password_hash or tokens
+ * 2. PUBLIC APIs: Use allow-list (whitelist) field selection
+ * 3. OPERATIONAL APIs (Admin/Agent/SuperAdmin): Use deny-list to strip sensitive fields only
  * 4. Sensitive fields are explicitly excluded and documented
  * 
  * USAGE:
- * import { serializePublicLottery, serializeAdminCustomer } from '@/lib/api-serializers';
+ * // For public APIs - restricted fields only
+ * import { serializePublicLottery } from '@/lib/api-serializers';
  * return NextResponse.json(serializePublicLottery(lottery));
+ * 
+ * // For operational APIs - full data minus sensitive fields
+ * import { stripSensitiveFields } from '@/lib/api-serializers';
+ * return NextResponse.json(stripSensitiveFields(data));
  */
+
+// =============================================================================
+// SENSITIVE FIELDS - NEVER EXPOSE IN ANY API RESPONSE
+// =============================================================================
+
+/**
+ * Fields that must NEVER be exposed in any API response
+ * This deny-list is used for operational APIs that need full data access
+ */
+export const SENSITIVE_FIELDS = [
+  // Authentication credentials
+  'password_hash',
+  'password',
+  'hashed_password',
+  
+  // 2FA and recovery
+  '2fa_secret',
+  'totp_secret',
+  'recovery_codes',
+  
+  // API keys and tokens
+  'api_key',
+  'api_secret',
+  'access_token',
+  'refresh_token',
+  'jwt_secret',
+  'secret_key',
+  
+  // Session and security
+  'session_token',
+  'csrf_token',
+  'verification_code',
+  'reset_token',
+  'reset_code',
+  
+  // Internal debugging
+  'debug_info',
+  'internal_debug',
+] as const;
+
+/**
+ * Strip sensitive fields from any object (deny-list approach)
+ * Use this for OPERATIONAL APIs (admin, agent, superadmin) that need full data
+ * but must not expose passwords/tokens
+ */
+export function stripSensitiveFields<T extends Record<string, unknown>>(
+  data: T
+): Omit<T, typeof SENSITIVE_FIELDS[number]> {
+  if (!data || typeof data !== 'object') return data;
+  
+  const result = { ...data };
+  for (const field of SENSITIVE_FIELDS) {
+    delete (result as Record<string, unknown>)[field];
+  }
+  return result as Omit<T, typeof SENSITIVE_FIELDS[number]>;
+}
+
+/**
+ * Strip sensitive fields from array of objects
+ */
+export function stripSensitiveFieldsArray<T extends Record<string, unknown>>(
+  data: T[]
+): Omit<T, typeof SENSITIVE_FIELDS[number]>[] {
+  if (!Array.isArray(data)) return data;
+  return data.map(item => stripSensitiveFields(item));
+}
+
+/**
+ * Deep strip sensitive fields (for nested objects)
+ * Use when response contains nested relations
+ */
+export function deepStripSensitiveFields<T>(data: T): T {
+  if (!data || typeof data !== 'object') return data;
+  
+  if (Array.isArray(data)) {
+    return data.map(item => deepStripSensitiveFields(item)) as T;
+  }
+  
+  const result = { ...data } as Record<string, unknown>;
+  
+  // Remove sensitive fields at this level
+  for (const field of SENSITIVE_FIELDS) {
+    delete result[field];
+  }
+  
+  // Recursively clean nested objects
+  for (const key of Object.keys(result)) {
+    if (result[key] && typeof result[key] === 'object') {
+      result[key] = deepStripSensitiveFields(result[key]);
+    }
+  }
+  
+  return result as T;
+}
 
 // =============================================================================
 // TYPE DEFINITIONS
