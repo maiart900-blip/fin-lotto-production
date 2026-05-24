@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/api-auth';
 
 // GET - ดึงข้อมูล Risk Analysis
 export async function GET(request: Request) {
   try {
+    // Auth guard - require admin
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const entityType = searchParams.get('entity_type') || 'customer';

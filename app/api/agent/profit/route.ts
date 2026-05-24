@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // API คำนวณกำไร/ขาดทุน เฉพาะของเอเย่นตัวเอง
 // ไม่ยุ่งกับระบบเดิมของเว็บกลาง
@@ -17,6 +18,10 @@ interface ProfitResult {
 
 export async function GET(request: Request) {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agent_id');
     const startDate = searchParams.get('start_date');

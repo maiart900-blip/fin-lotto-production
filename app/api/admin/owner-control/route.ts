@@ -1,9 +1,14 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
+import { requireSuperAdmin } from "@/lib/api-auth"
 
 // GET - ดึงข้อมูล governance, approvals, locks, sessions
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard - require super_admin for owner control
+    const authResult = await requireSuperAdmin()
+    if (authResult instanceof NextResponse) return authResult
+
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const type = searchParams.get("type") || "all"

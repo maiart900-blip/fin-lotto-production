@@ -1,11 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // API สำหรับแก้ไข % ส่วนแบ่ง (share_percent, commission_rate)
 // PATCH - แก้ไข % ของ downline
 
 export async function PATCH(request: NextRequest) {
   try {
+    // Auth guard - require agent or higher
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     const { 
