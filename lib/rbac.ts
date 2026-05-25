@@ -17,7 +17,7 @@
  * - customer: Lottery betting customer, no admin access (ลูกค้าแทงหวย)
  */
 
-export type UserRole = 'super_admin' | 'admin' | 'agent' | 'partner' | 'staff' | 'member' | 'customer';
+export type UserRole = 'super_admin' | 'admin' | 'agent' | 'agent_key' | 'partner' | 'staff' | 'member' | 'customer';
 
 // User type classification
 export type UserType = 'customer' | 'member' | 'agent' | 'admin';
@@ -29,6 +29,7 @@ export function getUserTypeFromRole(role: UserRole): UserType {
     case 'admin':
       return 'admin';
     case 'agent':
+    case 'agent_key':
     case 'partner':
       return 'agent';
     case 'staff':
@@ -53,7 +54,7 @@ export function isCustomerRole(role: UserRole): boolean {
 
 // Check if role is an agent
 export function isAgentRole(role: UserRole): boolean {
-  return role === 'agent' || role === 'partner';
+  return role === 'agent' || role === 'agent_key' || role === 'partner';
 }
 
 // Check if role is an admin
@@ -120,6 +121,15 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'access_master_panel',
   ],
   agent: [
+    'view_own_entries',
+    'create_entries',
+    'edit_entries',
+    'view_own_users',
+    'view_own_reports',
+    'view_credit_history',
+    'view_realtime_bets',
+  ],
+  agent_key: [
     'view_own_entries',
     'create_entries',
     'edit_entries',
@@ -208,6 +218,7 @@ const roleHierarchy: Record<UserRole, number> = {
   super_admin: 100,
   admin: 90,
   agent: 50,
+  agent_key: 50,  // Same level as agent
   partner: 40,
   staff: 30,
   member: 20,
