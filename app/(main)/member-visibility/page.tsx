@@ -42,8 +42,7 @@ import {
   isMenuRestricted,
   type MenuSection,
 } from '@/lib/menu-config';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { fetcher } from '@/lib/fetcher';
 
 interface Member {
   id: string;

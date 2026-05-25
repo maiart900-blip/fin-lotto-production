@@ -44,19 +44,50 @@ import {
   type MenuSection,
   type MenuItem,
 } from '@/lib/menu-config';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { fetcher } from '@/lib/fetcher';
 
 interface Agent {
   id: string;
-  username: string;
-  display_name: string;
+  code: string;
+  name: string;
+  username?: string;
+  display_name?: string;
   system_type: string;
   level: number;
   status: string;
-  visible_menus: string[];
+  visible_menus: string[] | string;
   can_create_sub_agent: boolean;
   can_view_reports: boolean;
+  enable_auto?: boolean;
+  enable_manual_key?: boolean;
+}
+
+// Helper to parse visible_menus (can be string or array)
+function parseVisibleMenus(menus: string[] | string | undefined): string[] {
+  if (!menus) return [];
+  if (Array.isArray(menus)) {
+    // Check if it's an array of single characters (corrupted data)
+    if (menus.length > 0 && menus.every(m => m.length === 1)) {
+      // Try to join and parse as JSON
+      const joined = menus.join('');
+      try {
+        const parsed = JSON.parse(joined);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return menus.filter(m => m.length > 1); // Filter out single chars
+      }
+    }
+    return menus;
+  }
+  if (typeof menus === 'string') {
+    try {
+      const parsed = JSON.parse(menus);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 export default function AgentVisibilityPage() {
@@ -117,21 +148,25 @@ export default function AgentVisibilityPage() {
       
       // Load permissions from API
       try {
-        const res = await fetch(`/api/menu-permissions?target_id=${agentId}&target_type=agent`);
+        const res = await fetch(`/api/menu-permissions?target_id=${agentId}&target_type=agent`, {
+          credentials: 'include',
+        });
         const data = await res.json();
         
         if (data.permissions && data.permissions.length > 0) {
           setVisibleMenus(data.permissions);
         } else {
           // Use agent's existing visible_menus or default
-          setVisibleMenus(agent.visible_menus || getDefaultPermissions('agent'));
+          const parsedMenus = parseVisibleMenus(agent.visible_menus);
+          setVisibleMenus(parsedMenus.length > 0 ? parsedMenus : getDefaultPermissions('agent'));
         }
         
         setCanCreateSubAgent(data.canCreateSubAgent || agent.can_create_sub_agent || false);
         setCanViewReports(data.canViewReports ?? agent.can_view_reports ?? true);
       } catch {
         // Fallback to agent data
-        setVisibleMenus(agent.visible_menus || getDefaultPermissions('agent'));
+        const parsedMenus = parseVisibleMenus(agent.visible_menus);
+        setVisibleMenus(parsedMenus.length > 0 ? parsedMenus : getDefaultPermissions('agent'));
         setCanCreateSubAgent(agent.can_create_sub_agent || false);
         setCanViewReports(agent.can_view_reports !== false);
       }
@@ -217,6 +252,7 @@ export default function AgentVisibilityPage() {
       const res = await fetch('/api/menu-permissions', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           target_id: selectedAgent,
           target_type: 'agent',
@@ -330,11 +366,28 @@ export default function AgentVisibilityPage() {
                           : 'hover:bg-muted/50'
                       }`}
                     >
-                      <div className="font-medium">{agent.display_name || agent.username}</div>
+                      <div className="font-medium">
+                        {agent.name || agent.code}
+                        {agent.name && agent.code && agent.name !== agent.code && (
+                          <span className="text-xs text-muted-foreground ml-2">({agent.code})</span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <Badge variant="outline" className="text-xs">
-                          {agent.system_type === 'auto' ? 'ออโต้' : 'คีย์หวย'}
-                        </Badge>
+                        {agent.enable_manual_key && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            คีย์
+                          </Badge>
+                        )}
+                        {agent.enable_auto && (
+                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                            ออโต้
+                          </Badge>
+                        )}
+                        {!agent.enable_manual_key && !agent.enable_auto && (
+                          <Badge variant="outline" className="text-xs">
+                            {agent.system_type === 'auto' ? 'ออโต้' : agent.system_type === 'hybrid' ? 'ผสม' : 'คีย์'}
+                          </Badge>
+                        )}
                         <Badge variant="secondary" className="text-xs">
                           Lv.{agent.level || 1}
                         </Badge>
@@ -369,7 +422,7 @@ export default function AgentVisibilityPage() {
             </CardTitle>
             <CardDescription>
               {selectedAgent 
-                ? `กำหนดสิทธิ์สำหรับ: ${agents.find(a => a.id === selectedAgent)?.display_name || 'เอเย่น'}`
+                ? `กำหนดสิทธิ์สำหรับ: ${agents.find(a => a.id === selectedAgent)?.name || agents.find(a => a.id === selectedAgent)?.code || 'เอเย่น'}`
                 : 'เลือกเอเย่นเพื่อตั้งค่า'
               }
             </CardDescription>
@@ -388,7 +441,7 @@ export default function AgentVisibilityPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>สร้างเอเย่นย่อยได้</Label>
-                      <p className="text-xs text-muted-foreground">อนุญาตให้สร้างเอเย่นระดับล่าง</p>
+                      <p className="text-xs text-muted-foreground">อนุญาต��ห้สร้างเอเย่นระดับล่าง</p>
                     </div>
                     <Switch 
                       checked={canCreateSubAgent} 
