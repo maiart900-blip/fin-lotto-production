@@ -62,23 +62,10 @@ interface Agent {
   enable_manual_key?: boolean;
 }
 
-// Helper to parse visible_menus (can be string or array)
+// Helper to parse visible_menus (can be string or array, may have corrupted data)
 function parseVisibleMenus(menus: string[] | string | undefined): string[] {
   if (!menus) return [];
-  if (Array.isArray(menus)) {
-    // Check if it's an array of single characters (corrupted data)
-    if (menus.length > 0 && menus.every(m => m.length === 1)) {
-      // Try to join and parse as JSON
-      const joined = menus.join('');
-      try {
-        const parsed = JSON.parse(joined);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return menus.filter(m => m.length > 1); // Filter out single chars
-      }
-    }
-    return menus;
-  }
+  
   if (typeof menus === 'string') {
     try {
       const parsed = JSON.parse(menus);
@@ -87,6 +74,13 @@ function parseVisibleMenus(menus: string[] | string | undefined): string[] {
       return [];
     }
   }
+  
+  if (Array.isArray(menus)) {
+    // Filter out single-character entries (corrupted JSON chars like [, ", etc.)
+    // Valid menu IDs are always longer than 1 character
+    return menus.filter(m => typeof m === 'string' && m.length > 1);
+  }
+  
   return [];
 }
 
