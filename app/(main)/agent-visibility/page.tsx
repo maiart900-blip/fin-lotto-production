@@ -136,34 +136,45 @@ export default function AgentVisibilityPage() {
 
   // Load permissions when agent is selected
   const handleSelectAgent = async (agentId: string) => {
+    console.log('[v0] handleSelectAgent called with:', agentId);
     const agent = agents.find(a => a.id === agentId);
+    console.log('[v0] Found agent:', agent);
+    
     if (agent) {
       setSelectedAgent(agentId);
+      console.log('[v0] Set selectedAgent to:', agentId);
       
       // Load permissions from API
       try {
+        console.log('[v0] Fetching permissions from API...');
         const res = await fetch(`/api/menu-permissions?target_id=${agentId}&target_type=agent`, {
           credentials: 'include',
         });
         const data = await res.json();
+        console.log('[v0] Permissions API response:', data);
         
         if (data.permissions && data.permissions.length > 0) {
           setVisibleMenus(data.permissions);
+          console.log('[v0] Set visibleMenus from permissions:', data.permissions.length, 'items');
         } else {
           // Use agent's existing visible_menus or default
           const parsedMenus = parseVisibleMenus(agent.visible_menus);
+          console.log('[v0] Parsed menus from agent:', parsedMenus);
           setVisibleMenus(parsedMenus.length > 0 ? parsedMenus : getDefaultPermissions('agent'));
         }
         
         setCanCreateSubAgent(data.canCreateSubAgent || agent.can_create_sub_agent || false);
         setCanViewReports(data.canViewReports ?? agent.can_view_reports ?? true);
-      } catch {
+      } catch (err) {
+        console.error('[v0] Error fetching permissions:', err);
         // Fallback to agent data
         const parsedMenus = parseVisibleMenus(agent.visible_menus);
         setVisibleMenus(parsedMenus.length > 0 ? parsedMenus : getDefaultPermissions('agent'));
         setCanCreateSubAgent(agent.can_create_sub_agent || false);
         setCanViewReports(agent.can_view_reports !== false);
       }
+    } else {
+      console.log('[v0] Agent not found for ID:', agentId);
     }
   };
 
@@ -273,6 +284,13 @@ export default function AgentVisibilityPage() {
   const toggleSectionOpen = (sectionId: string) => {
     setOpenSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
   };
+
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log('[v0] State changed - selectedAgent:', selectedAgent, 'visibleMenus count:', visibleMenus.length);
+  }, [selectedAgent, visibleMenus]);
+
+  console.log('[v0] Render - selectedAgent:', selectedAgent);
 
   return (
     <div className="space-y-6">
@@ -400,7 +418,7 @@ export default function AgentVisibilityPage() {
           </CardContent>
         </Card>
 
-        {/* ตั้งค่าการมองเห็น */}
+        {/* ต���้งค่าการมองเห็น */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg flex items-center justify-between">
