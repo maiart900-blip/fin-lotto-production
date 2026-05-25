@@ -2,6 +2,14 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
+import { 
+  checkRateLimitByIP, 
+  createRateLimitResponse, 
+  logRateLimitViolation,
+  addRateLimitHeaders,
+  type RateLimitResult 
+} from '@/lib/rate-limit';
+import { auditLogger } from '@/lib/audit-logger';
 
 /**
  * Set authentication cookies for server-side auth verification
@@ -29,6 +37,29 @@ async function setAuthCookies(userId: string, role: string, userType: 'admin' | 
 }
 
 export async function POST(request: Request) {
+  // Rate limit check - strict limit for login attempts
+  let rateLimitResult: RateLimitResult;
+  try {
+    rateLimitResult = await checkRateLimitByIP('login');
+    
+    if (!rateLimitResult.success) {
+      // Log rate limit violation
+      await logRateLimitViolation('login', 'login', rateLimitResult);
+      
+      // Log to audit
+      await auditLogger.logAuth('unknown', 'login_failed', undefined, {
+        reason: 'rate_limited',
+        ip: request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown',
+      });
+      
+      return createRateLimitResponse(rateLimitResult, 'login');
+    }
+  } catch (error) {
+    // If rate limit check fails, continue with login (fail open)
+    console.error('[v0] Rate limit check failed:', error);
+    rateLimitResult = { success: true, limit: 5, remaining: 5, reset: Date.now() / 1000 + 60 };
+  }
+  
   try {
     const { username, password } = await request.json();
     
@@ -83,7 +114,14 @@ export async function POST(request: Request) {
       // Set auth cookies for server-side verification
       await setAuthCookies(user.id, user.role, 'admin');
       
-      return NextResponse.json({
+      // Log successful login
+      await auditLogger.logAuth(user.id, 'login', undefined, {
+        username: user.username,
+        role: user.role,
+      });
+      
+      // Build response with rate limit headers
+      const response = NextResponse.json({
         success: true,
         userType: 'admin',
         user: {
@@ -108,6 +146,8 @@ export async function POST(request: Request) {
         },
         redirectTo: user.role === 'agent' ? '/agent-dashboard' : '/'
       });
+      
+      return addRateLimitHeaders(response, rateLimitResult);
     }
     
     // 2. ตรวจสอบจากตาราง agents (Agent Key / Agent Auto)
@@ -277,8 +317,14 @@ export async function POST(request: Request) {
       
       const isValid = await bcrypt.compare(password, customer.password_hash);
       if (!isValid) {
+        // Log failed login attempt
+        await auditLogger.logAuth(user.id, 'login_failed', undefined, {
+          reason: 'invalid_password',
+          username,
+        });
+        
         return NextResponse.json(
-          { error: 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง' },
+          { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' },
           { status: 401 }
         );
       }
