@@ -8,7 +8,20 @@
  */
 
 import { headers } from 'next/headers';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+
+// Service client for background operations (outside request scope)
+function getServiceClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error('Missing Supabase credentials');
+  }
+  
+  return createClient(supabaseUrl, serviceKey);
+}
 
 // =====================================================
 // TYPES
@@ -461,7 +474,8 @@ class AuditLogger {
     this.buffer = [];
 
     try {
-      const supabase = await createClient();
+      // Use service client for background flush (outside request scope)
+      const supabase = getServiceClient();
       
       // Map entries to database format
       const dbEntries = entries.map(entry => ({
