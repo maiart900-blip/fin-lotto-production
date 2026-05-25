@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState, useRef } from 'react';
 
-export type UserRole = 'super_admin' | 'admin' | 'agent' | 'partner' | 'staff' | 'member';
+export type UserRole = 'super_admin' | 'admin' | 'agent' | 'agent_key' | 'partner' | 'staff' | 'member' | 'customer';
 
 export interface BranchInfo {
   id: string;
@@ -150,6 +150,7 @@ export function useAuth() {
 
   const isSuperAdmin = user?.role === 'super_admin';
   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+  const isAgent = user?.role === 'agent' || user?.role === 'agent_key' || user?.role === 'partner';
   
   // Branch context helpers
   const isMasterBranch = user?.branch?.is_master === true || user?.branch?.branch_type === 'master';
@@ -213,6 +214,7 @@ export function useAuth() {
     isAuthenticated: !!user,
     isSuperAdmin,
     isAdmin,
+    isAgent,
     isMasterBranch,
     hasBranch,
     branchId,

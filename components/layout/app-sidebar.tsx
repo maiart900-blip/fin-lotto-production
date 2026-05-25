@@ -477,8 +477,8 @@ export function AppSidebar() {
     toast.success('ออกจากระบบสำเร็จ');
   };
 
-  // Check if user is agent
-  const isAgent = user?.role === 'agent';
+  // Check if user is agent (includes agent_key and partner)
+  const isAgent = user?.role === 'agent' || user?.role === 'agent_key' || user?.role === 'partner';
   const isMember = user?.role === 'member';
   const isStaff = user?.role === 'staff';
   
@@ -680,7 +680,7 @@ export function AppSidebar() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate text-[#E5E5E5]">{user.displayName}</p>
               <p className="text-xs text-[#D4AF37] drop-shadow-[0_0_4px_rgba(212,175,55,0.3)]">
-                {isSuperAdmin ? 'Super Admin' : isAdmin ? 'ผู้ดูแลระบบ' : 'พนักงาน'}
+                {isSuperAdmin ? 'Super Admin' : isAdmin ? 'ผู้ดูแลระบบ' : isAgent ? 'เอเย่นต์' : isMember ? 'แมมเบอร์' : isStaff ? 'พนักงาน' : 'ผู้ใช้'}
               </p>
             </div>
           </div>
