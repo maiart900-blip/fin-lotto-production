@@ -19,10 +19,17 @@ import {
  * Returns complete permission information for the current logged-in user.
  * Protected: Only accessible by admin/super_admin or the user themselves (for debugging)
  * 
+ * SECURITY: This endpoint is DISABLED in production
+ * 
  * GET /api/debug/effective-permissions
  * GET /api/debug/effective-permissions?user_id=xxx (admin only)
  */
 export async function GET(request: Request) {
+  // SECURITY: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('lottery_session')?.value;

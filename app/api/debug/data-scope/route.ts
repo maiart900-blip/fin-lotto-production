@@ -12,9 +12,14 @@ import {
  * Debug Data Scope Endpoint
  * Returns detailed information about the current user's data scope
  * 
- * IMPORTANT: This endpoint is for debugging only. Disable in production.
+ * SECURITY: This endpoint is DISABLED in production
  */
 export async function GET() {
+  // SECURITY: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('session');
