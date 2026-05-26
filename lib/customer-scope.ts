@@ -182,19 +182,26 @@ export function applyCustomerScope<T extends { eq: Function; in: Function; or: F
     return query;
   }
   
-  // Agent - filter by tenant_id AND agent_id in downline
+  // Agent - filter by tenant_id AND (agent_id in downline OR agent_id is NULL for unassigned)
   if (scope.isAgent) {
     // Must have tenant_id
     if (scope.tenantId) {
       query = query.eq('tenant_id', scope.tenantId);
     }
     
-    // Must have agent_id in downline
+    // Agent can see:
+    // 1. Customers explicitly assigned to them or their downline (agent_id IN downline)
+    // 2. Unassigned customers in their tenant (agent_id IS NULL) - these are "floating" customers
+    // 
+    // NOTE: This allows agents to see unassigned customers in their tenant.
+    // If stricter isolation is needed, change to only allow agent_id IN downline.
     if (scope.agentIds.length > 0) {
-      query = query.in('agent_id', scope.agentIds);
+      // Use OR to include both assigned (in downline) and unassigned (NULL) customers
+      const agentIdList = scope.agentIds.join(',');
+      query = query.or(`agent_id.in.(${agentIdList}),agent_id.is.null`);
     } else {
-      // No downline = no access (filter to impossible value)
-      query = query.eq('agent_id', '00000000-0000-0000-0000-000000000000');
+      // Agent has no downline - can only see unassigned customers in their tenant
+      query = query.is('agent_id', null);
     }
     
     return query;

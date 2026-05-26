@@ -295,19 +295,24 @@ export function applyFullDataScope<T extends {
   }
   
   // Apply agent filter for agent users
+  // NOTE: Agents can see:
+  //   1. Records assigned to them or their downline (agent_id IN agentIds)
+  //   2. Unassigned records in their tenant (agent_id IS NULL)
+  // This allows agents to work with customers not yet assigned to any agent.
   if (scope.isAgent) {
     const agentIds = scope.downlineAgentIds.length > 0 
       ? scope.downlineAgentIds 
       : (scope.agentId ? [scope.agentId] : []);
     
     if (agentIds.length > 0) {
-      if (agentIds.length === 1) {
-        query = query.eq(agentColumn, agentIds[0]);
-      } else {
-        query = query.in(agentColumn, agentIds);
-      }
-    } else if (excludeNullAgent) {
-      // Block access if no agent IDs
+      // Include both assigned (in downline) and unassigned (NULL) records
+      const agentIdList = agentIds.join(',');
+      query = query.or(`${agentColumn}.in.(${agentIdList}),${agentColumn}.is.null`);
+    } else if (!excludeNullAgent) {
+      // Agent with no downline can only see unassigned records
+      query = query.eq(agentColumn, null);
+    } else {
+      // Block access if no agent IDs and excludeNullAgent is true
       query = query.eq(agentColumn, '__NO_ACCESS__');
     }
   }
@@ -338,9 +343,12 @@ export function isRecordAccessible(
   }
   
   // Check agent scope
+  // NOTE: Agents can access unassigned records (agent_id = NULL) within their tenant
   if (scope.isAgent) {
-    if (!record.agent_id) {
-      return { allowed: false, reason: 'Record has no agent_id - unassigned data blocked' };
+    // Unassigned records (NULL agent_id) are allowed if in same tenant
+    if (record.agent_id === null || record.agent_id === undefined) {
+      // Agent can see unassigned customers in their tenant
+      return { allowed: true, reason: 'Unassigned record in agent tenant' };
     }
     if (!scope.downlineAgentIds.includes(record.agent_id) && record.agent_id !== scope.agentId) {
       return { allowed: false, reason: 'Record belongs to agent outside downline' };
