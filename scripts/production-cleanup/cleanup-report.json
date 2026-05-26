@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-26T08:59:19.677Z",
+  "timestamp": "2026-05-26T09:20:54.010Z",
   "issues": [
     {
       "category": "warning",
@@ -1077,6 +1077,24 @@
       "type": "console_log",
       "file": "lib/centralized-wallet.ts",
       "line": 316,
+      "description": "Console.log statement found",
+      "autoFixable": true,
+      "recommendation": "Remove or replace with proper logging"
+    },
+    {
+      "category": "warning",
+      "type": "console_log",
+      "file": "lib/core/logger.ts",
+      "line": 82,
+      "description": "Console.log statement found",
+      "autoFixable": true,
+      "recommendation": "Remove or replace with proper logging"
+    },
+    {
+      "category": "warning",
+      "type": "console_log",
+      "file": "lib/core/logger.ts",
+      "line": 97,
       "description": "Console.log statement found",
       "autoFixable": true,
       "recommendation": "Remove or replace with proper logging"
@@ -10217,14 +10235,14 @@
   ],
   "stats": {
     "totalFiles": 0,
-    "totalIssues": 1255,
+    "totalIssues": 1257,
     "criticalCount": 0,
-    "warningCount": 171,
+    "warningCount": 173,
     "infoCount": 1084,
-    "autoFixableCount": 1073
+    "autoFixableCount": 1075
   },
   "categories": {
-    "console_log": 157,
+    "console_log": 159,
     "todo_comment": 26,
     "unused_import": 633,
     "large_file": 146,
