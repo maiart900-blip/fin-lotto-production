@@ -1,28 +1,75 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
+import { getDataScope, applyFullDataScope, assertNoGlobalFallback } from '@/lib/data-scope';
+import { requireCustomerAccess } from '@/lib/customer-scope';
 
+/**
+ * Entries API - Betting entries/slips
+ * 
+ * SECURITY: Data is scoped by tenant_id and agent_id
+ * Agents can only see entries from their own customers/downline
+ */
 export async function GET(request: Request) {
   try {
+    // Auth guard
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
+    
+    // Get data scope for current user
+    const scope = await getDataScope({
+      id: session.id,
+      role: session.role,
+      user_type: session.user_type,
+      tenant_id: session.tenant_id,
+    });
+    
+    // Block global fallback for agents
+    assertNoGlobalFallback(scope);
+    
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customer_id');
-    const date = searchParams.get('date'); // Filter by date
-    const withResults = searchParams.get('with_results') === 'true'; // Include results
+    const date = searchParams.get('date');
+    const withResults = searchParams.get('with_results') === 'true';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(parseInt(searchParams.get('limit') || '200'), 500);
     const offset = (page - 1) * limit;
     
+    // If specific customer requested, verify access first
+    if (customerId) {
+      const accessCheck = await requireCustomerAccess(customerId, {
+        id: session.id,
+        role: session.role,
+        user_type: session.user_type,
+        tenant_id: session.tenant_id,
+      });
+      if (!accessCheck.allowed) {
+        return withResults 
+          ? NextResponse.json({ entries: [], results: [] })
+          : NextResponse.json([]);
+      }
+    }
+    
     const supabase = await createClient();
     let query = supabase
       .from('entries')
-      .select('*, customer:customers(id, name), lottery:lotteries(id, name)')
+      .select('*, customer:customers(id, name, tenant_id, agent_id), lottery:lotteries(id, name)')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
+    
+    // SECURITY: Apply data scope filters
+    query = applyFullDataScope(query, scope, {
+      tenantColumn: 'tenant_id',
+      agentColumn: 'agent_id',
+      excludeNullTenant: true,
+      excludeNullAgent: scope.isAgent,
+    });
     
     if (customerId) {
       query = query.eq('customer_id', customerId);
     }
     
-    // Filter by date if provided
     if (date) {
       const startOfDay = `${date}T00:00:00`;
       const endOfDay = `${date}T23:59:59`;
@@ -32,14 +79,12 @@ export async function GET(request: Request) {
     const { data, error } = await query;
     
     if (error) {
-      // Return consistent format based on with_results
       if (withResults) {
         return NextResponse.json({ entries: [], results: [] });
       }
       return NextResponse.json([]);
     }
     
-    // If with_results is requested, fetch results for the lotteries
     if (withResults) {
       if (data && data.length > 0) {
         const lotteryIds = [...new Set(data.map((e: any) => e.lottery_id))];
@@ -51,14 +96,11 @@ export async function GET(request: Request) {
         
         return NextResponse.json({ entries: data || [], results: resultsData || [] });
       }
-      // Return empty but consistent format
       return NextResponse.json({ entries: [], results: [] });
     }
     
-    // Return array for backward compatibility
     return NextResponse.json(data || []);
   } catch {
-    // Return consistent format based on query params
     const { searchParams } = new URL(request.url);
     const withResults = searchParams.get('with_results') === 'true';
     if (withResults) {

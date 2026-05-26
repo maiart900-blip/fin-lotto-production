@@ -1,34 +1,71 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAgentOrHigher } from '@/lib/api-auth';
+import { getDataScope, applyFullDataScope, assertNoGlobalFallback } from '@/lib/data-scope';
+import { requireCustomerAccess } from '@/lib/customer-scope';
 
 /**
  * Transactions API - AGENT OR HIGHER
  * Manages financial transactions (deposits, withdrawals, bets, wins)
+ * 
+ * SECURITY: Data is scoped by tenant_id and agent_id
  */
 export async function GET(request: NextRequest) {
   try {
     // Auth guard - require agent or higher for viewing transactions
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
+    
+    // Get data scope
+    const scope = await getDataScope({
+      id: session.id,
+      role: session.role,
+      user_type: session.user_type,
+      tenant_id: session.tenant_id,
+    });
+    
+    // Block global fallback for agents
+    assertNoGlobalFallback(scope);
 
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
-    const type = searchParams.get('type'); // deposit, withdraw, bet, win
+    const type = searchParams.get('type');
     const customer_id = searchParams.get('customer_id');
+    
+    // If specific customer, verify access
+    if (customer_id) {
+      const accessCheck = await requireCustomerAccess(customer_id, {
+        id: session.id,
+        role: session.role,
+        user_type: session.user_type,
+        tenant_id: session.tenant_id,
+      });
+      if (!accessCheck.allowed) {
+        return NextResponse.json({ transactions: [], total: 0 });
+      }
+    }
     
     // Build query
     let query = supabase
       .from('transactions')
       .select(`
         *,
-        customer:customers(id, name, phone)
+        customer:customers(id, name, phone, tenant_id, agent_id)
       `)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
+    
+    // SECURITY: Apply data scope
+    query = applyFullDataScope(query, scope, {
+      tenantColumn: 'tenant_id',
+      agentColumn: 'agent_id',
+      excludeNullTenant: true,
+      excludeNullAgent: scope.isAgent,
+    });
     
     // Apply filters
     if (type) {
@@ -42,7 +79,6 @@ export async function GET(request: NextRequest) {
     const { data: transactions, error, count } = await query;
     
     if (error) {
-      console.error('Error fetching transactions:', error);
       return NextResponse.json({ 
         transactions: [],
         total: 0,
@@ -50,10 +86,17 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    // Calculate summary
-    const { data: summaryData } = await supabase
+    // Calculate summary - also scoped
+    let summaryQuery = supabase
       .from('transactions')
       .select('type, amount');
+    
+    summaryQuery = applyFullDataScope(summaryQuery, scope, {
+      tenantColumn: 'tenant_id',
+      agentColumn: 'agent_id',
+    });
+    
+    const { data: summaryData } = await summaryQuery;
     
     const summary = {
       totalDeposits: 0,
