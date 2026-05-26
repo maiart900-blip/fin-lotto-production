@@ -969,6 +969,12 @@ export default function LotteryTerminalPage() {
       return;
     }
     
+    // Require customer name for manual key entries to enable payout tracking
+    if (!customerName || !customerName.trim()) {
+      toast.error('กรุณาใส่ชื่อลูกค้าก่อนส่งโพย (จำเป็นสำหรับจ่ายรางวัล)');
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
@@ -985,7 +991,8 @@ export default function LotteryTerminalPage() {
         body: JSON.stringify({
           entries,
           lotteryId: selectedLotteryId,
-          customer_name: customerName || undefined, // ชื่อลูกค้า
+          customer_name: customerName.trim(), // Required: ชื่อลูกค้าสำหรับ link กับ customer record
+          source_type: 'manual', // Mark as manual key entry
           // ไม่ส่ง userId - admin คีย์เข้าระบบโดยไม่ตัดเครดิต
         }),
       });
