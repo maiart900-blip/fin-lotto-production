@@ -1,11 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-// Test API to verify permission system
+// Admin-only API to verify permission system
+// Requires admin authentication
+async function verifyAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  
+  const { data: adminUser } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  
+  return adminUser?.role === 'owner' || adminUser?.role === 'admin';
+}
+
 // GET /api/test/permissions?user_id=xxx
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
+    
+    // Verify admin access
+    if (!await verifyAdmin(supabase)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+    
     const { searchParams } = new URL(request.url);
     
     const userId = searchParams.get('user_id');
@@ -144,10 +164,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Set test permissions for a user
+// POST - Set test permissions for a user (admin only)
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    
+    // Verify admin access
+    if (!await verifyAdmin(supabase)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+    
     const body = await request.json();
     
     const {
