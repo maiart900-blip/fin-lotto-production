@@ -1,11 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAgentOrHigher } from '@/lib/api-auth';
+import { getDataScope, applyFullDataScope, assertNoGlobalFallback } from '@/lib/data-scope';
 
 /**
  * Financial Transactions API
  * ONLY money movement: deposits, withdrawals, transfers, adjustments, settlements
  * NOT betting activity
+ * 
+ * SECURITY: Data is scoped by tenant_id and agent_id
  */
 
 export type FinancialTransactionType = 
@@ -46,6 +49,18 @@ export async function GET(request: NextRequest) {
   try {
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
+    
+    // Get data scope
+    const scope = await getDataScope({
+      id: session.id,
+      role: session.role,
+      user_type: session.user_type,
+      tenant_id: session.tenant_id,
+    });
+    
+    // Block global fallback for agents
+    assertNoGlobalFallback(scope);
 
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
@@ -63,15 +78,22 @@ export async function GET(request: NextRequest) {
 
     const transactions: FinancialTransaction[] = [];
 
-    // 1. Deposits from slip_uploads
-    const { data: slips } = await supabase
+    // 1. Deposits from slip_uploads - SCOPED
+    let slipQuery = supabase
       .from('slip_uploads')
       .select(`
         id, amount, status, note, created_at, uploaded_by,
-        bank_name, account_number, approved_by, approved_at
+        bank_name, account_number, approved_by, approved_at, tenant_id, agent_id
       `)
       .order('created_at', { ascending: false })
       .limit(limit);
+    
+    slipQuery = applyFullDataScope(slipQuery, scope, {
+      tenantColumn: 'tenant_id',
+      agentColumn: 'agent_id',
+    });
+    
+    const { data: slips } = await slipQuery;
 
     if (slips) {
       transactions.push(...slips.map(s => ({
@@ -90,15 +112,22 @@ export async function GET(request: NextRequest) {
       })));
     }
 
-    // 2. Deposits from topup_requests
-    const { data: topups } = await supabase
+    // 2. Deposits from topup_requests - SCOPED
+    let topupQuery = supabase
       .from('topup_requests')
       .select(`
-        id, amount, status, note, created_at, agent_id,
+        id, amount, status, note, created_at, agent_id, tenant_id,
         approved_by, approved_at
       `)
       .order('created_at', { ascending: false })
       .limit(limit);
+    
+    topupQuery = applyFullDataScope(topupQuery, scope, {
+      tenantColumn: 'tenant_id',
+      agentColumn: 'agent_id',
+    });
+    
+    const { data: topups } = await topupQuery;
 
     if (topups) {
       transactions.push(...topups.map(t => ({
