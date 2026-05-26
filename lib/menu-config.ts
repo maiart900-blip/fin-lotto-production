@@ -149,8 +149,14 @@ export const financeItems: MenuItem[] = [
   { id: 'payment-accounts', title: 'บัญชีรับเงิน', href: '/payment-accounts', icon: QrCode, description: 'จัดการบัญชีรับเงิน' },
   { id: 'withdraw-accounts', title: 'บัญชีถอนเงิน', href: '/withdraw-accounts', icon: ArrowDownToLine, description: 'จัดการบัญชีถอนเงิน' },
   { id: 'scb-maemanee', title: 'SCB แม่มณี', href: '/scb-maemanee', icon: Landmark, description: 'ตั้งค่า SCB แม่มณี' },
-  { id: 'transactions', title: 'ประวัติธุรกรรม', href: '/transactions', icon: Receipt, description: 'ดูประวัติธุรกรรมทั้งหมด' },
+  { id: 'finance-transactions', title: 'ธุรกรรมการเงิน', href: '/finance/transactions', icon: Receipt, description: 'ประวัติฝาก/ถอน/โอน/ปรับยอด' },
   { id: 'finance-reports', title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart, description: 'รายงานทางการเงิน' },
+];
+
+// 4.5 ประวัติการเดิมพัน (แยกจากการเงิน)
+export const bettingHistoryItems: MenuItem[] = [
+  { id: 'betting-history', title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: Ticket, description: 'ประวัติแทงหวย/คาสิโน/สล็อต/กีฬา' },
+  { id: 'betting-reports', title: 'รายงานการเดิมพัน', href: '/betting/reports', icon: FileBarChart, description: 'รายงานยอดแทง/ชนะ/แพ้' },
 ];
 
 // 5. หวย
@@ -244,7 +250,7 @@ export const liveStreamItems: MenuItem[] = [
 // 15. Multi-Tenant (Master Only)
 export const multiTenantItems: MenuItem[] = [
   { id: 'mt-dashboard', title: 'Dashboard ยอดรวม', href: '/multi-tenant/dashboard', icon: BarChart3, description: 'ดูยอดรวมทุกเว็บลูก' },
-  { id: 'mt-settlements', title: 'รายการส่งยอด', href: '/multi-tenant/settlements', icon: Receipt, description: 'รายการส่งยอดจากเว็บลูก' },
+  { id: 'mt-settlements', title: 'รายการส่งยอด', href: '/multi-tenant/settlements', icon: Receipt, description: 'รายการส่งยอดจาก���ว็บลูก' },
   { id: 'enterprise-summary', title: 'Enterprise Summary', href: '/enterprise-summary', icon: Crown, description: 'สรุปข้อมูล Enterprise' },
   { id: 'sub-sites', title: 'จัดการเว็บลูก', href: '/sub-sites', icon: Globe, description: 'จัดการเว็บลูกทั้งหมด' },
   { id: 'vip-dashboard', title: 'VIP Dashboard', href: '/vip-dashboard', icon: Crown, description: 'แดชบอร์ดลูกค้า VIP' },
@@ -310,7 +316,8 @@ export const ALL_MENU_SECTIONS: MenuSection[] = [
   { id: 'operation', title: 'ศูนย์ปฏิบัติการ', icon: Headphones, items: operationItems, defaultOpen: true, adminOnly: true, staffVisible: true, memberVisible: true },
   { id: 'member-admin', title: 'ศูนย์แอดมิน', icon: BarChart3, items: memberAdminItems, defaultOpen: false, adminOnly: true },
   { id: 'members', title: 'สมาชิก', icon: Users, items: memberItems, defaultOpen: false, adminOnly: true, staffVisible: true },
-  { id: 'finance', title: 'บัญชีและการเงิน', icon: Wallet, items: financeItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
+  { id: 'finance', title: 'ธุรกรรมการเงิน', icon: Wallet, items: financeItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
+  { id: 'betting', title: 'ประวัติการเดิมพัน', icon: Ticket, items: bettingHistoryItems, defaultOpen: false, adminOnly: true, staffVisible: true },
   { id: 'lottery', title: 'หวย', icon: Ticket, items: lotteryItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
   { id: 'auto-system', title: 'ระบบออโต้', icon: Zap, items: autoSystemItems, defaultOpen: false, adminOnly: true },
   { id: 'manual-key', title: 'ระบบคีย์หวย', icon: Keyboard, items: manualKeyItems, defaultOpen: false, adminOnly: true },
