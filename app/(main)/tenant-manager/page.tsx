@@ -6,7 +6,7 @@ import {
   Globe, Plus, Power, PowerOff, Eye, Edit2,
   DollarSign, TrendingUp, Users, Activity, ExternalLink, 
   CheckCircle, XCircle, AlertTriangle, RefreshCw, Search, Filter,
-  Loader2, Crown
+  Loader2, Crown, BarChart3, Settings
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { fetcher } from '@/lib/fetcher';
+import { TenantEditDialog, TenantDetailDashboard } from '@/components/tenant';
 
 // =============================================================================
 // TYPES - Based on real database schema
@@ -85,6 +86,8 @@ export default function TenantManagerPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [editTenantId, setEditTenantId] = useState<string | null>(null);
+  const [detailTenantId, setDetailTenantId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newTenant, setNewTenant] = useState({
     name: '',
@@ -416,21 +419,23 @@ export default function TenantManagerPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-2">
-                        <Link href={`/sub-sites/${tenant.id}`}>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="size-8 text-slate-400 hover:text-white hover:bg-white/10"
-                          >
-                            <Eye className="size-4" />
-                          </Button>
-                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="size-8 text-slate-400 hover:text-white hover:bg-white/10"
+                          onClick={() => {
+                            setDetailTenantId(tenant.id);
+                            setIsDetailsDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="size-4" />
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon"
                           className="size-8 text-slate-400 hover:text-amber-400 hover:bg-amber-500/10"
                           onClick={() => {
-                            setSelectedTenant(tenant);
+                            setEditTenantId(tenant.id);
                             setIsEditDialogOpen(true);
                           }}
                         >
@@ -555,32 +560,31 @@ export default function TenantManagerPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-[#0a0f1a] border-amber-500/30 text-white max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-amber-400">แก้ไขเว็บลูก</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              {selectedTenant?.name}
-            </DialogDescription>
-          </DialogHeader>
+      {/* Edit Tenant Dialog - Full Management */}
+      <TenantEditDialog
+        tenantId={editTenantId}
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) setEditTenantId(null);
+        }}
+        onSaved={() => mutate()}
+      />
 
-          {selectedTenant && (
-            <div className="space-y-4 py-4">
-              <div className="p-4 bg-black/30 rounded-lg border border-slate-700">
-                <p className="text-sm text-slate-400">ฟีเจอร์นี้กำลังพัฒนา</p>
-                <p className="text-xs text-slate-500 mt-1">สามารถแก้ไขข้อมูลเว็บลูกได้ในเร็วๆ นี้</p>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              ปิด
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Tenant Detail Dashboard */}
+      <TenantDetailDashboard
+        tenantId={detailTenantId}
+        open={isDetailsDialogOpen}
+        onOpenChange={(open) => {
+          setIsDetailsDialogOpen(open);
+          if (!open) setDetailTenantId(null);
+        }}
+        onEdit={() => {
+          setIsDetailsDialogOpen(false);
+          setEditTenantId(detailTenantId);
+          setIsEditDialogOpen(true);
+        }}
+      />
     </div>
   );
 }
