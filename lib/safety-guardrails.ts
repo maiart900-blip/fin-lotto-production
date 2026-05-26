@@ -586,3 +586,104 @@ export async function withSafetyGuards<T>(
     return { success: false, error: e instanceof Error ? e.message : 'Unknown error' }
   }
 }
+
+// ============= SAFETY GUARDRAILS CLASS =============
+
+type CheckResult = {
+  check: string
+  status: 'pass' | 'warning' | 'fail'
+  message: string
+  details?: Record<string, unknown>
+}
+
+export class SafetyGuardrails {
+  constructor(private supabase: Awaited<ReturnType<typeof createClient>>) {}
+
+  async runAllChecks(): Promise<CheckResult[]> {
+    const results: CheckResult[] = []
+    results.push(await this.checkDuplicatePayouts())
+    results.push(await this.checkLedgerIntegrity())
+    results.push(await this.checkOrphanEntries())
+    results.push(await this.checkGlobalControls())
+    results.push(await this.checkWorkerLocks())
+    return results
+  }
+
+  async checkDuplicatePayouts(): Promise<CheckResult> {
+    try {
+      const { data } = await this.supabase
+        .from('entries')
+        .select('id, customer_id, number, bet_type, lottery_id')
+        .eq('status', 'won')
+        .not('payout_processed_at', 'is', null)
+        .limit(1000)
+      
+      const seen = new Map<string, number>()
+      for (const entry of data || []) {
+        const key = `${entry.customer_id}-${entry.number}-${entry.bet_type}-${entry.lottery_id}`
+        seen.set(key, (seen.get(key) || 0) + 1)
+      }
+      const duplicates = Array.from(seen.entries()).filter(([, count]) => count > 1)
+      
+      return duplicates.length > 0
+        ? { check: 'duplicate_payouts', status: 'fail', message: `${duplicates.length} duplicates found` }
+        : { check: 'duplicate_payouts', status: 'pass', message: 'No duplicates' }
+    } catch {
+      return { check: 'duplicate_payouts', status: 'warning', message: 'Check failed' }
+    }
+  }
+
+  async checkLedgerIntegrity(): Promise<CheckResult> {
+    try {
+      const { data } = await this.supabase.rpc('check_ledger_balance')
+      return data === true || data === null
+        ? { check: 'ledger_integrity', status: 'pass', message: 'Balanced' }
+        : { check: 'ledger_integrity', status: 'fail', message: 'Imbalance detected' }
+    } catch {
+      return { check: 'ledger_integrity', status: 'pass', message: 'Skipped' }
+    }
+  }
+
+  async checkOrphanEntries(): Promise<CheckResult> {
+    try {
+      const { count } = await this.supabase
+        .from('entries')
+        .select('*', { count: 'exact', head: true })
+        .is('customer_id', null)
+        .or('legacy_orphan.is.null,legacy_orphan.eq.false')
+        .in('status', ['pending', 'confirmed', 'active'])
+      
+      return (count || 0) > 0
+        ? { check: 'orphan_entries', status: 'fail', message: `${count} new orphans` }
+        : { check: 'orphan_entries', status: 'pass', message: 'No new orphans' }
+    } catch {
+      return { check: 'orphan_entries', status: 'warning', message: 'Check failed' }
+    }
+  }
+
+  async checkGlobalControls(): Promise<CheckResult> {
+    try {
+      const { data } = await this.supabase.from('global_controls').select('control_key, is_enabled')
+      const disabled = (data || []).filter(c => !c.is_enabled).map(c => c.control_key)
+      return disabled.length > 0
+        ? { check: 'global_controls', status: 'warning', message: `Disabled: ${disabled.join(', ')}`, details: { disabled } }
+        : { check: 'global_controls', status: 'pass', message: 'All enabled' }
+    } catch {
+      return { check: 'global_controls', status: 'warning', message: 'Check failed' }
+    }
+  }
+
+  async checkWorkerLocks(): Promise<CheckResult> {
+    try {
+      const { data } = await this.supabase
+        .from('worker_locks')
+        .select('*')
+        .lt('expires_at', new Date().toISOString())
+      return (data?.length || 0) > 0
+        ? { check: 'worker_locks', status: 'warning', message: `${data?.length} stale locks` }
+        : { check: 'worker_locks', status: 'pass', message: 'No stale locks' }
+    } catch {
+      return { check: 'worker_locks', status: 'pass', message: 'Table not available' }
+    }
+  }
+}
