@@ -30,10 +30,21 @@
 ## 1. Customers (ลูกค้าแทงหวย)
 
 **Table**: `customers`  
-**Condition**: `agent_level != 'member'` หรือ `agent_level IS NULL`
+**Condition**: `agent_level IS NULL` (ลูกค้าทั่วไป)
 
 ```sql
-SELECT * FROM customers WHERE agent_level != 'member' OR agent_level IS NULL;
+-- ลูกค้าทั่วไป (regular customers)
+SELECT * FROM customers WHERE agent_level IS NULL;
+
+-- หมายเหตุ: agent_level = 'agent' คือเอเย่นใน customers table (ไม่ค่อยใช้)
+```
+
+**Database Default** (Fixed 2024):
+```sql
+-- agent_level defaults to NULL (regular customer)
+-- New registrations automatically become regular customers
+ALTER TABLE customers ALTER COLUMN agent_level SET DEFAULT NULL;
+ALTER TABLE customers ALTER COLUMN user_type SET DEFAULT 'customer';
 ```
 
 **หน้าที่**:

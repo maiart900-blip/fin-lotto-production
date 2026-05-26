@@ -186,6 +186,9 @@ export default function ManualKeyCustomersPage() {
         system_type: 'manual_key',
         agent_id: currentUser?.id || null, // The agent who created this customer
         created_by: currentUser?.id || null,
+        // Identity model: regular customer (not staff/member, not agent)
+        agent_level: null,
+        user_type: 'customer',
       };
 
       console.log('[v0] Creating manual-key customer:', insertData);
