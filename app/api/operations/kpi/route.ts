@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireSuperAdmin } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    // Auth guard - require super_admin for platform-wide KPIs
+    const authResult = await requireSuperAdmin()
+    if (authResult instanceof NextResponse) return authResult
+    
     const supabase = await createClient()
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
