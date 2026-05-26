@@ -146,7 +146,7 @@ const memberItems = [
   { title: 'สรุปลูกค้า', href: '/member-summary', icon: UsersRound },
 ];
 
-// 4. บัญชีและการเงิน
+// 4. ธุรกรรมการเงิน (แยกจากการเดิมพัน)
 const financeItems = [
   { title: 'จัดการ Payment Gateway', href: '/payment-gateway', icon: CreditCard },
   { title: 'จัดการกระเป๋าเงิน', href: '/wallet-manager', icon: Wallet },
@@ -154,8 +154,14 @@ const financeItems = [
   { title: 'บัญชีรับเงิน', href: '/payment-accounts', icon: QrCode },
   { title: 'บัญชีถอนเงิน', href: '/withdraw-accounts', icon: ArrowDownToLine },
   { title: 'SCB แม่มณี', href: '/scb-maemanee', icon: Landmark },
-  { title: 'ประวัติธุรกรรม', href: '/transactions', icon: Receipt },
+  { title: 'ธุรกรรมการเงิน', href: '/finance/transactions', icon: Receipt },
   { title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart },
+];
+
+// 4.5 ประวัติการเดิมพัน (แยกจากการเงิน)
+const bettingHistoryItems = [
+  { title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: Ticket },
+  { title: 'รายงานการเดิมพัน', href: '/betting/reports', icon: FileBarChart },
 ];
 
 // 5. หวย (รวมทุกอย่างที่เกี่ยวกับการคีย์หวยไว้ที่นี่)
@@ -343,7 +349,7 @@ const comparisonReportItems = [
   const memberAdminItems = [
   { title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
   { title: 'การเงิน', href: '/member/finance', icon: Wallet },
-  { title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
+  { title: '��ัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
   ];
 
 // 19.5 จัดการพนักงาน/แอดมิน (เว็บแม่และเอเย่นต์ดูได้)
@@ -419,7 +425,8 @@ const menuSections: MenuSection[] = [
   { title: 'ศูนย์ปฏิบัติการ', icon: Headphones, items: operationItems, defaultOpen: true, adminOnly: true, staffVisible: true, memberVisible: true },
   { title: 'ศูนย์แอดมิน', icon: User, items: memberAdminItems, defaultOpen: false, adminOnly: true },
   { title: 'ลูกค้าแทงหวย', icon: Users, items: memberItems, defaultOpen: false, adminOnly: true, staffVisible: true },
-  { title: 'บัญชีและการเงิน', icon: Wallet, items: financeItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
+  { title: 'ธุรกรรมการเงิน', icon: Wallet, items: financeItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
+  { title: 'ประวัติการเดิมพัน', icon: Ticket, items: bettingHistoryItems, defaultOpen: false, adminOnly: true, staffVisible: true },
   { title: 'หวย', icon: Ticket, items: lotteryItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
   { title: 'ระบบออโต้', icon: Zap, items: autoSystemItems, defaultOpen: false, adminOnly: true },
   { title: 'ระบบคีย์หวย', icon: Keyboard, items: manualKeyItems, defaultOpen: false, adminOnly: true },
