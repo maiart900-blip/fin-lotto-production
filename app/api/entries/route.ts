@@ -74,11 +74,75 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     
     // Extract data from request
-    const { entries, userId, lotteryId, lottery_id, customerId, customer_id, skipBlockedCheck, created_by, agent_id } = body;
+    const { entries, userId, lotteryId, lottery_id, customerId, customer_id, skipBlockedCheck, created_by, agent_id, customer_name, source_type } = body;
     const entriesToInsert = Array.isArray(entries) ? entries : [body];
     const finalLotteryId = lotteryId || lottery_id || null;
     const finalCustomerId = customerId || customer_id || null;
     const finalCreatedBy = created_by || body.createdBy || userId || null;
+    const finalSourceType = source_type || 'manual';
+    
+    // ===== VALIDATION: Manual key entries MUST have customer linkage =====
+    // For manual_key or manual source_type, we need either:
+    // 1. A valid customer_id, OR
+    // 2. A customer_name to create/find customer record
+    if ((finalSourceType === 'manual_key' || finalSourceType === 'manual') && !userId) {
+      // This is a manual key entry (not from logged-in customer)
+      // Check if we have customer identification
+      if (!finalCustomerId && !customer_name) {
+        console.warn('[v0] Manual entry rejected: no customer_id or customer_name provided');
+        return NextResponse.json({ 
+          error: 'กรุณาเลือกลูกค้าก่อนส่งโพย',
+          code: 'CUSTOMER_REQUIRED',
+          details: 'Manual key entries must be linked to a customer for payout tracking'
+        }, { status: 400 });
+      }
+      
+      // If customer_name provided but no customer_id, try to find or create customer
+      let resolvedCustomerId = finalCustomerId;
+      if (!resolvedCustomerId && customer_name) {
+        // First, try to find existing customer with this name
+        const { data: existingCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('name', customer_name.trim())
+          .eq('source_type', 'manual_key')
+          .maybeSingle();
+        
+        if (existingCustomer) {
+          resolvedCustomerId = existingCustomer.id;
+        } else {
+          // Create new customer record for this name
+          const { data: newCustomer, error: createError } = await supabase
+            .from('customers')
+            .insert({
+              name: customer_name.trim(),
+              source_type: 'manual_key',
+              system_type: 'manual_key',
+              credit_balance: 0,
+              is_active: true,
+              agent_id: agent_id || finalCreatedBy || null,
+              agent_level: null,
+              user_type: 'customer',
+            })
+            .select('id')
+            .single();
+          
+          if (createError) {
+            console.error('[v0] Failed to create customer for manual entry:', createError);
+            return NextResponse.json({ 
+              error: 'ไม่สามารถสร้างข้อมูลลูกค้าได้',
+              code: 'CUSTOMER_CREATE_FAILED'
+            }, { status: 500 });
+          }
+          
+          resolvedCustomerId = newCustomer.id;
+          console.log('[v0] Created new customer for manual entry:', { id: resolvedCustomerId, name: customer_name });
+        }
+      }
+      
+      // Update finalCustomerId with resolved value
+      body._resolvedCustomerId = resolvedCustomerId;
+    }
     
     // หา agent_id ถ้าไม่ได้ส่งมา - ดูจาก created_by
     let finalAgentId = agent_id || null;
@@ -218,20 +282,24 @@ export async function POST(request: Request) {
     }
     
     // Insert entries
+    // Use resolved customer_id if available
+    const resolvedCustomerId = body._resolvedCustomerId || finalCustomerId;
+    
     const { data, error } = await supabase
       .from('entries')
       .insert(entriesToInsert.map(e => ({
         number: e.number,
         bet_type: e.betType || e.bet_type,
         amount: Number(e.amount) || 0,
-        customer_id: finalCustomerId || e.customerId || e.customer_id || null,
+        customer_id: resolvedCustomerId || e.customerId || e.customer_id || null,
         lottery_id: finalLotteryId || e.lotteryId || e.lottery_id || null,
         user_id: userId || e.userId || e.user_id || null,
         created_by: finalCreatedBy || e.createdBy || e.created_by || null,
         agent_id: finalAgentId || e.agent_id || null,
         status: 'pending',
         payout_rate: e.payoutRate || e.payout_rate || null,
-        source_type: e.source_type || 'manual',
+        source_type: finalSourceType || e.source_type || 'manual',
+        customer_name: body.customer_name || e.customer_name || null, // Store for reference
       })))
       .select('*');
     

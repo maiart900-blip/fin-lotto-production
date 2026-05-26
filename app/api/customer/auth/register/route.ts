@@ -131,6 +131,9 @@ export async function POST(request: NextRequest) {
         is_active: true,
         source_type: 'auto', // ลูกค้าสมัครเองผ่านระบบออโต้
         system_type: 'auto',
+        // Identity model: regular customer (not staff/member, not agent)
+        agent_level: null,
+        user_type: 'customer',
       })
       .select()
       .single();

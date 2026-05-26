@@ -103,8 +103,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useState } from 'react';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { fetcher } from '@/lib/fetcher';
 
 interface PendingCounts {
   topupPending: number;
@@ -478,15 +477,33 @@ export function AppSidebar() {
     toast.success('ออกจากระบบสำเร็จ');
   };
 
-  // Check if user is agent
-  const isAgent = user?.role === 'agent';
+  // Check if user is agent (includes agent_key and partner)
+  const isAgent = user?.role === 'agent' || user?.role === 'agent_key' || user?.role === 'partner';
   const isMember = user?.role === 'member';
   const isStaff = user?.role === 'staff';
   
   // Get user's visible menus from session (loaded at login)
+  // For agents, this comes from agents.visible_menus column
   const userVisibleMenus = user?.visible_menus || [];
   const userHiddenMenus = user?.hidden_menus || [];
   const hasMenuRestrictions = userVisibleMenus.length > 0;
+
+  // Helper to check if a menu item is visible based on user's visible_menus
+  // Handles both href format ("/dashboard") and key format ("dashboard")
+  const isMenuVisible = (href: string): boolean => {
+    if (!hasMenuRestrictions) return true;
+    
+    // Normalize href to key format (remove leading slash)
+    const menuKey = href.startsWith('/') ? href.slice(1) : href;
+    
+    // Check if menu is in hidden list
+    if (userHiddenMenus.includes(href) || userHiddenMenus.includes(menuKey)) {
+      return false;
+    }
+    
+    // Check if menu is in visible_menus list (match both formats)
+    return userVisibleMenus.includes(href) || userVisibleMenus.includes(menuKey);
+  };
 
   // Filter sections based on user role and branch type
   const visibleSections = menuSections.filter(section => {
@@ -496,8 +513,15 @@ export function AppSidebar() {
     // Super Admin only sections
     if (section.superAdminOnly && !isSuperAdmin) return false;
     
-    // === AGENT: เห็นเฉพาะ agentOnly sections เท่านั้น ===
+    // === AGENT: Start with agentOnly sections, but also show sections enabled via visible_menus ===
     if (isAgent) {
+      // If agent has visible_menus restrictions, use those
+      if (hasMenuRestrictions) {
+        // Check if any item in this section is allowed
+        const hasAllowedItems = section.items.some(item => isMenuVisible(item.href));
+        return hasAllowedItems;
+      }
+      // Fallback: show only agentOnly sections
       return section.agentOnly === true;
     }
     
@@ -526,12 +550,7 @@ export function AppSidebar() {
   }).map(section => {
     // If user has menu restrictions, filter items within each section
     if (hasMenuRestrictions && !isSuperAdmin && !isAdmin) {
-      const filteredItems = section.items.filter(item => {
-        // Check if menu href is in hidden list
-        if (userHiddenMenus.includes(item.href)) return false;
-        // If visible_menus is set, check if this menu is allowed
-        return userVisibleMenus.includes(item.href) || userVisibleMenus.length === 0;
-      });
+      const filteredItems = section.items.filter(item => isMenuVisible(item.href));
       return { ...section, items: filteredItems };
     }
     return section;
@@ -681,7 +700,7 @@ export function AppSidebar() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate text-[#E5E5E5]">{user.displayName}</p>
               <p className="text-xs text-[#D4AF37] drop-shadow-[0_0_4px_rgba(212,175,55,0.3)]">
-                {isSuperAdmin ? 'Super Admin' : isAdmin ? 'ผู้ดูแลระบบ' : 'พนักงาน'}
+                {isSuperAdmin ? 'Super Admin' : isAdmin ? 'ผู้ดูแลระบบ' : isAgent ? 'เอเย่นต์' : isMember ? 'แมมเบอร์' : isStaff ? 'พนักงาน' : 'ผู้ใช้'}
               </p>
             </div>
           </div>

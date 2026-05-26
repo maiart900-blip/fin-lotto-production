@@ -7,11 +7,21 @@
 import { Redis } from '@upstash/redis';
 import { createClient } from '@/lib/supabase/server';
 
-// Initialize Redis
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+// Initialize Redis with fallback
+let redis: Redis | null = null;
+try {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+} catch {
+  console.warn('[TransactionQueue] Redis not configured, using in-memory fallback');
+}
+
+// In-memory lock fallback (for development/testing without Redis)
+const inMemoryLocks = new Map<string, { value: string; expiresAt: number }>();
 
 // Lock configuration
 const LOCK_TTL = 30; // 30 seconds
@@ -59,24 +69,49 @@ export interface TransactionResult {
  */
 export async function acquireLock(
   userId: string,
-  transactionType: TransactionType
+  transactionType: TransactionType | number = 'deposit' // number for backwards compat (timeout)
 ): Promise<string | null> {
-  const lockKey = `lock:wallet:${userId}:${transactionType}`;
+  // Support both old signature (userId, txType) and new (lockKey, timeout)
+  const isNewSignature = typeof transactionType === 'number';
+  const lockKey = isNewSignature ? userId : `lock:wallet:${userId}:${transactionType}`;
+  const ttl = isNewSignature ? Math.ceil(transactionType / 1000) : LOCK_TTL;
   const lockValue = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    // Try to acquire lock with NX (only if not exists)
-    const acquired = await redis.set(lockKey, lockValue, {
-      nx: true,
-      ex: LOCK_TTL,
-    });
-    
-    if (acquired) {
-      return lockValue;
+  // Use Redis if available
+  if (redis) {
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const acquired = await redis.set(lockKey, lockValue, {
+          nx: true,
+          ex: ttl,
+        });
+        
+        if (acquired) {
+          return lockValue;
+        }
+      } catch (err) {
+        console.warn('[TransactionQueue] Redis lock error:', err);
+        // Fall through to in-memory
+        break;
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (attempt + 1)));
     }
-    
-    // Wait before retry
-    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (attempt + 1)));
+  }
+  
+  // In-memory fallback
+  const now = Date.now();
+  // Clean expired locks
+  for (const [key, lock] of inMemoryLocks.entries()) {
+    if (lock.expiresAt < now) {
+      inMemoryLocks.delete(key);
+    }
+  }
+  
+  const existing = inMemoryLocks.get(lockKey);
+  if (!existing || existing.expiresAt < now) {
+    inMemoryLocks.set(lockKey, { value: lockValue, expiresAt: now + (ttl * 1000) });
+    return lockValue;
   }
   
   return null; // Failed to acquire lock
@@ -84,35 +119,70 @@ export async function acquireLock(
 
 /**
  * Release Lock
+ * Supports both old signature (userId, txType, lockValue) and new (lockKey)
  */
 export async function releaseLock(
-  userId: string,
-  transactionType: TransactionType,
-  lockValue: string
+  userIdOrLockKey: string,
+  transactionTypeOrLockValue?: TransactionType | string,
+  lockValueParam?: string
 ): Promise<boolean> {
-  const lockKey = `lock:wallet:${userId}:${transactionType}`;
+  // Determine which signature is being used
+  let lockKey: string;
+  let lockValue: string | undefined;
   
-  // Only release if we own the lock (Lua script for atomicity)
-  const script = `
-    if redis.call("get", KEYS[1]) == ARGV[1] then
-      return redis.call("del", KEYS[1])
-    else
-      return 0
-    end
-  `;
+  if (lockValueParam !== undefined) {
+    // Old signature: (userId, transactionType, lockValue)
+    lockKey = `lock:wallet:${userIdOrLockKey}:${transactionTypeOrLockValue}`;
+    lockValue = lockValueParam;
+  } else if (transactionTypeOrLockValue !== undefined) {
+    // Could be old (userId, txType) without value or new (lockKey) with no value
+    // If it looks like a transaction type, use old format
+    const txTypes: TransactionType[] = ['deposit', 'withdraw', 'bet', 'payout', 'commission', 'bonus', 'transfer', 'refund', 'adjustment'];
+    if (txTypes.includes(transactionTypeOrLockValue as TransactionType)) {
+      lockKey = `lock:wallet:${userIdOrLockKey}:${transactionTypeOrLockValue}`;
+    } else {
+      // New signature: (lockKey)
+      lockKey = userIdOrLockKey;
+    }
+  } else {
+    // New signature: just (lockKey)
+    lockKey = userIdOrLockKey;
+  }
   
-  try {
-    const result = await redis.eval(script, [lockKey], [lockValue]);
-    return result === 1;
-  } catch {
-    // Fallback: try to delete if it matches
-    const currentValue = await redis.get(lockKey);
-    if (currentValue === lockValue) {
-      await redis.del(lockKey);
+  // Try Redis first
+  if (redis) {
+    try {
+      if (lockValue) {
+        // Only release if we own the lock (Lua script for atomicity)
+        const script = `
+          if redis.call("get", KEYS[1]) == ARGV[1] then
+            return redis.call("del", KEYS[1])
+          else
+            return 0
+          end
+        `;
+        
+        const result = await redis.eval(script, [lockKey], [lockValue]);
+        return result === 1;
+      } else {
+        // Just delete the key
+        await redis.del(lockKey);
+        return true;
+      }
+    } catch {
+      // Fall through to in-memory
+    }
+  }
+  
+  // In-memory fallback
+  const existing = inMemoryLocks.get(lockKey);
+  if (existing) {
+    if (!lockValue || existing.value === lockValue) {
+      inMemoryLocks.delete(lockKey);
       return true;
     }
-    return false;
   }
+  return false;
 }
 
 /**

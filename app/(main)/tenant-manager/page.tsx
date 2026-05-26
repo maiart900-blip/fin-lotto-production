@@ -32,8 +32,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import Link from 'next/link';
-
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+import { fetcher } from '@/lib/fetcher';
 
 // =============================================================================
 // TYPES - Based on real database schema

@@ -57,6 +57,12 @@ export async function GET(request: NextRequest) {
     if (accountType) {
       query = query.eq('account_type', accountType);
     }
+    
+    // Filter by agent_level (member = staff, agent = agent-customers)
+    const agentLevel = searchParams.get('agent_level');
+    if (agentLevel) {
+      query = query.eq('agent_level', agentLevel);
+    }
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`);

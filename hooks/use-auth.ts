@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState, useRef } from 'react';
+import type { UserType, SourceTable, DetailedRole } from '@/lib/identity';
 
-export type UserRole = 'super_admin' | 'admin' | 'agent' | 'partner' | 'staff' | 'member';
+export type UserRole = 'super_admin' | 'admin' | 'agent' | 'agent_key' | 'partner' | 'staff' | 'member' | 'customer';
 
 export interface BranchInfo {
   id: string;
@@ -19,6 +20,10 @@ export interface SessionUser {
   username: string;
   displayName: string;
   role: UserRole;
+  // Identity model fields
+  user_type?: UserType;
+  source_table?: SourceTable;
+  // Other fields
   referralCode?: string;
   is_unlimited_credit?: boolean;
   credit_balance?: number;
@@ -150,6 +155,9 @@ export function useAuth() {
 
   const isSuperAdmin = user?.role === 'super_admin';
   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+  const isAgent = user?.role === 'agent' || user?.role === 'agent_key' || user?.role === 'partner';
+  const isMember = user?.role === 'member' || user?.role === 'staff' || user?.user_type === 'member';
+  const isCustomer = user?.role === 'customer' || user?.user_type === 'customer';
   
   // Branch context helpers
   const isMasterBranch = user?.branch?.is_master === true || user?.branch?.branch_type === 'master';
@@ -213,6 +221,9 @@ export function useAuth() {
     isAuthenticated: !!user,
     isSuperAdmin,
     isAdmin,
+    isAgent,
+    isMember,
+    isCustomer,
     isMasterBranch,
     hasBranch,
     branchId,

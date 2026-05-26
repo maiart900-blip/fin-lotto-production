@@ -20,8 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { fetcher } from '@/lib/fetcher';
 
 // Format number with Thai style
 const formatCurrency = (amount: number, showSign = false) => {
@@ -60,8 +59,9 @@ export default function FinancialHubPage() {
     );
   }
 
-  // Handle unauthorized error
-  if (error || dashboardData?.code === 'UNAUTHORIZED' || dashboardData?.error === 'Unauthorized') {
+  // Handle unauthorized or forbidden error
+  if (error || dashboardData?.code === 'UNAUTHORIZED' || dashboardData?.code === 'FORBIDDEN' || dashboardData?.error === 'Unauthorized') {
+    const isForbidden = dashboardData?.code === 'FORBIDDEN';
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#030712] via-[#0a0f1a] to-[#030712]">
         <Card className="bg-red-900/20 border-red-500/30 p-8 max-w-md">
@@ -71,7 +71,11 @@ export default function FinancialHubPage() {
             <p className="text-slate-400 mb-4">
               หน้านี้สำหรับ Super Admin เท่านั้น
               <br />
-              กรุณาเข้าสู่ระบบด้วยบัญชี Super Admin
+              {isForbidden ? (
+                <>Role ของคุณ: {dashboardData?.your_role || 'unknown'}</>
+              ) : (
+                <>กรุณาเข้าสู่ระบบด้วยบัญชี Super Admin</>
+              )}
             </p>
             <Button 
               variant="outline" 

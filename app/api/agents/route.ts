@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
     // Auth guard - require agent or higher (agents can see list for their own reference)
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
+    
+    const { user } = authResult;
 
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
@@ -15,14 +17,54 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const offset = (page - 1) * limit;
     const search = searchParams.get('search') || '';
+    const includeHierarchy = searchParams.get('include_hierarchy') === 'true';
+
+    // Determine if user can see all agents or only their downline
+    const isAdmin = user.role === 'super_admin' || user.role === 'admin';
+    
+    // For agents/agent_key, get their downline IDs (recursive)
+    let downlineIds: string[] = [];
+    if (!isAdmin) {
+      // Get all agents where parent_id matches current user
+      // Use recursive CTE to get full hierarchy
+      const { data: downline } = await supabase.rpc('get_agent_downline', { agent_id: user.id });
+      if (downline) {
+        downlineIds = downline.map((d: { id: string }) => d.id);
+      }
+      
+      // Fallback: if RPC doesn't exist, do simple parent_id check
+      if (downlineIds.length === 0) {
+        const { data: directDownline } = await supabase
+          .from('agents')
+          .select('id')
+          .eq('parent_id', user.id);
+        if (directDownline) {
+          downlineIds = directDownline.map(d => d.id);
+        }
+      }
+    }
 
     // Summary query (count only, no data fetch)
     let countQuery = supabase.from('agents').select('*', { count: 'exact', head: true });
     if (status) countQuery = countQuery.eq('status', status);
+    if (!isAdmin && downlineIds.length > 0) {
+      countQuery = countQuery.in('id', downlineIds);
+    } else if (!isAdmin) {
+      // No downline agents - return empty
+      return NextResponse.json({
+        agents: [],
+        summary: { total: 0, active: 0, inactive: 0, totalBets: 0, totalCommission: 0 },
+        pagination: { page, limit, total: 0, totalPages: 0 }
+      });
+    }
     const { count: totalCount } = await countQuery;
 
     // Active count
-    const { count: activeCount } = await supabase.from('agents').select('*', { count: 'exact', head: true }).eq('status', 'active');
+    let activeCountQuery = supabase.from('agents').select('*', { count: 'exact', head: true }).eq('status', 'active');
+    if (!isAdmin && downlineIds.length > 0) {
+      activeCountQuery = activeCountQuery.in('id', downlineIds);
+    }
+    const { count: activeCount } = await activeCountQuery;
 
     // Data query with pagination
     let query = supabase
@@ -32,7 +74,12 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (status) query = query.eq('status', status);
-    if (search) query = query.or(`username.ilike.%${search}%,display_name.ilike.%${search}%,phone.ilike.%${search}%`);
+    if (search) query = query.or(`username.ilike.%${search}%,display_name.ilike.%${search}%,phone.ilike.%${search}%,name.ilike.%${search}%,code.ilike.%${search}%`);
+    
+    // Apply hierarchy filter for non-admin users
+    if (!isAdmin && downlineIds.length > 0) {
+      query = query.in('id', downlineIds);
+    }
 
     const { data, error, count } = await query;
 
@@ -52,7 +99,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       agents: data || [],
       summary,
-      pagination: { page, limit, total: count || 0, totalPages: Math.ceil((count || 0) / limit) }
+      pagination: { page, limit, total: count || 0, totalPages: Math.ceil((count || 0) / limit) },
+      _debug: { isAdmin, userId: user.id, role: user.role, downlineCount: downlineIds.length }
     });
   } catch (error) {
     console.error('Agents error:', error);
