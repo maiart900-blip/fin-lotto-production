@@ -23,6 +23,13 @@ export interface SessionUser {
   // Identity model fields
   user_type?: UserType;
   source_table?: SourceTable;
+  // Tenant context (for agents)
+  tenant_id?: string | null;
+  tenant_mode?: 'auto_only' | 'manual_key_only' | 'hybrid' | 'both';
+  feature_flags?: string[];
+  system_type?: 'auto' | 'manual_key' | 'both' | 'hybrid';
+  enable_manual_key?: boolean;
+  enable_auto?: boolean;
   // Other fields
   referralCode?: string;
   is_unlimited_credit?: boolean;
@@ -32,6 +39,7 @@ export interface SessionUser {
   // Permission fields
   visible_menus?: string[];
   hidden_menus?: string[];
+  permissions?: Record<string, any>;
   can_create_sub_agent?: boolean;
   can_view_reports?: boolean;
   can_key_lottery?: boolean;

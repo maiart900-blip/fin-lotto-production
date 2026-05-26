@@ -104,6 +104,12 @@ import {
 } from '@/components/ui/collapsible';
 import { useState } from 'react';
 import { fetcher } from '@/lib/fetcher';
+import {
+  PLATFORM_ONLY_MENUS,
+  MANUAL_KEY_MENUS,
+  AUTO_SYSTEM_MENUS,
+  AGENT_DEFAULT_MENUS,
+} from '@/lib/agent-permissions.client';
 
 interface PendingCounts {
   topupPending: number;
@@ -490,23 +496,64 @@ export function AppSidebar() {
   const isStaff = user?.role === 'staff';
   
   // Get user's visible menus from session (loaded at login)
-  // For agents, this comes from agents.visible_menus column
+  // For agents, this comes from agents.visible_menus column or agent_permissions table
   const userVisibleMenus = user?.visible_menus || [];
   const userHiddenMenus = user?.hidden_menus || [];
   const hasMenuRestrictions = userVisibleMenus.length > 0;
+  
+  // Agent-specific feature flags
+  const agentEnableManualKey = (user as any)?.enable_manual_key !== false; // Default true
+  const agentEnableAuto = (user as any)?.enable_auto === true;
+  const agentSystemType = (user as any)?.system_type || 'manual_key';
+
+  // Helper to check if menu is platform-only (should be blocked for agents)
+  const isPlatformOnlyMenu = (href: string): boolean => {
+    const normalizedHref = href.startsWith('/') ? href : '/' + href;
+    const menuKey = href.startsWith('/') ? href.slice(1) : href;
+    return PLATFORM_ONLY_MENUS.some(m => 
+      normalizedHref === m || 
+      normalizedHref.startsWith(m + '/') || 
+      menuKey === m ||
+      menuKey.startsWith(m + '/')
+    );
+  };
 
   // Helper to check if a menu item is visible based on user's visible_menus
   // Handles both href format ("/dashboard") and key format ("dashboard")
   const isMenuVisible = (href: string): boolean => {
-    if (!hasMenuRestrictions) return true;
-    
     // Normalize href to key format (remove leading slash)
     const menuKey = href.startsWith('/') ? href.slice(1) : href;
+    
+    // For agents: block platform-only menus regardless of visible_menus
+    if (isAgent && isPlatformOnlyMenu(href)) {
+      return false;
+    }
     
     // Check if menu is in hidden list
     if (userHiddenMenus.includes(href) || userHiddenMenus.includes(menuKey)) {
       return false;
     }
+    
+    // For agents: check manual key menus
+    if (isAgent) {
+      const isManualKeyMenu = MANUAL_KEY_MENUS.some(m => 
+        href === m || menuKey === m.replace(/^\//, '') || href.startsWith(m + '/')
+      );
+      if (isManualKeyMenu && !agentEnableManualKey) {
+        return false;
+      }
+      
+      // Check auto system menus
+      const isAutoMenu = AUTO_SYSTEM_MENUS.some(m => 
+        href === m || menuKey === m.replace(/^\//, '') || href.startsWith(m + '/')
+      );
+      if (isAutoMenu && !agentEnableAuto) {
+        return false;
+      }
+    }
+    
+    // If no menu restrictions, allow (for admins)
+    if (!hasMenuRestrictions) return true;
     
     // Check if menu is in visible_menus list (match both formats)
     return userVisibleMenus.includes(href) || userVisibleMenus.includes(menuKey);
@@ -520,16 +567,22 @@ export function AppSidebar() {
     // Super Admin only sections
     if (section.superAdminOnly && !isSuperAdmin) return false;
     
-    // === AGENT: Start with agentOnly sections, but also show sections enabled via visible_menus ===
+    // === AGENT: Filter based on permissions and feature flags ===
     if (isAgent) {
-      // If agent has visible_menus restrictions, use those
-      if (hasMenuRestrictions) {
-        // Check if any item in this section is allowed
-        const hasAllowedItems = section.items.some(item => isMenuVisible(item.href));
-        return hasAllowedItems;
+      // Block sections with platform-only items
+      const allItemsPlatformOnly = section.items.every(item => isPlatformOnlyMenu(item.href));
+      if (allItemsPlatformOnly) return false;
+      
+      // Check agentOnly sections first (these are always visible for agents)
+      if (section.agentOnly === true) {
+        // But still filter items based on system_type
+        const hasValidItems = section.items.some(item => isMenuVisible(item.href));
+        return hasValidItems;
       }
-      // Fallback: show only agentOnly sections
-      return section.agentOnly === true;
+      
+      // For non-agentOnly sections, check if any item is allowed
+      const hasAllowedItems = section.items.some(item => isMenuVisible(item.href));
+      return hasAllowedItems;
     }
     
     // === MEMBER: เห็นเฉพาะ memberVisible sections ===
@@ -555,8 +608,9 @@ export function AppSidebar() {
     
     return true;
   }).map(section => {
-    // If user has menu restrictions, filter items within each section
-    if (hasMenuRestrictions && !isSuperAdmin && !isAdmin) {
+    // Filter items within each section based on permissions
+    // For agents: always filter; for others: only if restrictions exist
+    if (isAgent || (hasMenuRestrictions && !isSuperAdmin && !isAdmin)) {
       const filteredItems = section.items.filter(item => isMenuVisible(item.href));
       return { ...section, items: filteredItems };
     }
