@@ -136,6 +136,35 @@ export async function POST(request: NextRequest) {
       is_processed: result.is_processed,
     });
 
+    // ===== DUPLICATE PROCESSING PROTECTION =====
+    // Check if already processed to prevent double payouts
+    if (result.is_processed === true) {
+      console.log('[v0] Result already processed, returning cached data');
+      return NextResponse.json({
+        success: true,
+        message: 'ผลหวยนี้ถูกคำนวณแล้ว (cached)',
+        already_processed: true,
+        result_id: result.id,
+        total_winners: result.total_winners || 0,
+        total_payout: result.total_payout_amount || 0,
+      });
+    }
+
+    // Lock the result to prevent concurrent processing
+    const { error: lockError } = await supabase
+      .from('lottery_results')
+      .update({ 
+        processing_started_at: new Date().toISOString(),
+        status: 'processing'
+      })
+      .eq('id', result.id)
+      .eq('is_processed', false); // Only lock if not yet processed
+
+    if (lockError) {
+      console.error('[v0] Failed to lock result for processing:', lockError);
+      // Continue anyway for now, but log the error
+    }
+
     // Get payout rates for this lottery
     const { data: rates } = await supabase
       .from('payout_rates')
