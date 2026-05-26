@@ -3,17 +3,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { requireAgentOrHigher } from '@/lib/api-auth';
 import { stripSensitiveFieldsArray, stripSensitiveFields } from '@/lib/api-serializers';
+import { getCustomerScopeForUser, applyCustomerScope } from '@/lib/customer-scope';
 
 /**
  * Customers API - Agent/Admin level access
  * Uses stripSensitiveFields to remove only password_hash while keeping all operational fields
  * Frontend depends on full customer data for management pages
+ * 
+ * SECURITY: Customer scope is enforced based on user's tenant_id and agent downline
  */
 export async function GET(request: NextRequest) {
   try {
     // Auth guard - require agent or higher
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
+    
+    // Get user session for scope filtering
+    const session = authResult;
 
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
@@ -24,15 +30,30 @@ export async function GET(request: NextRequest) {
     const agentId = searchParams.get('agent_id');
     const systemType = searchParams.get('system_type');
 
+    // Get customer scope for current user
+    const scope = await getCustomerScopeForUser({
+      id: session.id,
+      role: session.role,
+      user_type: session.user_type,
+      tenant_id: session.tenant_id,
+    });
+
     let query = supabase
       .from('customers')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    // Filter by agent_id (สำหรับเอเย่นดูเฉพาะลูกค้าใต้สายงาน)
+    // SECURITY: Apply customer scope filters first
+    query = applyCustomerScope(query, scope);
+
+    // Additional filter by agent_id (for agents filtering within their downline)
+    // Only apply if agent_id is in the user's allowed agent IDs
     if (agentId) {
-      query = query.eq('agent_id', agentId);
+      if (scope.canAccessAll || scope.isAdmin || scope.agentIds.includes(agentId)) {
+        query = query.eq('agent_id', agentId);
+      }
+      // If agent_id not in scope, the applyCustomerScope already limits results
     }
 
     // Filter by system_type (manual_key หรือ auto)

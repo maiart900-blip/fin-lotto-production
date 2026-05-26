@@ -1,19 +1,40 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
+import { requireCustomerAccess, getCustomerScopeForUser, filterAccessibleCustomerIds } from '@/lib/customer-scope';
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
+    
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const customerId = searchParams.get('customer_id');
     const type = searchParams.get('type');
 
+    // SECURITY: If customer_id specified, verify access
+    if (customerId) {
+      const accessCheck = await requireCustomerAccess(customerId, {
+        id: session.id,
+        role: session.role,
+        user_type: session.user_type,
+        tenant_id: session.tenant_id,
+      });
+      
+      if (!accessCheck.allowed) {
+        return NextResponse.json([]);
+      }
+    }
+
     let query = supabase
       .from('credit_transactions')
       .select(`
         *,
-        customer:customers(id, name, phone),
+        customer:customers(id, name, phone, tenant_id, agent_id),
         creator:users!credit_transactions_created_by_fkey(id, display_name)
       `)
       .order('created_at', { ascending: false })
@@ -21,6 +42,44 @@ export async function GET(request: NextRequest) {
 
     if (customerId) {
       query = query.eq('customer_id', customerId);
+    } else {
+      // SECURITY: If no specific customer, get scope-filtered customer IDs
+      const scope = await getCustomerScopeForUser({
+        id: session.id,
+        role: session.role,
+        user_type: session.user_type,
+        tenant_id: session.tenant_id,
+      });
+      
+      // For agents, we need to filter transactions to only their customers
+      if (scope.isAgent && scope.agentIds.length > 0) {
+        // Get all customer IDs in the user's scope
+        const { data: scopedCustomers } = await supabase
+          .from('customers')
+          .select('id')
+          .in('agent_id', scope.agentIds);
+        
+        const customerIds = (scopedCustomers || []).map(c => c.id);
+        if (customerIds.length > 0) {
+          query = query.in('customer_id', customerIds);
+        } else {
+          return NextResponse.json([]);
+        }
+      } else if (scope.isTenantOwner && scope.tenantId) {
+        // Get customers in tenant
+        const { data: tenantCustomers } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('tenant_id', scope.tenantId);
+        
+        const customerIds = (tenantCustomers || []).map(c => c.id);
+        if (customerIds.length > 0) {
+          query = query.in('customer_id', customerIds);
+        } else {
+          return NextResponse.json([]);
+        }
+      }
+      // Super admin sees all
     }
 
     if (type) {

@@ -1,15 +1,24 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { requireAgentOrHigher } from '@/lib/api-auth';
+import { getCustomerScopeForUser, applyCustomerScope } from '@/lib/customer-scope';
 
 /**
  * API สำหรับแมมเบอร์สายงาน (Network Members)
  * - แมมเบอร์คือคนที่อยู่ใต้สายงานของ Agent
  * - แยกจากลูกค้าออโต้ (auto_customer) และลูกค้าคีย์หวย (manual_key_customer)
  * - ใช้ user_type = 'network_member' และ account_type = 'downline_member'
+ * 
+ * SECURITY: Customer scope is enforced based on user's tenant_id and agent downline
  */
 export async function GET(request: NextRequest) {
   try {
+    // Auth guard
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
+    
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -18,6 +27,14 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const agentId = searchParams.get('agent_id');
     const status = searchParams.get('status');
+    
+    // Get customer scope for current user
+    const scope = await getCustomerScopeForUser({
+      id: session.id,
+      role: session.role,
+      user_type: session.user_type,
+      tenant_id: session.tenant_id,
+    });
 
     let query = supabase
       .from('customers')
@@ -26,9 +43,14 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    // Filter by agent_id (สำหรับเอเย่นดูเฉพาะแมมเบอร์ใต้สายงาน)
+    // SECURITY: Apply customer scope filters
+    query = applyCustomerScope(query, scope);
+
+    // Additional filter by agent_id (only if within user's scope)
     if (agentId) {
-      query = query.or(`agent_id.eq.${agentId},parent_agent_id.eq.${agentId},upline_id.eq.${agentId}`);
+      if (scope.canAccessAll || scope.isAdmin || scope.agentIds.includes(agentId)) {
+        query = query.or(`agent_id.eq.${agentId},parent_agent_id.eq.${agentId},upline_id.eq.${agentId}`);
+      }
     }
 
     // Filter by status
