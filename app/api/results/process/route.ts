@@ -207,14 +207,16 @@ export async function POST(request: NextRequest) {
     let totalBetItemsChecked = 0;
 
     // ===== PROCESS ENTRIES TABLE =====
-    console.log('[v0] Checking entries table...');
+    // Exclude legacy_orphan entries (archived entries without customer linkage)
+    console.log('[v0] Checking entries table (excluding legacy orphans)...');
     const { data: entries, error: entriesError } = await supabase
       .from('entries')
       .select('*')
       .eq('lottery_id', result.lottery_id)
       .gte('created_at', drawDateStart)
       .lt('created_at', drawDateEnd)
-      .in('status', ['pending', 'confirmed', 'active']);
+      .in('status', ['pending', 'confirmed', 'active'])
+      .or('legacy_orphan.is.null,legacy_orphan.eq.false'); // Exclude archived orphans
 
     if (entriesError) {
       console.error('[v0] Error fetching entries:', entriesError);
