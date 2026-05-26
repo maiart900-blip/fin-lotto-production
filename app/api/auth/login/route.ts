@@ -210,6 +210,21 @@ export async function POST(request: Request) {
         .update({ last_activity_at: new Date().toISOString() })
         .eq('id', agent.id);
       
+      // Fetch tenant info for mode and features
+      let tenantMode = 'hybrid';
+      let tenantFeatures: string[] = [];
+      if (agent.tenant_id) {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('mode, feature_flags')
+          .eq('id', agent.tenant_id)
+          .single();
+        if (tenant) {
+          tenantMode = tenant.mode || 'hybrid';
+          tenantFeatures = tenant.feature_flags || [];
+        }
+      }
+      
       // Fetch agent permissions from agent_permissions table
       const { data: agentPerms } = await supabase
         .from('agent_permissions')
@@ -279,6 +294,11 @@ export async function POST(request: Request) {
           role: agentRole,
           user_type: 'agent' as UserType,
           source_table: 'agents' as SourceTable,
+          // Tenant context
+          tenant_id: agent.tenant_id || null,
+          tenant_mode: tenantMode,
+          feature_flags: tenantFeatures,
+          // Agent data
           credit_balance: agent.credit_balance || 0,
           credit_limit: agent.credit_limit || 0,
           commission_rate: agent.commission_rate || 0,
