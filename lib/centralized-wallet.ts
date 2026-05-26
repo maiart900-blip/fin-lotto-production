@@ -138,7 +138,6 @@ class CentralizedWalletService {
   async getWallet(siteId: string, userId: string): Promise<CentralWallet | null> {
     // In production, this fetches from the master database
     // All wallet data is stored centrally, not in site-specific databases
-    console.log(`[CentralWallet] Fetching wallet for ${userId} from master DB`);
     
     // Mock implementation
     return {
@@ -159,7 +158,6 @@ class CentralizedWalletService {
 
   async processTransaction(transaction: Omit<WalletTransaction, 'id' | 'createdAt'>): Promise<WalletTransaction> {
     // All transactions must be processed through the master system
-    console.log(`[CentralWallet] Processing ${transaction.type} for ${transaction.userId}`);
 
     // Validate first
     const validation = await this.validateTransaction(

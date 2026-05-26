@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import bcrypt from 'bcryptjs';
 
-// Default admin credentials
+// Default admin credentials - should be overridden via environment variables
 const DEFAULT_ADMIN = {
-  username: 'admin',
-  password: 'admin123',
+  username: process.env.SEED_ADMIN_USERNAME || 'admin',
+  password: process.env.SEED_ADMIN_PASSWORD || 'CHANGE_ME_' + Math.random().toString(36).substring(2, 10),
   name: 'Super Admin',
   display_name: 'Super Admin',
   role: 'super_admin',
