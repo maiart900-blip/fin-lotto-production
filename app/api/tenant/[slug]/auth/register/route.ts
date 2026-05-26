@@ -98,6 +98,9 @@ export async function POST(
         credit_balance: 0,
         is_active: true,
         registration_source: 'tenant',
+        // Identity model: regular customer (not staff/member, not agent)
+        agent_level: null,
+        user_type: 'customer',
       })
       .select('id, username, referral_code')
       .single();

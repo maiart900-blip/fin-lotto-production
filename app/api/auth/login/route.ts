@@ -2,12 +2,32 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
+import { 
+  checkRateLimitByIP, 
+  createRateLimitResponse, 
+  logRateLimitViolation,
+  addRateLimitHeaders,
+  type RateLimitResult 
+} from '@/lib/rate-limit';
+import { auditLogger } from '@/lib/audit-logger';
+import {
+  getUserTypeFromRole,
+  getSourceTableFromRole,
+  type UserType,
+  type SourceTable,
+  type DetailedRole,
+} from '@/lib/identity';
 
 /**
  * Set authentication cookies for server-side auth verification
  * These cookies are read by api-auth.ts to authenticate API requests
  */
-async function setAuthCookies(userId: string, role: string, userType: 'admin' | 'customer') {
+async function setAuthCookies(
+  userId: string, 
+  role: string, 
+  userType: UserType,
+  sourceTable: SourceTable
+) {
   const cookieStore = await cookies();
   const cookieOptions = {
     httpOnly: true,
@@ -17,18 +37,48 @@ async function setAuthCookies(userId: string, role: string, userType: 'admin' | 
     path: '/',
   };
   
-  if (userType === 'admin') {
+  // Set unified session cookie with all identity info
+  const sessionData = {
+    id: userId,
+    role,
+    user_type: userType,
+    source_table: sourceTable,
+  };
+  cookieStore.set('lottery_session', JSON.stringify(sessionData), cookieOptions);
+  
+  // Set role-specific cookies for backward compatibility
+  if (userType === 'admin' || userType === 'super_admin' || userType === 'agent' || userType === 'member') {
     cookieStore.set('admin_id', userId, cookieOptions);
     cookieStore.set('admin_role', role, cookieOptions);
-    // Also set lottery_session cookie for backup
-    cookieStore.set('lottery_session', JSON.stringify({ id: userId, role }), cookieOptions);
   } else {
     cookieStore.set('customer_id', userId, cookieOptions);
-    cookieStore.set('lottery_session', JSON.stringify({ id: userId, role: 'customer' }), cookieOptions);
   }
 }
 
 export async function POST(request: Request) {
+  // Rate limit check - strict limit for login attempts
+  let rateLimitResult: RateLimitResult;
+  try {
+    rateLimitResult = await checkRateLimitByIP('login');
+    
+    if (!rateLimitResult.success) {
+      // Log rate limit violation
+      await logRateLimitViolation('login', 'login', rateLimitResult);
+      
+      // Log to audit
+      await auditLogger.logAuth('unknown', 'login_failed', undefined, {
+        reason: 'rate_limited',
+        ip: request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown',
+      });
+      
+      return createRateLimitResponse(rateLimitResult, 'login');
+    }
+  } catch (error) {
+    // If rate limit check fails, continue with login (fail open)
+    console.error('[v0] Rate limit check failed:', error);
+    rateLimitResult = { success: true, limit: 5, remaining: 5, reset: Date.now() / 1000 + 60 };
+  }
+  
   try {
     const { username, password } = await request.json();
     
@@ -81,16 +131,28 @@ export async function POST(request: Request) {
       }
       
       // Set auth cookies for server-side verification
-      await setAuthCookies(user.id, user.role, 'admin');
+      const userType = getUserTypeFromRole(user.role);
+      const sourceTable = getSourceTableFromRole(user.role);
+      await setAuthCookies(user.id, user.role, userType, sourceTable);
       
-      return NextResponse.json({
+      // Log successful login
+      await auditLogger.logAuth(user.id, 'login', undefined, {
+        username: user.username,
+        role: user.role,
+        user_type: userType,
+      });
+      
+      // Build response with rate limit headers
+      const response = NextResponse.json({
         success: true,
-        userType: 'admin',
+        userType: userType, // Use standardized user_type
         user: {
           id: user.id,
           username: user.username,
           displayName: user.display_name,
           role: user.role,
+          user_type: userType,
+          source_table: sourceTable,
           referralCode: user.referral_code,
           is_unlimited_credit: user.is_unlimited_credit || false,
           credit_balance: user.credit_balance || 0,
@@ -108,6 +170,8 @@ export async function POST(request: Request) {
         },
         redirectTo: user.role === 'agent' ? '/agent-dashboard' : '/'
       });
+      
+      return addRateLimitHeaders(response, rateLimitResult);
     }
     
     // 2. ตรวจสอบจากตาราง agents (Agent Key / Agent Auto)
@@ -201,17 +265,20 @@ export async function POST(request: Request) {
         redirectTo = '/';
       }
       
-      // Set auth cookies for server-side verification (treat as admin for API access)
-      await setAuthCookies(agent.id, agent.role || 'agent', 'admin');
+      // Set auth cookies for server-side verification (agents use 'agent' user_type)
+      const agentRole = (agent.role || 'agent') as DetailedRole;
+      await setAuthCookies(agent.id, agentRole, 'agent', 'agents');
       
       return NextResponse.json({
         success: true,
-        userType: 'agent_key',
+        userType: 'agent', // Standardized user_type
         user: {
           id: agent.id,
           username: agent.code,
           displayName: agent.name,
-          role: agent.role || 'agent_key',
+          role: agentRole,
+          user_type: 'agent' as UserType,
+          source_table: 'agents' as SourceTable,
           credit_balance: agent.credit_balance || 0,
           credit_limit: agent.credit_limit || 0,
           commission_rate: agent.commission_rate || 0,
@@ -277,8 +344,14 @@ export async function POST(request: Request) {
       
       const isValid = await bcrypt.compare(password, customer.password_hash);
       if (!isValid) {
+        // Log failed login attempt
+        await auditLogger.logAuth(user.id, 'login_failed', undefined, {
+          reason: 'invalid_password',
+          username,
+        });
+        
         return NextResponse.json(
-          { error: 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง' },
+          { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' },
           { status: 401 }
         );
       }
@@ -294,9 +367,22 @@ export async function POST(request: Request) {
       const isAgent = customer.agent_level === 'agent';
       const isMember = customer.agent_level === 'member'; // แมมเบอร์ = พนักงาน
       
+      // Determine user_type and role
+      let customerUserType: UserType = 'customer';
+      let customerRole: DetailedRole = 'customer';
+      let sourceTable: SourceTable = 'customers';
+      
+      if (isAgent) {
+        customerUserType = 'agent';
+        customerRole = 'agent';
+      } else if (isMember) {
+        customerUserType = 'member';
+        customerRole = 'member';
+      }
+      
       // Get menu permissions for agent/member
       let permissionData = null;
-      const targetType = isAgent ? 'agent' : 'member';
+      const targetType = isAgent ? 'agent' : (isMember ? 'member' : 'customer');
       const { data: permission } = await supabase
         .from('menu_permissions')
         .select('*')
@@ -317,21 +403,19 @@ export async function POST(request: Request) {
       }
       
       // Set auth cookies for server-side verification
-      if (isAgent || isMember) {
-        await setAuthCookies(customer.id, isAgent ? 'agent' : 'member', 'admin');
-      } else {
-        await setAuthCookies(customer.id, 'customer', 'customer');
-      }
+      await setAuthCookies(customer.id, customerRole, customerUserType, sourceTable);
       
       return NextResponse.json({
         success: true,
-        userType: isAgent ? 'agent' : (isMember ? 'staff' : 'customer'),
+        userType: customerUserType, // Standardized: 'customer' | 'member' | 'agent'
         user: {
           id: customer.id,
           username: customer.username || customer.phone,
           displayName: customer.name,
           phone: customer.phone,
-          role: isAgent ? 'agent' : (isMember ? 'member' : 'customer'),
+          role: customerRole,
+          user_type: customerUserType,
+          source_table: sourceTable,
           credit_balance: customer.credit_balance || 0,
           commission_rate: customer.commission_rate || 0,
           upline_id: customer.upline_id,

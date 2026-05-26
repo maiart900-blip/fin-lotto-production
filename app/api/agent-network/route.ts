@@ -1,80 +1,108 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
-// GET - Get all agents with their network info
+/**
+ * Agent Network API - AGENT OR HIGHER
+ * Manages agent hierarchy and share percentages
+ * Queries from 'agents' table (not 'users' table)
+ */
 export async function GET(request: Request) {
   try {
+    // Auth guard
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get('parent_id');
     
     const supabase = await createClient();
     
+    // Query from agents table (where actual agents are stored)
     let query = supabase
-      .from('users')
+      .from('agents')
       .select(`
         id,
-        username,
-        display_name,
+        code,
+        name,
         role,
-        is_unlimited_credit,
-        credit_balance,
-        parent_id,
+        status,
+        parent_agent_id,
         hierarchy_level,
-        created_at,
-        agent_settings (
-          id,
-          agent_share_percent,
-          parent_share_percent,
-          max_accept_limit,
-          is_active
-        )
+        share_percent,
+        commission_rate,
+        max_bet_per_number,
+        max_bet_per_round,
+        credit_limit,
+        credit_balance,
+        created_at
       `)
-      .in('role', ['admin', 'agent', 'partner'])
       .order('hierarchy_level', { ascending: true })
       .order('created_at', { ascending: false });
     
     if (parentId) {
-      query = query.eq('parent_id', parentId);
+      query = query.eq('parent_agent_id', parentId);
     }
     
-    const { data, error } = await query;
+    const { data: agents, error } = await query;
     
     if (error) {
       console.error('[v0] Agent network GET error:', error);
       return NextResponse.json([]);
     }
     
+    // Also get super_admin users to include in the network view
+    const { data: adminUsers } = await supabase
+      .from('users')
+      .select('id, username, display_name, role, hierarchy_level, parent_id, created_at')
+      .eq('role', 'super_admin');
+    
     // Get stats for each agent
-    const agentsWithStats = await Promise.all((data || []).map(async (agent) => {
+    const agentsWithStats = await Promise.all((agents || []).map(async (agent) => {
       // Count customers under this agent
       const { count: customerCount } = await supabase
         .from('customers')
         .select('id', { count: 'exact', head: true })
-        .eq('created_by', agent.id);
+        .eq('agent_id', agent.id);
       
-      // Count entries by this agent
+      // Count bets by this agent's customers
       const { count: entryCount } = await supabase
-        .from('entries')
+        .from('bets')
         .select('id', { count: 'exact', head: true })
         .eq('agent_id', agent.id);
       
-      // Sum total amount
-      const { data: sumData } = await supabase
-        .from('entries')
-        .select('amount')
+      // Sum total amount from bets
+      const { data: betData } = await supabase
+        .from('bets')
+        .select('total_amount')
         .eq('agent_id', agent.id);
       
-      const totalAmount = sumData?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+      const totalAmount = betData?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
       
       // Count sub-agents
       const { count: subAgentCount } = await supabase
-        .from('users')
+        .from('agents')
         .select('id', { count: 'exact', head: true })
-        .eq('parent_id', agent.id);
+        .eq('parent_agent_id', agent.id);
       
+      // Map to frontend expected structure
       return {
-        ...agent,
-        settings: agent.agent_settings?.[0] || null,
+        id: agent.id,
+        username: agent.code,
+        display_name: agent.name || agent.code,
+        role: agent.role || 'agent',
+        is_unlimited_credit: false,
+        credit_balance: agent.credit_balance || 0,
+        parent_id: agent.parent_agent_id,
+        hierarchy_level: agent.hierarchy_level || 1,
+        created_at: agent.created_at,
+        settings: {
+          id: agent.id,
+          agent_share_percent: agent.share_percent || 100,
+          parent_share_percent: 100 - (agent.share_percent || 100),
+          max_accept_limit: agent.max_bet_per_round || agent.max_bet_per_number,
+          is_active: agent.status === 'active',
+        },
         stats: {
           customerCount: customerCount || 0,
           entryCount: entryCount || 0,
@@ -84,7 +112,33 @@ export async function GET(request: Request) {
       };
     }));
     
-    return NextResponse.json(agentsWithStats);
+    // Add super admins at the top level
+    const adminWithStats = (adminUsers || []).map(admin => ({
+      id: admin.id,
+      username: admin.username,
+      display_name: admin.display_name || admin.username,
+      role: admin.role,
+      is_unlimited_credit: true,
+      credit_balance: 0,
+      parent_id: admin.parent_id,
+      hierarchy_level: admin.hierarchy_level || 0,
+      created_at: admin.created_at,
+      settings: {
+        id: admin.id,
+        agent_share_percent: 100,
+        parent_share_percent: 0,
+        max_accept_limit: null,
+        is_active: true,
+      },
+      stats: {
+        customerCount: 0,
+        entryCount: 0,
+        totalAmount: 0,
+        subAgentCount: agentsWithStats.filter(a => !a.parent_id).length,
+      },
+    }));
+    
+    return NextResponse.json([...adminWithStats, ...agentsWithStats]);
   } catch (err) {
     console.error('[v0] Agent network GET exception:', err);
     return NextResponse.json([]);
@@ -94,6 +148,10 @@ export async function GET(request: Request) {
 // POST - Create or update agent settings
 export async function POST(request: Request) {
   try {
+    // Auth guard
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    
     const body = await request.json();
     const { user_id, agent_share_percent, parent_share_percent, max_accept_limit, is_active } = body;
     
@@ -139,6 +197,10 @@ export async function POST(request: Request) {
 // PUT - Update user parent relationship
 export async function PUT(request: Request) {
   try {
+    // Auth guard
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    
     const body = await request.json();
     const { user_id, parent_id, hierarchy_level } = body;
     

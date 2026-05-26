@@ -8,8 +8,6 @@ async function canProcessResults(): Promise<boolean> {
   const adminToken = cookieStore.get('admin_token')?.value;
   const lotterySession = cookieStore.get('lottery_session')?.value;
   
-  console.log('[v0] canProcessResults - admin_token:', !!adminToken, 'lottery_session:', !!lotterySession);
-  
   // Allow for development
   // TODO: Remove in production
   if (lotterySession) {
@@ -20,7 +18,7 @@ async function canProcessResults(): Promise<boolean> {
         return true;
       }
     } catch {
-      console.log('[v0] Failed to parse lottery_session');
+      // Invalid session format
     }
   }
   
@@ -88,7 +86,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { result_id, lottery_id, draw_date } = body;
 
-    console.log('[v0] Process winners request:', { result_id, lottery_id, draw_date });
+    // Process winners request
 
     // Get the result - support both by result_id or by lottery_id + draw_date
     let result: any = null;
@@ -101,7 +99,6 @@ export async function POST(request: NextRequest) {
         .single();
       
       if (error || !data) {
-        console.log('[v0] Result not found by id:', result_id);
         return NextResponse.json({ error: 'ไม่พบผลหวย' }, { status: 404 });
       }
       result = data;
@@ -115,7 +112,6 @@ export async function POST(request: NextRequest) {
         .single();
       
       if (error || !data) {
-        console.log('[v0] Result not found by lottery_id + draw_date:', lottery_id, normalizedDate);
         return NextResponse.json({ error: 'ไม่พบผลหวย' }, { status: 404 });
       }
       result = data;
@@ -123,18 +119,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'กรุณาระบุ result_id หรือ lottery_id + draw_date' }, { status: 400 });
     }
 
-    console.log('[v0] Found result:', {
-      id: result.id,
-      lottery_id: result.lottery_id,
-      lottery_name: result.lottery?.name,
-      draw_date: result.draw_date,
-      three_top: result.three_top,
-      two_top: result.two_top,
-      two_bot: result.two_bot,
-      run_top: result.run_top,
-      run_bot: result.run_bot,
-      is_processed: result.is_processed,
-    });
+    // ===== DUPLICATE PROCESSING PROTECTION =====
+    // Check if already processed to prevent double payouts
+    if (result.is_processed === true) {
+      return NextResponse.json({
+        success: true,
+        message: 'ผลหวยนี้ถูกคำนวณแล้ว (cached)',
+        already_processed: true,
+        result_id: result.id,
+        total_winners: result.total_winners || 0,
+        total_payout: result.total_payout_amount || 0,
+      });
+    }
+
+    // Lock the result to prevent concurrent processing
+    const { error: lockError } = await supabase
+      .from('lottery_results')
+      .update({ 
+        processing_started_at: new Date().toISOString(),
+        status: 'processing'
+      })
+      .eq('id', result.id)
+      .eq('is_processed', false); // Only lock if not yet processed
+
+    if (lockError) {
+      console.error('Failed to lock result for processing:', lockError);
+      // Continue anyway for now, but log the error
+    }
 
     // Get payout rates for this lottery
     const { data: rates } = await supabase
@@ -178,14 +189,16 @@ export async function POST(request: NextRequest) {
     let totalBetItemsChecked = 0;
 
     // ===== PROCESS ENTRIES TABLE =====
-    console.log('[v0] Checking entries table...');
+    // Exclude legacy_orphan entries (archived entries without customer linkage)
+    console.log('[v0] Checking entries table (excluding legacy orphans)...');
     const { data: entries, error: entriesError } = await supabase
       .from('entries')
       .select('*')
       .eq('lottery_id', result.lottery_id)
       .gte('created_at', drawDateStart)
       .lt('created_at', drawDateEnd)
-      .in('status', ['pending', 'confirmed', 'active']);
+      .in('status', ['pending', 'confirmed', 'active'])
+      .or('legacy_orphan.is.null,legacy_orphan.eq.false'); // Exclude archived orphans
 
     if (entriesError) {
       console.error('[v0] Error fetching entries:', entriesError);

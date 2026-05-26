@@ -9,12 +9,26 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import type { UserRole } from './rbac';
+import { 
+  getUserTypeFromRole, 
+  getSourceTableFromRole, 
+  isAgentRole, 
+  isMemberRole, 
+  isCustomerRole,
+  type UserType,
+  type SourceTable 
+} from './identity';
 
 export interface AuthenticatedUser {
   id: string;
   username?: string;
   role: UserRole;
+  user_type: UserType;
+  source_table: SourceTable;
   is_active: boolean;
+  // For hierarchy-based access
+  parent_id?: string | null;
+  agent_level?: string | null;
 }
 
 export interface AuthResult {
@@ -82,6 +96,8 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
             id: user.id,
             username: user.username,
             role: user.role as UserRole,
+            user_type: getUserTypeFromRole(user.role),
+            source_table: 'users',
             is_active: user.is_active,
           },
         };
@@ -92,7 +108,7 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     if (userRole === 'agent' || userRole === 'partner' || userRole === 'agent_key') {
       const { data: agent } = await supabase
         .from('agents')
-        .select('id, code, role, status')
+        .select('id, code, role, status, parent_id')
         .eq('id', userId)
         .single();
       
@@ -103,7 +119,10 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
             id: agent.id,
             username: agent.code,
             role: (agent.role || 'agent') as UserRole,
+            user_type: 'agent',
+            source_table: 'agents',
             is_active: true,
+            parent_id: agent.parent_id,
           },
         };
       }
@@ -112,15 +131,21 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     // Check in customers table (for customer/member/staff)
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, username, is_active, agent_level')
+      .select('id, username, is_active, agent_level, parent_agent_id')
       .eq('id', userId)
       .single();
     
     if (customer && customer.is_active) {
       // Determine role from agent_level
       let customerRole: UserRole = 'customer';
-      if (customer.agent_level === 'agent') customerRole = 'agent';
-      else if (customer.agent_level === 'member') customerRole = 'member';
+      let customerUserType: UserType = 'customer';
+      if (customer.agent_level === 'agent') {
+        customerRole = 'agent';
+        customerUserType = 'agent';
+      } else if (customer.agent_level === 'member') {
+        customerRole = 'member';
+        customerUserType = 'member';
+      }
       
       return {
         authenticated: true,
@@ -128,7 +153,11 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
           id: customer.id,
           username: customer.username,
           role: customerRole,
+          user_type: customerUserType,
+          source_table: 'customers',
           is_active: customer.is_active,
+          parent_id: customer.parent_agent_id,
+          agent_level: customer.agent_level,
         },
       };
     }
@@ -166,6 +195,7 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
   super_admin: 100,
   admin: 90,
   agent: 50,
+  agent_key: 50,  // Same level as agent
   partner: 40,
   staff: 30,
   member: 20,
@@ -250,7 +280,63 @@ export async function requireSuperAdmin(): Promise<{ user: AuthenticatedUser } |
  * API Auth Guard - require agent or higher
  */
 export async function requireAgentOrHigher(): Promise<{ user: AuthenticatedUser } | NextResponse> {
-  return requireRole(['super_admin', 'admin', 'agent', 'partner']);
+  return requireRole(['super_admin', 'admin', 'agent', 'agent_key', 'partner']);
+}
+
+/**
+ * API Auth Guard - require member role (staff/member)
+ * Used for member-only operations
+ */
+export async function requireMember(): Promise<{ user: AuthenticatedUser } | NextResponse> {
+  const authResult = await requireAuth();
+  
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+  
+  const { user } = authResult;
+  
+  // Members or higher can access
+  if (isMemberRole(user.role) || isAgentRole(user.role) || user.role === 'admin' || user.role === 'super_admin') {
+    return { user };
+  }
+  
+  return NextResponse.json(
+    { 
+      success: false, 
+      error: 'Forbidden - member access required',
+      code: 'FORBIDDEN',
+    },
+    { status: 403 }
+  );
+}
+
+/**
+ * API Auth Guard - require customer role
+ * Used for customer-only operations (betting, wallet, etc.)
+ */
+export async function requireCustomer(): Promise<{ user: AuthenticatedUser } | NextResponse> {
+  const authResult = await requireAuth();
+  
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+  
+  const { user } = authResult;
+  
+  // Customers or admin/super_admin can access
+  if (isCustomerRole(user.role) || user.role === 'admin' || user.role === 'super_admin') {
+    return { user };
+  }
+  
+  return NextResponse.json(
+    { 
+      success: false, 
+      error: 'Forbidden - customer access required',
+      code: 'FORBIDDEN',
+    },
+    { status: 403 }
+  );
 }
 
 /**

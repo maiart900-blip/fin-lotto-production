@@ -39,8 +39,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { fetcher } from '@/lib/fetcher';
 
 export default function SiteManagerPage() {
   const [searchQuery, setSearchQuery] = useState('');

@@ -55,6 +55,7 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react';
+import { fetcher } from '@/lib/fetcher';
 
 interface User {
   id: string;
@@ -83,8 +84,6 @@ const ROLE_COLORS: Record<string, string> = {
   agent: 'bg-blue-500',
   staff: 'bg-gray-500',
 };
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function UsersPage() {
   const { user: authUser, isAdmin, isSuperAdmin } = useAuth();
@@ -124,6 +123,7 @@ export default function UsersPage() {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           username: formData.username.trim(),
           password: formData.password,
@@ -171,6 +171,7 @@ export default function UsersPage() {
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
       });
       
@@ -194,6 +195,7 @@ export default function UsersPage() {
     try {
       const res = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       
       if (!res.ok) {
@@ -433,7 +435,7 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">บทบาท</Label>
+              <Label className="text-gray-300">บทบา��</Label>
               <Select
                 value={formData.role}
                 onValueChange={(value) => setFormData({ ...formData, role: value })}
