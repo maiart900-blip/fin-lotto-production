@@ -102,6 +102,23 @@ export function useAuth() {
     
     const responseData = await res.json();
     
+    // Handle 2FA requirements (returned as 200 OK with requires2FA flags)
+    if (responseData.requires2FASetup) {
+      // User needs to setup 2FA - throw with redirect info
+      const error = new Error(responseData.message || 'กรุณาตั้งค่า 2FA');
+      (error as any).requires2FASetup = true;
+      (error as any).redirectTo = responseData.redirectTo || '/auth/2fa-setup';
+      throw error;
+    }
+    
+    if (responseData.requires2FA) {
+      // User needs to verify 2FA - throw with redirect info
+      const error = new Error(responseData.message || 'กรุณายืนยัน 2FA');
+      (error as any).requires2FA = true;
+      (error as any).redirectTo = responseData.redirectTo || '/auth/2fa-verify';
+      throw error;
+    }
+    
     if (!res.ok) {
       throw new Error(responseData.error || 'เข้าสู่ระบบไม่สำเร็จ');
     }
