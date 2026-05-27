@@ -23,7 +23,7 @@ export async function GET(
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { id: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { id: string };
 
     // Get tenant
     const { data: tenant } = await supabase

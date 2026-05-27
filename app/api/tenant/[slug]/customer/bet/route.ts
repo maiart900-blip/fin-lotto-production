@@ -21,7 +21,7 @@ export async function POST(
       return NextResponse.json({ error: 'Not logged in' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { id: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { id: string };
     const body = await request.json();
     const { lottery_id, bets } = body;
 
