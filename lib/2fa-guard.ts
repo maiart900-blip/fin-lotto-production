@@ -69,12 +69,19 @@ export function generate2FASecret(username: string): { secret: string; otpauthUr
   return { secret, otpauthUrl };
 }
 
-// Verify TOTP code (sync)
+// Verify TOTP code (sync) with time window tolerance
 export function verify2FACode(secret: string, code: string): boolean {
   try {
-    const result = otpVerifySync({ token: code, secret });
+    // Allow 30 seconds tolerance in both directions (1 time step)
+    // This accounts for clock drift between server and user's device
+    const result = otpVerifySync({ 
+      token: code, 
+      secret,
+      epochTolerance: 30, // 30 seconds tolerance (symmetric)
+    });
     return result.valid;
-  } catch {
+  } catch (error) {
+    console.error('[2FA] Verification error:', error);
     return false;
   }
 }
