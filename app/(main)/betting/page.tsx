@@ -105,7 +105,7 @@ export default function BettingDashboard() {
   const [showWinModal, setShowWinModal] = useState(false);
   const [selectedWinDigits, setSelectedWinDigits] = useState<Set<string>>(new Set());
   const [winType, setWinType] = useState<'2' | '3'>('2');
-  const [winBetType, setWinBetType] = useState<'bon' | 'lang' | 'tod'>('bon');
+  const [winBetType, setWinBetType] = useState<'bon' | 'lang' | 'tod' | 'reverse'>('bon');
   const [winPrice, setWinPrice] = useState('100');
   const [winResults, setWinResults] = useState<string[]>([]);
   
@@ -216,6 +216,8 @@ export default function BettingDashboard() {
   // Handle win type change
   const handleWinTypeChange = (type: '2' | '3') => {
     setWinType(type);
+    // Reset bet type to appropriate default when switching
+    setWinBetType('bon');
     const digits = Array.from(selectedWinDigits);
     
     if (digits.length >= 2) {
@@ -234,12 +236,38 @@ export default function BettingDashboard() {
     }
 
     const priceNum = parseInt(winPrice) || 100;
-    const betTypeMap = { bon: '2top', lang: '2bot', tod: '3tod' } as const;
     
-    const newBets: TempBet[] = winResults.map(num => ({
+    // Determine correct bet type based on winType and winBetType
+    let actualBetType: string;
+    if (winType === '2') {
+      // 2-digit modes
+      if (winBetType === 'bon') actualBetType = '2top';
+      else if (winBetType === 'lang') actualBetType = '2bot';
+      else actualBetType = '2top'; // default
+    } else {
+      // 3-digit modes
+      if (winBetType === 'bon') actualBetType = '3top';
+      else if (winBetType === 'tod') actualBetType = '3tod';
+      else actualBetType = '3top'; // default for reverse (all permutations go to 3top)
+    }
+    
+    // For reverse mode, generate all permutations
+    let numbersToAdd = winResults;
+    if (winBetType === 'reverse') {
+      // Generate unique permutations for each win number
+      const allPerms = new Set<string>();
+      winResults.forEach(num => {
+        // Get all permutations of this number
+        const perms = getPermutations(num);
+        perms.forEach(p => allPerms.add(p));
+      });
+      numbersToAdd = Array.from(allPerms);
+    }
+    
+    const newBets: TempBet[] = numbersToAdd.map(num => ({
       id: generateId(),
       number: num,
-      betType: betTypeMap[winBetType],
+      betType: actualBetType,
       amount: priceNum,
     }));
 
@@ -266,6 +294,20 @@ export default function BettingDashboard() {
       ? `เพิ่ม ${allowed.length} เลขวิน (ข้าม ${blocked.length} เลขอั้น)`
       : `เพิ่ม ${allowed.length} เลขวินสำเร็จ`;
     toast.success(msg);
+  };
+  
+  // Get permutations helper
+  const getPermutations = (str: string): string[] => {
+    if (str.length <= 1) return [str];
+    const permutations: string[] = [];
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      const remaining = str.slice(0, i) + str.slice(i + 1);
+      for (const perm of getPermutations(remaining)) {
+        permutations.push(char + perm);
+      }
+    }
+    return [...new Set(permutations)];
   };
 
   // ฟังก์ชันวิเคราะห์โพยจากการ Paste (แบบง่าย)
@@ -498,7 +540,7 @@ export default function BettingDashboard() {
     text += `\n━━━━━━━━━━━━━━━━\n`;
     text += `💰 รวม: ${totalAmount.toLocaleString()} บาท\n`;
     text += `📝 จำนวน: ${totalItems} รายการ\n`;
-    text += `━━━━━━━━━━━━━━━━\n`;
+    text += `━━━━━━━���━━━━━━━━\n`;
     text += `✅ FIN LOTTO R+ Premium`;
     
     return text;
@@ -1391,38 +1433,75 @@ export default function BettingDashboard() {
               </Button>
             </div>
 
-            {/* Bet Type Selection */}
+            {/* Bet Type Selection - changes based on win type */}
             <div className="flex gap-2">
-              <Button
-                variant={winBetType === 'bon' ? 'default' : 'outline'}
-                onClick={() => setWinBetType('bon')}
-                size="sm"
-                className={winBetType === 'bon' 
-                  ? 'flex-1 bg-blue-600 hover:bg-blue-700' 
-                  : 'flex-1 border-slate-700 text-slate-300 hover:bg-slate-800'}
-              >
-                บน
-              </Button>
-              <Button
-                variant={winBetType === 'lang' ? 'default' : 'outline'}
-                onClick={() => setWinBetType('lang')}
-                size="sm"
-                className={winBetType === 'lang' 
-                  ? 'flex-1 bg-orange-600 hover:bg-orange-700' 
-                  : 'flex-1 border-slate-700 text-slate-300 hover:bg-slate-800'}
-              >
-                ล่าง
-              </Button>
-              <Button
-                variant={winBetType === 'tod' ? 'default' : 'outline'}
-                onClick={() => setWinBetType('tod')}
-                size="sm"
-                className={winBetType === 'tod' 
-                  ? 'flex-1 bg-green-600 hover:bg-green-700' 
-                  : 'flex-1 border-slate-700 text-slate-300 hover:bg-slate-800'}
-              >
-                โต๊ด
-              </Button>
+              {winType === '2' ? (
+                <>
+                  <Button
+                    variant={winBetType === 'bon' ? 'default' : 'outline'}
+                    onClick={() => setWinBetType('bon')}
+                    size="sm"
+                    className={winBetType === 'bon' 
+                      ? 'flex-1 bg-blue-600 hover:bg-blue-700' 
+                      : 'flex-1 border-slate-700 text-slate-300 hover:bg-slate-800'}
+                  >
+                    2 ตัวบน
+                  </Button>
+                  <Button
+                    variant={winBetType === 'lang' ? 'default' : 'outline'}
+                    onClick={() => setWinBetType('lang')}
+                    size="sm"
+                    className={winBetType === 'lang' 
+                      ? 'flex-1 bg-orange-600 hover:bg-orange-700' 
+                      : 'flex-1 border-slate-700 text-slate-300 hover:bg-slate-800'}
+                  >
+                    2 ตัวล่าง
+                  </Button>
+                  <Button
+                    variant={winBetType === 'reverse' ? 'default' : 'outline'}
+                    onClick={() => setWinBetType('reverse')}
+                    size="sm"
+                    className={winBetType === 'reverse' 
+                      ? 'flex-1 bg-pink-600 hover:bg-pink-700' 
+                      : 'flex-1 border-slate-700 text-slate-300 hover:bg-slate-800'}
+                  >
+                    2 ตัวกลับ
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant={winBetType === 'bon' ? 'default' : 'outline'}
+                    onClick={() => setWinBetType('bon')}
+                    size="sm"
+                    className={winBetType === 'bon' 
+                      ? 'flex-1 bg-blue-600 hover:bg-blue-700' 
+                      : 'flex-1 border-slate-700 text-slate-300 hover:bg-slate-800'}
+                  >
+                    3 ตัวบน
+                  </Button>
+                  <Button
+                    variant={winBetType === 'tod' ? 'default' : 'outline'}
+                    onClick={() => setWinBetType('tod')}
+                    size="sm"
+                    className={winBetType === 'tod' 
+                      ? 'flex-1 bg-green-600 hover:bg-green-700' 
+                      : 'flex-1 border-slate-700 text-slate-300 hover:bg-slate-800'}
+                  >
+                    3 ตัวโต๊ด
+                  </Button>
+                  <Button
+                    variant={winBetType === 'reverse' ? 'default' : 'outline'}
+                    onClick={() => setWinBetType('reverse')}
+                    size="sm"
+                    className={winBetType === 'reverse' 
+                      ? 'flex-1 bg-pink-600 hover:bg-pink-700' 
+                      : 'flex-1 border-slate-700 text-slate-300 hover:bg-slate-800'}
+                  >
+                    3 ตัวกลับ
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Digit Buttons 0-9 */}
