@@ -10,8 +10,8 @@ export async function POST(
     const cookieStore = await cookies();
 
     // Clear tenant-specific cookies
-    cookieStore.delete(`tenant_${slug}_token`);
-    cookieStore.delete(`tenant_${slug}_customer_id`);
+    cookieStore.delete('tenant_token');
+    cookieStore.delete('tenant_customer_id');
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -19,7 +19,7 @@ export async function GET(
     const type = searchParams.get('type') || 'all';
 
     const cookieStore = await cookies();
-    const token = cookieStore.get(`tenant_${slug}_token`)?.value;
+    const token = cookieStore.get('tenant_token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Not logged in' }, { status: 401 });
