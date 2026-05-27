@@ -210,7 +210,6 @@ export async function POST(request: Request) {
         role: 'tenant_admin',
         tenant_id: tenant.id,
         is_active: true,
-        force_password_change: true, // Admin must change password on first login
       })
       .select('id, username')
       .single();
