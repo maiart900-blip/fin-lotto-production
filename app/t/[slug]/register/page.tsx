@@ -85,6 +85,7 @@ export default function TenantRegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[v0] handleRegister called', { acceptTerms, acceptAge });
     
     if (!acceptTerms || !acceptAge) {
       toast.error('กรุณายอมรับเงื่อนไขการใช้งาน');
@@ -92,6 +93,7 @@ export default function TenantRegisterPage() {
     }
 
     setIsLoading(true);
+    console.log('[v0] Calling registration API', { slug, username, phone });
     try {
       const res = await fetch(`/api/tenant/${slug}/auth/register`, {
         method: 'POST',
@@ -107,11 +109,13 @@ export default function TenantRegisterPage() {
       });
 
       const data = await res.json();
+      console.log('[v0] Registration API response', { ok: res.ok, data });
       if (!res.ok) throw new Error(data.error || 'สมัครสมาชิกไม่สำเร็จ');
 
       setRegisteredUsername(username);
       setStep(4);
     } catch (error) {
+      console.error('[v0] Registration error', error);
       toast.error(error instanceof Error ? error.message : 'สมัครสมาชิกไม่สำเร็จ');
     } finally {
       setIsLoading(false);
