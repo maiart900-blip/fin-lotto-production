@@ -26,20 +26,19 @@ export async function GET(
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
     }
 
-    // Get active lottery rounds
+    // Get active lotteries (global - shared across all tenants)
     const { data: lotteries } = await supabase
-      .from('lottery_rounds')
-      .select('id, lottery_type:lottery_types(id, name, slug), close_time, status')
-      .in('status', ['open', 'active'])
-      .order('close_time', { ascending: true });
+      .from('lotteries')
+      .select('id, name, category, is_active')
+      .eq('is_active', true)
+      .order('name', { ascending: true });
 
     // Format response
     const formattedLotteries = (lotteries || []).map((l: any) => ({
       id: l.id,
-      name: l.lottery_type?.name || 'Unknown',
-      slug: l.lottery_type?.slug || '',
-      close_time: l.close_time ? new Date(l.close_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-',
-      status: l.status,
+      name: l.name,
+      category: l.category,
+      is_active: l.is_active,
     }));
 
     return NextResponse.json({ lotteries: formattedLotteries });
