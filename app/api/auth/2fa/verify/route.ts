@@ -4,6 +4,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { useBackupCode, verify2FACode } from '@/lib/2fa-guard';
 
+// Force Node.js runtime for crypto compatibility
+export const runtime = 'nodejs';
+
 export async function POST(request: Request) {
   try {
     console.log('[v0] 2FA verify: Starting verification');
@@ -65,8 +68,15 @@ export async function POST(request: Request) {
       console.log('[v0] 2FA verify: secret exists:', !!secret, 'secret length:', secret?.length);
       
       if (secret) {
-        isValid = verify2FACode(secret, code);
-        console.log('[v0] 2FA verify: verify2FACode result:', isValid);
+        try {
+          isValid = verify2FACode(secret, code);
+        } catch (verifyErr) {
+          console.error('[v0] 2FA verify: verify2FACode threw:', verifyErr);
+          return NextResponse.json({ 
+            error: 'OTP verification failed', 
+            details: verifyErr instanceof Error ? verifyErr.message : 'Unknown error' 
+          }, { status: 500 });
+        }
         
         // Update last verified time if valid
         if (isValid) {
