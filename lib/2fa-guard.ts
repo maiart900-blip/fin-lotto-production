@@ -1,6 +1,9 @@
 // 2FA Guard - ระบบตรวจสอบ 2FA กลาง
 import { createClient } from '@/lib/supabase/server';
-import { generateSecret as otpGenerateSecret, generateURI, verifySync as otpVerifySync } from 'otplib/functional';
+import { TOTP } from 'otplib';
+
+// Create TOTP instance with default options
+const totp = new TOTP();
 
 export interface TwoFactorStatus {
   required: boolean;        // ต้องใช้ 2FA หรือไม่ (ตาม role)
@@ -58,28 +61,16 @@ export async function check2FAStatus(
 
 // Generate new 2FA secret
 export function generate2FASecret(username: string): { secret: string; otpauthUrl: string } {
-  const secret = otpGenerateSecret();
-  const otpauthUrl = generateURI({ 
-    secret, 
-    issuer: 'FinLotto', 
-    label: username,
-    strategy: 'totp'
-  });
+  const secret = totp.generateSecret();
+  const otpauthUrl = totp.generateURI({ secret, issuer: 'FinLotto', label: username });
   
   return { secret, otpauthUrl };
 }
 
-// Verify TOTP code (sync) with time window tolerance
+// Verify TOTP code with time window tolerance
 export function verify2FACode(secret: string, code: string): boolean {
   try {
-    // Allow 30 seconds tolerance in both directions (1 time step)
-    // This accounts for clock drift between server and user's device
-    const result = otpVerifySync({ 
-      token: code, 
-      secret,
-      epochTolerance: 30, // 30 seconds tolerance (symmetric)
-    });
-    return result.valid;
+    return totp.verify({ token: code, secret });
   } catch (error) {
     console.error('[2FA] Verification error:', error);
     return false;
