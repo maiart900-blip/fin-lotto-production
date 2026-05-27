@@ -2,10 +2,31 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { useBackupCode, verify2FACode } from '@/lib/2fa-guard';
+import { useBackupCode } from '@/lib/2fa-guard';
 
 // Force Node.js runtime for crypto compatibility
 export const runtime = 'nodejs';
+
+// Inline TOTP verification to avoid import issues
+async function verifyTOTPCode(secret: string, code: string): Promise<boolean> {
+  try {
+    const OTPAuth = await import('otpauth');
+    const totp = new OTPAuth.TOTP({
+      issuer: 'FinLotto',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: OTPAuth.Secret.fromBase32(secret),
+    });
+    
+    const delta = totp.validate({ token: code, window: 1 });
+    console.log('[v0] TOTP validate - code:', code, 'delta:', delta);
+    return delta !== null;
+  } catch (error) {
+    console.error('[v0] TOTP verification error:', error);
+    return false;
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -69,9 +90,10 @@ export async function POST(request: Request) {
       
       if (secret) {
         try {
-          isValid = verify2FACode(secret, code);
+          isValid = await verifyTOTPCode(secret, code);
+          console.log('[v0] 2FA verify: TOTP result:', isValid);
         } catch (verifyErr) {
-          console.error('[v0] 2FA verify: verify2FACode threw:', verifyErr);
+          console.error('[v0] 2FA verify: verifyTOTPCode threw:', verifyErr);
           return NextResponse.json({ 
             error: 'OTP verification failed', 
             details: verifyErr instanceof Error ? verifyErr.message : 'Unknown error' 
