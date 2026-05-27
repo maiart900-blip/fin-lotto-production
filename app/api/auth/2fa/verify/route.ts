@@ -116,6 +116,16 @@ export async function POST(request: Request) {
     loginAt: new Date().toISOString(),
   };
 
+  // Determine redirect URL based on role
+  let redirectTo = '/dashboard';
+  if (user.role === 'super_admin' || user.role === 'admin') {
+    redirectTo = '/admin/dashboard';
+  } else if (user.role === 'agent') {
+    redirectTo = '/agent/dashboard';
+  } else if (user.role === 'tenant_admin') {
+    redirectTo = user.tenant_id ? `/t/${user.tenant_id}/admin` : '/dashboard';
+  }
+
   // Create response with session
   const response = NextResponse.json({ 
     success: true, 
@@ -124,7 +134,10 @@ export async function POST(request: Request) {
       username: user.username,
       role: user.role,
       tenant_id: user.tenant_id,
+      displayName: user.display_name || user.username,
+      redirectTo,
     },
+    redirectTo,
     message: 'ยืนยันตัวตนสำเร็จ' 
   });
 
