@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       await supabase.from('audit_logs').insert({
         user_id: pendingUserId,
         action: '2fa_verify_failed',
-        details: { 
+        metadata: { 
           attempt: currentAttempts,
           isBackupCode,
         },
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     await supabase.from('audit_logs').insert({
       user_id: pendingUserId,
       action: '2fa_verify_success',
-      details: { isBackupCode },
+      metadata: { isBackupCode },
       created_at: new Date().toISOString(),
     }).catch(() => {}); // Silent fail for audit log
 
