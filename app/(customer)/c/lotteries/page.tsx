@@ -148,22 +148,33 @@ export default function LotteriesPage() {
     
     if (flag.type === 'image') {
       return (
-        <Image 
-          src={flag.value} 
-          alt={lottery.name} 
-          width={24} 
-          height={24} 
-          className="object-cover rounded"
-        />
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-800/50 flex items-center justify-center border border-amber-500/30">
+          <Image 
+            src={flag.value} 
+            alt={lottery.name} 
+            width={40} 
+            height={40} 
+            className="object-cover"
+          />
+        </div>
       );
     }
     
     if (flag.type === 'icon') {
       const IconComponent = ICON_MAP[flag.value];
-      return <IconComponent className="w-5 h-5 text-amber-400" />;
+      return (
+        <div className="w-10 h-10 rounded-full bg-neutral-800/50 border border-amber-500/30 flex items-center justify-center">
+          <IconComponent className="w-5 h-5 text-amber-400" />
+        </div>
+      );
     }
     
-    return <span className="text-xl">{flag.value}</span>;
+    // Small flag emoji - NOT the giant text-4xl that showed as "TH"
+    return (
+      <div className="w-10 h-10 rounded-full bg-neutral-800/50 border border-amber-500/30 flex items-center justify-center">
+        <span className="text-lg">{flag.value}</span>
+      </div>
+    );
   };
 
   return (
@@ -216,42 +227,55 @@ export default function LotteriesPage() {
                 className="block"
               >
                 <div 
-                  className="relative p-4 rounded-xl bg-gradient-to-b from-slate-800/90 to-slate-900/95 border border-slate-700/50 hover:border-amber-500/50 hover:scale-[1.02] transition-all cursor-pointer group overflow-hidden"
+                  className="premium-card p-4 hover:scale-[1.02] transition-transform cursor-pointer group relative overflow-hidden"
+                  style={{
+                    backgroundColor: lottery.card_color || lottery.bg_color || undefined,
+                    borderColor: lottery.bg_color ? `${lottery.bg_color}40` : undefined,
+                  }}
                 >
-                  {/* Content */}
-                  <div className="relative z-10 flex flex-col gap-3">
-                    {/* Top row: Small flag + Status indicator */}
-                    <div className="flex items-center justify-between">
-                      <div className="size-10 rounded-lg bg-slate-700/50 border border-slate-600/50 flex items-center justify-center">
-                        {renderLotteryIcon(lottery)}
-                      </div>
-                      <div className="size-2.5 rounded-full bg-green-500" />
+                  {/* Background Image - Keep the premium artwork */}
+                  {lottery.background_image && (
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center opacity-40"
+                      style={{ backgroundImage: `url(${lottery.background_image})` }}
+                    />
+                  )}
+                  
+                  {/* Dark gradient overlay for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                  
+                  {/* Content with z-index to be above background */}
+                  <div className="relative z-10">
+                    {/* Small Flag Icon - top left, NOT covering content */}
+                    <div className="absolute top-0 left-0">
+                      {renderLotteryIcon(lottery)}
                     </div>
                     
-                    {/* Lottery Name - HERO ELEMENT */}
-                    <div className="min-h-[48px] flex items-center justify-center">
-                      <h3 
-                        className="text-lg font-bold text-center leading-tight text-white group-hover:text-amber-300 transition-colors"
-                      >
-                        {lottery.name}
-                      </h3>
-                    </div>
+                    {/* Spacer for flag */}
+                    <div className="h-8" />
+                    
+                    {/* Name - LARGE and readable */}
+                    <h3 
+                      className="text-base font-bold text-center mb-1 text-white drop-shadow-lg"
+                      style={{ color: lottery.text_color || '#ffffff' }}
+                    >
+                      {lottery.name}
+                    </h3>
                     
                     {/* Close time */}
-                    <p className="text-xs text-slate-400 text-center">
+                    <p className="text-xs text-neutral-300 text-center mb-2">
                       ปิดรับ {lottery.close_time} น.
                     </p>
                     
-                    {/* Countdown */}
-                    <div className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/50">
-                      <Clock className="size-4 text-green-400" />
-                      <span className="text-sm font-mono font-bold text-green-400">
+                    {/* Countdown - Premium */}
+                    <div className="text-center mb-3">
+                      <span className="countdown-premium text-sm">
                         {countdowns[lottery.id] || '-- : -- : --'}
                       </span>
                     </div>
                     
-                    {/* Button */}
-                    <button className="w-full py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-400 hover:to-amber-500 transition-all">
+                    {/* Button - Luxury */}
+                    <button className="btn-luxury w-full py-2 rounded-lg text-sm">
                       แทงหวย
                     </button>
                   </div>
