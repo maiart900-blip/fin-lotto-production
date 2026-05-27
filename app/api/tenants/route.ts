@@ -207,9 +207,10 @@ export async function POST(request: Request) {
       .insert({
         username: `admin_${slug}`,
         password_hash: hashedPassword,
-        role: 'tenant_admin',
+        role: 'admin',
         tenant_id: tenant.id,
         is_active: true,
+        display_name: `Admin ${name}`,
       })
       .select('id, username')
       .single();
