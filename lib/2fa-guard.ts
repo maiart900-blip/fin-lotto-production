@@ -1,9 +1,12 @@
 // 2FA Guard - ระบบตรวจสอบ 2FA กลาง
 import { createClient } from '@/lib/supabase/server';
-import { TOTP } from 'otplib';
+import { TOTP, NobleCryptoPlugin, ScureBase32Plugin } from 'otplib';
 
-// Create TOTP instance with default options
-const totp = new TOTP();
+// Create TOTP instance with plugins
+const totp = new TOTP({
+  crypto: new NobleCryptoPlugin(),
+  base32: new ScureBase32Plugin(),
+});
 
 export interface TwoFactorStatus {
   required: boolean;        // ต้องใช้ 2FA หรือไม่ (ตาม role)
