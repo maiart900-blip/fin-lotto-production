@@ -128,10 +128,6 @@ export async function POST(request: Request) {
       sync_payout_rates = true,
       sync_blocked_numbers = true,
       sync_lottery_status = true,
-      auto_system_enabled = true,
-      manual_key_enabled = false,
-      deposit_fee_percent = 1.5,
-      withdraw_fee_percent = 1.0,
     } = body;
 
     if (!name || !slug) {
@@ -157,7 +153,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create tenant
+    // Create tenant (only use columns that exist in the schema)
     const { data: tenant, error } = await supabase
       .from('tenants')
       .insert({
@@ -170,19 +166,6 @@ export async function POST(request: Request) {
         sync_payout_rates,
         sync_blocked_numbers,
         sync_lottery_status,
-        auto_system_enabled,
-        manual_key_enabled,
-        deposit_fee_percent,
-        withdraw_fee_percent,
-        security_settings: {
-          require_2fa_admin: true,
-          require_2fa_agent: false,
-          require_2fa_member: false,
-          max_login_attempts: 5,
-          session_timeout_minutes: 60,
-          ip_whitelist_enabled: false,
-          ip_whitelist: [],
-        },
         theme_config: { primaryColor: '#D4AF37', theme: 'midnight-gold' }
       })
       .select()
