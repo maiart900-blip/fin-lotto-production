@@ -80,6 +80,7 @@ export async function POST(
 
     // Create entry records for risk management (ส่งขึ้นเว็บแม่)
     const entryRecords = bets.map((bet: any) => ({
+      tenant_id: tenant.id, // Critical: scope entries to tenant
       lottery_id: lottery_id,
       customer_id: customer.id,
       number: bet.number,
