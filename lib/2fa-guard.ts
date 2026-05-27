@@ -1,6 +1,6 @@
 // 2FA Guard - ระบบตรวจสอบ 2FA กลาง
 import { createClient } from '@/lib/supabase/server';
-import { generateSecret as otpGenerateSecret, generateURI, verify as otpVerify } from 'otplib/functional';
+import { generateSecret as otpGenerateSecret, generateURI, verifySync as otpVerifySync } from 'otplib/functional';
 
 export interface TwoFactorStatus {
   required: boolean;        // ต้องใช้ 2FA หรือไม่ (ตาม role)
@@ -69,10 +69,11 @@ export function generate2FASecret(username: string): { secret: string; otpauthUr
   return { secret, otpauthUrl };
 }
 
-// Verify TOTP code
+// Verify TOTP code (sync)
 export function verify2FACode(secret: string, code: string): boolean {
   try {
-    return otpVerify({ token: code, secret, strategy: 'totp' });
+    const result = otpVerifySync({ token: code, secret });
+    return result.valid;
   } catch {
     return false;
   }
