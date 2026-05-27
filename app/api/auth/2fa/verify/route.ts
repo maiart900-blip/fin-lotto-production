@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { useBackupCode } from '@/lib/2fa-guard';
+import { useBackupCode, verify2FACode } from '@/lib/2fa-guard';
 
 export async function POST(request: Request) {
   try {
@@ -59,36 +59,21 @@ export async function POST(request: Request) {
       console.log('[v0] 2FA verify: Verifying backup code');
       isValid = await useBackupCode(pendingUserId, code);
     } else {
-      // Verify TOTP code - inline implementation to debug
-      console.log('[v0] 2FA verify: Verifying TOTP code inline');
+      // Verify TOTP code using the guard function
+      console.log('[v0] 2FA verify: Verifying TOTP code');
       const secret = user.two_factor_secret;
       console.log('[v0] 2FA verify: secret exists:', !!secret, 'secret length:', secret?.length);
       
       if (secret) {
-        try {
-          // Import verifySync here to ensure it works
-          const { verifySync } = await import('otplib/functional');
-          console.log('[v0] 2FA verify: verifySync imported successfully');
-          
-          const result = verifySync({ 
-            token: code, 
-            secret,
-            epochTolerance: 30,
-          });
-          console.log('[v0] 2FA verify: verifySync result:', result);
-          isValid = result.valid;
-          
-          // Update last verified time if valid
-          if (isValid) {
-            await supabase
-              .from('users')
-              .update({ two_factor_verified_at: new Date().toISOString() })
-              .eq('id', pendingUserId);
-          }
-        } catch (otpError: unknown) {
-          console.error('[v0] 2FA verify: OTP verification error:', otpError);
-          const errorMessage = otpError instanceof Error ? otpError.message : 'Unknown error';
-          return NextResponse.json({ error: 'OTP verification failed: ' + errorMessage }, { status: 500 });
+        isValid = verify2FACode(secret, code);
+        console.log('[v0] 2FA verify: verify2FACode result:', isValid);
+        
+        // Update last verified time if valid
+        if (isValid) {
+          await supabase
+            .from('users')
+            .update({ two_factor_verified_at: new Date().toISOString() })
+            .eq('id', pendingUserId);
         }
       } else {
         console.log('[v0] 2FA verify: No secret found for user');
