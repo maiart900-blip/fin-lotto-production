@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyAndUpdate2FA, useBackupCode } from '@/lib/2fa-guard';
+import { useBackupCode } from '@/lib/2fa-guard';
 
 export async function POST(request: Request) {
   try {
@@ -59,13 +59,40 @@ export async function POST(request: Request) {
       console.log('[v0] 2FA verify: Verifying backup code');
       isValid = await useBackupCode(pendingUserId, code);
     } else {
-      // Verify TOTP code
-      console.log('[v0] 2FA verify: Verifying TOTP code');
-      try {
-        isValid = await verifyAndUpdate2FA(pendingUserId, code);
-      } catch (verifyError) {
-        console.error('[v0] 2FA verify: verifyAndUpdate2FA error:', verifyError);
-        return NextResponse.json({ error: 'Verification error' }, { status: 500 });
+      // Verify TOTP code - inline implementation to debug
+      console.log('[v0] 2FA verify: Verifying TOTP code inline');
+      const secret = user.two_factor_secret;
+      console.log('[v0] 2FA verify: secret exists:', !!secret, 'secret length:', secret?.length);
+      
+      if (secret) {
+        try {
+          // Import verifySync here to ensure it works
+          const { verifySync } = await import('otplib/functional');
+          console.log('[v0] 2FA verify: verifySync imported successfully');
+          
+          const result = verifySync({ 
+            token: code, 
+            secret,
+            epochTolerance: 30,
+          });
+          console.log('[v0] 2FA verify: verifySync result:', result);
+          isValid = result.valid;
+          
+          // Update last verified time if valid
+          if (isValid) {
+            await supabase
+              .from('users')
+              .update({ two_factor_verified_at: new Date().toISOString() })
+              .eq('id', pendingUserId);
+          }
+        } catch (otpError: unknown) {
+          console.error('[v0] 2FA verify: OTP verification error:', otpError);
+          const errorMessage = otpError instanceof Error ? otpError.message : 'Unknown error';
+          return NextResponse.json({ error: 'OTP verification failed: ' + errorMessage }, { status: 500 });
+        }
+      } else {
+        console.log('[v0] 2FA verify: No secret found for user');
+        return NextResponse.json({ error: 'ไม่พบการตั้งค่า 2FA กรุณาตั้งค่าใหม่' }, { status: 400 });
       }
     }
     
