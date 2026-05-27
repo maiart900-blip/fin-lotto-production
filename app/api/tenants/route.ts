@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/api-auth';
+import bcrypt from 'bcryptjs';
 
 /**
  * Tenants API - SUPER ADMIN ONLY
@@ -197,7 +198,37 @@ export async function POST(request: Request) {
         stat_date: new Date().toISOString().split('T')[0]
       });
 
-    return NextResponse.json(tenant);
+    // 3. Auto-create tenant admin user
+    const tempPassword = `${slug}_admin_${Date.now().toString(36)}`;
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    
+    const { data: adminUser, error: adminError } = await supabase
+      .from('users')
+      .insert({
+        username: `admin_${slug}`,
+        password_hash: hashedPassword,
+        role: 'tenant_admin',
+        tenant_id: tenant.id,
+        is_active: true,
+        force_password_change: true, // Admin must change password on first login
+      })
+      .select('id, username')
+      .single();
+
+    if (adminError) {
+      console.error('Failed to create tenant admin:', adminError);
+      // Tenant created but admin failed - log but don't fail the request
+    }
+
+    return NextResponse.json({
+      success: true,
+      tenant,
+      admin: adminUser ? {
+        username: adminUser.username,
+        password: tempPassword, // One-time display only
+        message: 'กรุณาเปลี่ยนรหัสผ่านทันทีหลังเข้าสู่ระบบครั้งแรก'
+      } : null
+    });
   } catch (err) {
     console.error('Create tenant error:', err);
     return NextResponse.json({ error: 'ไม่สามารถสร้างเว็บลูกได้' }, { status: 500 });
