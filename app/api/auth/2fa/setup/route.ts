@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import { generate2FASecret, generateBackupCodes, verify2FACode, enable2FA } from '@/lib/2fa-guard';
 import * as QRCode from 'qrcode';
 
+// Force Node.js runtime for crypto compatibility
+export const runtime = 'nodejs';
+
 // POST - Generate new 2FA secret and QR code
 export async function POST() {
   try {
@@ -46,7 +49,7 @@ export async function POST() {
     }
     
     // Generate new secret
-    const { secret, otpauthUrl } = generate2FASecret(user.username);
+    const { secret, otpauthUrl } = await generate2FASecret(user.username);
     
     // Generate QR code as data URL
     const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);

@@ -1,6 +1,25 @@
 // 2FA Guard - ระบบตรวจสอบ 2FA กลาง
 import { createClient } from '@/lib/supabase/server';
-import * as OTPAuth from 'otpauth';
+
+// Dynamic import for OTPAuth to ensure proper bundling
+let OTPAuth: typeof import('otpauth') | null = null;
+
+async function getOTPAuth() {
+  if (!OTPAuth) {
+    OTPAuth = await import('otpauth');
+  }
+  return OTPAuth;
+}
+
+// Sync version that throws if not loaded
+function getOTPAuthSync() {
+  if (!OTPAuth) {
+    // Try require as fallback for sync contexts
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    OTPAuth = require('otpauth');
+  }
+  return OTPAuth;
+}
 
 export interface TwoFactorStatus {
   required: boolean;        // ต้องใช้ 2FA หรือไม่ (ตาม role)
@@ -57,9 +76,10 @@ export async function check2FAStatus(
 }
 
 // Generate new 2FA secret using otpauth
-export function generate2FASecret(username: string): { secret: string; otpauthUrl: string } {
-  const secret = new OTPAuth.Secret({ size: 20 });
-  const totp = new OTPAuth.TOTP({
+export async function generate2FASecret(username: string): Promise<{ secret: string; otpauthUrl: string }> {
+  const otp = await getOTPAuth();
+  const secret = new otp.Secret({ size: 20 });
+  const totp = new otp.TOTP({
     issuer: 'FinLotto',
     label: username,
     algorithm: 'SHA1',
@@ -74,15 +94,21 @@ export function generate2FASecret(username: string): { secret: string; otpauthUr
   };
 }
 
-// Verify TOTP code using otpauth (sync, simple)
+// Verify TOTP code using otpauth (sync for performance)
 export function verify2FACode(secret: string, code: string): boolean {
   try {
-    const totp = new OTPAuth.TOTP({
+    const otp = getOTPAuthSync();
+    if (!otp) {
+      console.error('[2FA] OTPAuth not loaded');
+      return false;
+    }
+    
+    const totp = new otp.TOTP({
       issuer: 'FinLotto',
       algorithm: 'SHA1',
       digits: 6,
       period: 30,
-      secret: OTPAuth.Secret.fromBase32(secret),
+      secret: otp.Secret.fromBase32(secret),
     });
     
     // validate returns null if invalid, or delta (time difference) if valid
