@@ -1,6 +1,6 @@
 // 2FA Guard - ระบบตรวจสอบ 2FA กลาง
 import { createClient } from '@/lib/supabase/server';
-import { generateSecret, generateURI, verifySync } from 'otplib/functional';
+import * as OTPAuth from 'otpauth';
 
 export interface TwoFactorStatus {
   required: boolean;        // ต้องใช้ 2FA หรือไม่ (ตาม role)
@@ -56,19 +56,39 @@ export async function check2FAStatus(
   };
 }
 
-// Generate new 2FA secret
+// Generate new 2FA secret using otpauth
 export function generate2FASecret(username: string): { secret: string; otpauthUrl: string } {
-  const secret = generateSecret();
-  const otpauthUrl = generateURI({ secret, issuer: 'FinLotto', label: username, strategy: 'totp' });
+  const secret = new OTPAuth.Secret({ size: 20 });
+  const totp = new OTPAuth.TOTP({
+    issuer: 'FinLotto',
+    label: username,
+    algorithm: 'SHA1',
+    digits: 6,
+    period: 30,
+    secret: secret,
+  });
   
-  return { secret, otpauthUrl };
+  return { 
+    secret: secret.base32,
+    otpauthUrl: totp.toString(),
+  };
 }
 
-// Verify TOTP code with time window tolerance (sync function)
+// Verify TOTP code using otpauth (sync, simple)
 export function verify2FACode(secret: string, code: string): boolean {
   try {
-    const result = verifySync({ token: code, secret });
-    return result.valid;
+    const totp = new OTPAuth.TOTP({
+      issuer: 'FinLotto',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: OTPAuth.Secret.fromBase32(secret),
+    });
+    
+    // validate returns null if invalid, or delta (time difference) if valid
+    // window: 1 allows 1 period before/after (±30 seconds)
+    const delta = totp.validate({ token: code, window: 1 });
+    return delta !== null;
   } catch (error) {
     console.error('[2FA] Verification error:', error);
     return false;
