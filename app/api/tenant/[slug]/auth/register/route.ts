@@ -97,7 +97,6 @@ export async function POST(
         tenant_id: tenant.id,
         credit_balance: 0,
         is_active: true,
-        registration_source: 'tenant',
         // Identity model: regular customer (not staff/member, not agent)
         agent_level: null,
         user_type: 'customer',
