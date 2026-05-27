@@ -16,7 +16,7 @@ export async function POST(
   try {
     const { slug } = await params;
     const cookieStore = await cookies();
-    const token = cookieStore.get(`tenant_${slug}_token`)?.value;
+    const token = cookieStore.get('tenant_token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Not logged in' }, { status: 401 });
