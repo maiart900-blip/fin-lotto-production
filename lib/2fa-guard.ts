@@ -1,5 +1,6 @@
 // 2FA Guard - ระบบตรวจสอบ 2FA กลาง
 import { createClient } from '@/lib/supabase/server';
+import { TOTP } from 'otplib';
 
 export interface TwoFactorStatus {
   required: boolean;        // ต้องใช้ 2FA หรือไม่ (ตาม role)
@@ -16,42 +17,32 @@ export interface User2FAInfo {
   two_factor_enabled: boolean;
   two_factor_secret: string | null;
   two_factor_verified_at: string | null;
-  last_2fa_verified_at: string | null;
 }
+
+// Roles that require 2FA (hardcoded for security)
+const ROLES_REQUIRING_2FA = ['super_admin', 'admin', 'agent'];
 
 // ตรวจสอบว่า role นี้ต้องใช้ 2FA หรือไม่
-export async function is2FARequiredForRole(role: string): Promise<boolean> {
-  const supabase = await createClient();
-  
-  const { data } = await supabase
-    .from('system_2fa_requirements')
-    .select('is_required')
-    .eq('role', role)
-    .single();
-  
-  return data?.is_required ?? false;
+export function is2FARequiredForRole(role: string): boolean {
+  return ROLES_REQUIRING_2FA.includes(role);
 }
 
-// ตรวจสอบสถานะ 2FA ของผู้ใช้
+// ตรวจสอบสถานะ 2FA ของผู้ใช้ (users table)
 export async function check2FAStatus(
   userId: string,
-  userType: 'agent' | 'customer',
   role: string,
   sessionVerified: boolean = false
 ): Promise<TwoFactorStatus> {
   const supabase = await createClient();
   
-  // ดึงข้อมูล 2FA ของผู้ใช้
-  const table = userType === 'agent' ? 'agents' : 'customers';
+  // ดึงข้อมูล 2FA ของผู้ใช้จาก users table
   const { data: user } = await supabase
-    .from(table)
-    .select('two_factor_enabled, two_factor_secret, two_factor_verified_at, last_2fa_verified_at')
+    .from('users')
+    .select('two_factor_enabled, two_factor_secret, two_factor_verified_at')
     .eq('id', userId)
     .single();
   
-  // ตรวจสอบว่า role นี้ต้องใช้ 2FA หรือไม่
-  const required = await is2FARequiredForRole(role);
-  
+  const required = is2FARequiredForRole(role);
   const enabled = user?.two_factor_enabled ?? false;
   const hasSecret = !!user?.two_factor_secret;
   
@@ -59,23 +50,49 @@ export async function check2FAStatus(
     required,
     enabled,
     verified: sessionVerified,
-    needsSetup: required && !enabled,
-    needsVerify: required && enabled && !sessionVerified,
-    lastVerifiedAt: user?.last_2fa_verified_at || null,
+    needsSetup: required && (!enabled || !hasSecret),
+    needsVerify: required && enabled && hasSecret && !sessionVerified,
+    lastVerifiedAt: user?.two_factor_verified_at || null,
   };
 }
 
+// Initialize TOTP instance
+const totp = new TOTP();
+
+// Generate new 2FA secret
+export function generate2FASecret(username: string): { secret: string; otpauthUrl: string } {
+  const secret = totp.generateSecret();
+  const otpauthUrl = totp.generateURI({ secret, issuer: 'FinLotto', label: username });
+  
+  return { secret, otpauthUrl };
+}
+
+// Verify TOTP code
+export function verify2FACode(secret: string, code: string): boolean {
+  try {
+    return totp.verify({ token: code, secret });
+  } catch {
+    return false;
+  }
+}
+
+// Generate backup codes
+export function generateBackupCodes(count: number = 8): string[] {
+  const codes: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    codes.push(code);
+  }
+  return codes;
+}
+
 // อัปเดตเวลายืนยัน 2FA ล่าสุด
-export async function update2FALastVerified(
-  userId: string,
-  userType: 'agent' | 'customer'
-): Promise<boolean> {
+export async function update2FALastVerified(userId: string): Promise<boolean> {
   const supabase = await createClient();
-  const table = userType === 'agent' ? 'agents' : 'customers';
   
   const { error } = await supabase
-    .from(table)
-    .update({ last_2fa_verified_at: new Date().toISOString() })
+    .from('users')
+    .update({ two_factor_verified_at: new Date().toISOString() })
     .eq('id', userId);
   
   return !error;
@@ -84,19 +101,18 @@ export async function update2FALastVerified(
 // เปิดใช้งาน 2FA สำหรับผู้ใช้
 export async function enable2FA(
   userId: string,
-  userType: 'agent' | 'customer',
-  secret: string
+  secret: string,
+  backupCodes: string[]
 ): Promise<boolean> {
   const supabase = await createClient();
-  const table = userType === 'agent' ? 'agents' : 'customers';
   
   const { error } = await supabase
-    .from(table)
+    .from('users')
     .update({
       two_factor_enabled: true,
       two_factor_secret: secret,
+      two_factor_backup_codes: backupCodes,
       two_factor_verified_at: new Date().toISOString(),
-      last_2fa_verified_at: new Date().toISOString(),
     })
     .eq('id', userId);
   
@@ -104,20 +120,16 @@ export async function enable2FA(
 }
 
 // ปิดใช้งาน 2FA สำหรับผู้ใช้
-export async function disable2FA(
-  userId: string,
-  userType: 'agent' | 'customer'
-): Promise<boolean> {
+export async function disable2FA(userId: string): Promise<boolean> {
   const supabase = await createClient();
-  const table = userType === 'agent' ? 'agents' : 'customers';
   
   const { error } = await supabase
-    .from(table)
+    .from('users')
     .update({
       two_factor_enabled: false,
       two_factor_secret: null,
+      two_factor_backup_codes: null,
       two_factor_verified_at: null,
-      last_2fa_verified_at: null,
     })
     .eq('id', userId);
   
@@ -125,15 +137,11 @@ export async function disable2FA(
 }
 
 // ดึง secret สำหรับ verify
-export async function get2FASecret(
-  userId: string,
-  userType: 'agent' | 'customer'
-): Promise<string | null> {
+export async function get2FASecret(userId: string): Promise<string | null> {
   const supabase = await createClient();
-  const table = userType === 'agent' ? 'agents' : 'customers';
   
   const { data } = await supabase
-    .from(table)
+    .from('users')
     .select('two_factor_secret')
     .eq('id', userId)
     .single();
@@ -141,32 +149,44 @@ export async function get2FASecret(
   return data?.two_factor_secret || null;
 }
 
-// ดึงรายการ 2FA requirements ทั้งหมด (สำหรับ Admin)
-export async function get2FARequirements(): Promise<Array<{ role: string; is_required: boolean }>> {
-  const supabase = await createClient();
+// Verify 2FA and update session
+export async function verifyAndUpdate2FA(userId: string, code: string): Promise<boolean> {
+  const secret = await get2FASecret(userId);
+  if (!secret) return false;
   
-  const { data } = await supabase
-    .from('system_2fa_requirements')
-    .select('role, is_required')
-    .order('role');
+  const isValid = verify2FACode(secret, code);
+  if (isValid) {
+    await update2FALastVerified(userId);
+  }
   
-  return data || [];
+  return isValid;
 }
 
-// อัปเดต 2FA requirement ของ role
-export async function update2FARequirement(
-  role: string,
-  isRequired: boolean
-): Promise<boolean> {
+// Use backup code (one-time use)
+export async function useBackupCode(userId: string, code: string): Promise<boolean> {
   const supabase = await createClient();
   
+  const { data: user } = await supabase
+    .from('users')
+    .select('two_factor_backup_codes')
+    .eq('id', userId)
+    .single();
+  
+  const backupCodes = user?.two_factor_backup_codes || [];
+  const codeIndex = backupCodes.indexOf(code.toUpperCase());
+  
+  if (codeIndex === -1) return false;
+  
+  // Remove used code
+  backupCodes.splice(codeIndex, 1);
+  
   const { error } = await supabase
-    .from('system_2fa_requirements')
-    .upsert({
-      role,
-      is_required: isRequired,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'role' });
+    .from('users')
+    .update({ 
+      two_factor_backup_codes: backupCodes,
+      two_factor_verified_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
   
   return !error;
 }

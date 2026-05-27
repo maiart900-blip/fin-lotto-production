@@ -17,6 +17,7 @@ import {
   type SourceTable,
   type DetailedRole,
 } from '@/lib/identity';
+import { is2FARequiredForRole, check2FAStatus } from '@/lib/2fa-guard';
 
 /**
  * Set authentication cookies for server-side auth verification
@@ -105,6 +106,50 @@ export async function POST(request: Request) {
           { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' },
           { status: 401 }
         );
+      }
+      
+      // Check if 2FA is required for this role
+      const requires2FA = is2FARequiredForRole(user.role);
+      if (requires2FA) {
+        const twoFAStatus = await check2FAStatus(user.id, user.role, false);
+        
+        if (twoFAStatus.needsSetup) {
+          // User needs to setup 2FA first - create partial session
+          const cookieStore = await cookies();
+          cookieStore.set('pending_2fa_setup', user.id, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 30, // 30 minutes
+            path: '/',
+          });
+          
+          return NextResponse.json({
+            success: false,
+            requires2FASetup: true,
+            message: 'กรุณาตั้งค่า 2FA ก่อนเข้าสู่ระบบ',
+            redirectTo: '/auth/2fa-setup',
+          });
+        }
+        
+        if (twoFAStatus.needsVerify) {
+          // User has 2FA enabled, needs to verify
+          const cookieStore = await cookies();
+          cookieStore.set('pending_2fa_user', user.id, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 10, // 10 minutes
+            path: '/',
+          });
+          
+          return NextResponse.json({
+            success: false,
+            requires2FA: true,
+            message: 'กรุณายืนยัน 2FA',
+            redirectTo: '/auth/2fa-verify',
+          });
+        }
       }
       
       let branchInfo = null;
