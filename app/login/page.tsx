@@ -52,8 +52,16 @@ export default function LoginPage() {
       // Redirect to intended page or user's default page
       const finalRedirect = redirectUrl !== '/' ? redirectUrl : (user?.redirectTo || '/');
       router.replace(finalRedirect);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[v0] Login error:', error);
+      
+      // Handle 2FA redirects
+      if (error.requires2FASetup || error.requires2FA) {
+        toast.info(error.message || 'กรุณาตั้งค่า 2FA');
+        router.push(error.redirectTo);
+        return;
+      }
+      
       toast.error(error instanceof Error ? error.message : 'เข้าสู่ระบบไม่สำเร็จ');
     } finally {
       setIsLoading(false);
