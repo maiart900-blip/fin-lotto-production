@@ -233,11 +233,13 @@ export default function LotteriesPage() {
                     borderColor: lottery.bg_color ? `${lottery.bg_color}40` : undefined,
                   }}
                 >
-                  {/* Background Image - Use lottery image or fallback to default premium bg */}
-                  <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-40"
-                    style={{ backgroundImage: `url(${lottery.background_image || '/images/lottery-bg-default.jpg'})` }}
-                  />
+                  {/* Background Image - Keep the premium artwork */}
+                  {lottery.background_image && (
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center opacity-40"
+                      style={{ backgroundImage: `url(${lottery.background_image})` }}
+                    />
+                  )}
                   
                   {/* Dark gradient overlay for text readability */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
