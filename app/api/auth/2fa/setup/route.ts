@@ -49,7 +49,7 @@ export async function POST() {
     }
     
     // Generate new secret
-    const { secret, otpauthUrl } = await generate2FASecret(user.username);
+    const { secret, otpauthUrl } = generate2FASecret(user.username);
     
     // Generate QR code as data URL
     const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
