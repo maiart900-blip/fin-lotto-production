@@ -76,6 +76,8 @@ export function generate2FASecret(username: string): { secret: string; otpauthUr
 
 // Verify TOTP code using otpauth
 export function verify2FACode(secret: string, code: string): boolean {
+  console.log('[v0] verify2FACode called with secret length:', secret?.length, 'code:', code);
+  
   try {
     const totp = new TOTP({
       issuer: 'FinLotto',
@@ -85,12 +87,20 @@ export function verify2FACode(secret: string, code: string): boolean {
       secret: Secret.fromBase32(secret),
     });
     
+    // Generate current valid token for debugging
+    const currentToken = totp.generate();
+    console.log('[v0] Current valid token:', currentToken, 'Input code:', code);
+    
     // validate returns null if invalid, or delta (time difference) if valid
     // window: 1 allows 1 period before/after (±30 seconds)
     const delta = totp.validate({ token: code, window: 1 });
-    return delta !== null;
+    console.log('[v0] TOTP validate delta:', delta, '(null=invalid, number=valid)');
+    
+    const isValid = delta !== null;
+    console.log('[v0] verify2FACode result:', isValid);
+    return isValid;
   } catch (error) {
-    console.error('[2FA] Verification error:', error);
+    console.error('[v0] verify2FACode error:', error);
     return false;
   }
 }
