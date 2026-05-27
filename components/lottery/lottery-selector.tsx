@@ -377,108 +377,75 @@ function LotteryCard({ lottery, isSelected, onClick, isSuperAdmin = false }: Lot
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        // Base styles - Glassmorphism
-        "flex-shrink-0 w-36 p-4 rounded-2xl transition-all duration-500 ease-out",
-        "flex flex-col items-center gap-3 text-center relative overflow-hidden",
-        "backdrop-blur-xl bg-black/40",
-        // Border with category color
-        "border-2",
-        theme.borderColor,
-        // Hover effects - Scale up and enhanced glow
-        "hover:scale-110 hover:-translate-y-2",
+        // Base styles - Clean card design
+        "flex-shrink-0 w-36 p-3 rounded-xl transition-all duration-300 ease-out",
+        "flex flex-col gap-2 text-center relative overflow-hidden",
+        "bg-gradient-to-b from-slate-800/90 to-slate-900/95",
+        // Border
+        "border",
+        isSelected && status.canAccept 
+          ? "border-amber-400" 
+          : "border-slate-700/50 hover:border-slate-600",
+        // Hover effects
+        "hover:scale-105 hover:-translate-y-1",
         // Disabled state
-        !status.canAccept && "opacity-50 cursor-not-allowed grayscale-[50%]",
+        !status.canAccept && "opacity-50 cursor-not-allowed",
         // Selected state - Golden highlight
-        isSelected && status.canAccept && "border-amber-400 ring-2 ring-amber-400/50",
-        // Glow effect based on category
-        status.canAccept && (isHovered || isSelected) && theme.glow,
-        // Gradient background
-        theme.gradient
+        isSelected && status.canAccept && "ring-2 ring-amber-400/40 shadow-lg shadow-amber-500/20",
       )}
-      style={{
-        // Enhanced glow on hover
-        boxShadow: isHovered && status.canAccept 
-          ? theme.glow.includes('blue') ? '0 0 40px rgba(59,130,246,0.6)' :
-            theme.glow.includes('red') ? '0 0 40px rgba(220,38,38,0.6)' :
-            theme.glow.includes('amber') ? '0 0 40px rgba(245,158,11,0.6)' :
-            theme.glow.includes('emerald') ? '0 0 40px rgba(16,185,129,0.6)' :
-            '0 0 30px rgba(100,116,139,0.4)'
-          : undefined
-      }}
     >
-      {/* Premium Glassmorphism overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-      
-      {/* Animated shimmer effect on hover */}
-      {isHovered && status.canAccept && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer pointer-events-none" />
-      )}
-      
-      {/* Golden ring for selected */}
-      {isSelected && status.canAccept && (
-        <div className="absolute inset-0 rounded-2xl ring-2 ring-amber-400 animate-pulse pointer-events-none" />
-      )}
-      
-      {/* Flag Icon with gradient background */}
-      <div className="relative z-10">
+      {/* Top row: Small flag icon + Status badge */}
+      <div className="flex items-center justify-between w-full">
         <div className={cn(
-          "size-16 rounded-full flex items-center justify-center text-4xl",
-          "border-2 shadow-lg transition-all duration-300",
-          theme.iconBg,
-          isSelected && status.canAccept
-            ? "border-amber-400 shadow-amber-500/50 scale-110"
-            : status.canAccept
-            ? cn("border-white/30", isHovered && "scale-105")
-            : "border-red-500/30",
-          status.isClosingSoon && "animate-pulse"
+          "size-8 rounded-lg flex items-center justify-center text-lg",
+          "bg-slate-700/50 border border-slate-600/50"
         )}>
           {theme.flag}
         </div>
-        
-        {/* Status Badge */}
         <div className={cn(
-          "absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full text-[10px] font-bold",
-          "flex items-center gap-1 shadow-lg",
+          "px-2 py-0.5 rounded-full text-[10px] font-semibold",
+          "flex items-center gap-1",
           statusConfig.badgeClass
         )}>
           {statusConfig.icon}
+          <span>{statusConfig.badge}</span>
         </div>
       </div>
 
-      {/* Lottery Info */}
-      <div className="space-y-2 w-full relative z-10">
+      {/* Lottery Name - HERO ELEMENT */}
+      <div className="flex-1 flex items-center justify-center min-h-[40px]">
         <p className={cn(
-          "text-sm font-bold truncate drop-shadow-lg",
-          isSelected && status.canAccept ? "text-amber-300" : "text-white"
+          "text-base font-bold leading-tight text-center",
+          isSelected && status.canAccept 
+            ? "text-amber-300" 
+            : "text-white"
         )}>
           {lottery.name}
         </p>
-        
-        {/* Time Display */}
-        {status.canAccept ? (
-          <div className={cn(
-            "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full",
-            "bg-black/60 backdrop-blur-sm border border-white/10"
-          )}>
-            <Clock className={cn(
-              "size-3",
-              status.isClosingSoon ? "text-orange-400 animate-bounce" : "text-green-400"
-            )} />
-            <span className={cn(
-              "text-xs font-mono font-bold tracking-wider",
-              status.isClosingSoon ? "text-orange-400" : "text-green-400"
-            )}>
-              {status.status === 'result_announced' ? 'พร้อม' : timeRemaining}
-            </span>
-          </div>
-        ) : (
-          <Badge 
-            className="text-[10px] px-2 py-1 bg-red-500/30 border-red-500/50 text-red-300 backdrop-blur-sm"
-          >
-            {status.statusText}
-          </Badge>
-        )}
       </div>
+      
+      {/* Time Display */}
+      {status.canAccept ? (
+        <div className={cn(
+          "flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg",
+          "bg-slate-800/80 border border-slate-700/50"
+        )}>
+          <Clock className={cn(
+            "size-3.5",
+            status.isClosingSoon ? "text-orange-400 animate-bounce" : "text-green-400"
+          )} />
+          <span className={cn(
+            "text-sm font-mono font-bold tracking-wide",
+            status.isClosingSoon ? "text-orange-400" : "text-green-400"
+          )}>
+            {status.status === 'result_announced' ? 'พร้อม' : timeRemaining}
+          </span>
+        </div>
+      ) : (
+        <div className="px-2 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30">
+          <span className="text-xs text-red-400">{status.statusText}</span>
+        </div>
+      )}
     </button>
   );
 }
@@ -552,7 +519,7 @@ function LotteryCardGrid({ lottery, isSelected, onClick, isSuperAdmin = false }:
     if (!status.canAccept) {
       return {
         badge: 'ปิดงวด',
-        badgeClass: 'bg-red-500 text-white',
+        badgeClass: 'bg-red-500/90 text-white',
         dotClass: 'bg-red-500',
       };
     }
@@ -560,19 +527,19 @@ function LotteryCardGrid({ lottery, isSelected, onClick, isSuperAdmin = false }:
       case 'closing_soon':
         return {
           badge: 'ใกล้ปิด',
-          badgeClass: 'bg-orange-500 text-white animate-pulse',
+          badgeClass: 'bg-orange-500/90 text-white animate-pulse',
           dotClass: 'bg-orange-500 animate-pulse',
         };
       case 'result_announced':
         return {
           badge: 'งวดถัดไป',
-          badgeClass: 'bg-blue-500 text-white',
+          badgeClass: 'bg-blue-500/90 text-white',
           dotClass: 'bg-blue-500',
         };
       default:
         return {
           badge: 'เปิดรับ',
-          badgeClass: 'bg-green-500 text-white',
+          badgeClass: 'bg-green-500/90 text-white',
           dotClass: 'bg-green-500',
         };
     }
@@ -586,73 +553,72 @@ function LotteryCardGrid({ lottery, isSelected, onClick, isSuperAdmin = false }:
       onClick={onClick}
       disabled={!status.canAccept}
       className={cn(
-        "relative p-4 rounded-2xl border-2 transition-all duration-300",
-        "flex flex-col items-center gap-3 text-center overflow-hidden",
-        "hover:scale-105 hover:-translate-y-1 hover:shadow-xl",
+        // Clean card design - name focused
+        "relative p-4 rounded-xl border transition-all duration-300",
+        "flex flex-col gap-3 text-center",
+        "bg-gradient-to-b from-slate-800/90 to-slate-900/95",
+        "hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-lg",
         !status.canAccept && "opacity-50 cursor-not-allowed",
         isSelected && status.canAccept
-          ? "border-amber-400 shadow-2xl shadow-amber-500/40 ring-4 ring-amber-400/20"
+          ? "border-amber-400 ring-2 ring-amber-400/30 shadow-lg shadow-amber-500/20"
           : status.canAccept
-          ? cn("border-white/10 hover:border-amber-500/50", theme.glow)
+          ? "border-slate-700/50 hover:border-amber-500/50"
           : "border-red-500/20",
-        theme.gradient
       )}
     >
-      {/* Background overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none" />
-      
-      {/* Status dot */}
-      <div className={cn(
-        "absolute top-2 right-2 size-3 rounded-full",
-        statusConfig.dotClass
-      )} />
-      
-      {/* Flag */}
-      <div className={cn(
-        "relative z-10 size-16 rounded-full flex items-center justify-center text-5xl",
-        "bg-black/50 backdrop-blur-sm border-2",
-        isSelected && status.canAccept
-          ? "border-amber-400 shadow-lg shadow-amber-500/50"
-          : "border-white/20"
-      )}>
-        {theme.flag}
+      {/* Top row: Small flag + Status */}
+      <div className="flex items-center justify-between w-full">
+        <div className={cn(
+          "size-10 rounded-lg flex items-center justify-center text-xl",
+          "bg-slate-700/50 border border-slate-600/50"
+        )}>
+          {theme.flag}
+        </div>
+        <div className={cn(
+          "absolute top-3 right-3 size-2.5 rounded-full",
+          statusConfig.dotClass
+        )} />
       </div>
 
-      {/* Info */}
-      <div className="relative z-10 space-y-2 w-full">
+      {/* Lottery Name - HERO ELEMENT */}
+      <div className="flex-1 flex items-center justify-center min-h-[48px]">
         <p className={cn(
-          "font-bold truncate",
-          isSelected && status.canAccept ? "text-amber-300" : "text-white"
+          "text-lg font-bold leading-tight text-center",
+          isSelected && status.canAccept 
+            ? "text-amber-300" 
+            : "text-white"
         )}>
           {lottery.name}
         </p>
-        
-        <Badge className={cn("text-[10px]", statusConfig.badgeClass)}>
-          {statusConfig.badge}
-        </Badge>
-        
-        {status.canAccept && status.status !== 'result_announced' && (
-          <div className="flex items-center justify-center gap-1 text-xs">
-            <Clock className={cn(
-              "size-3",
-              status.isClosingSoon ? "text-orange-400" : "text-green-400"
-            )} />
-            <span className={cn(
-              "font-mono font-bold",
-              status.isClosingSoon ? "text-orange-400" : "text-green-400"
-            )}>
-              {timeRemaining}
-            </span>
-          </div>
-        )}
-        
-        {/* Close time */}
-        {lottery.close_time && (
-          <p className="text-[10px] text-gray-400">
-            ปิด {lottery.close_time.slice(0, 5)} น.
-          </p>
-        )}
       </div>
+      
+      {/* Status Badge */}
+      <Badge className={cn("text-xs w-fit mx-auto", statusConfig.badgeClass)}>
+        {statusConfig.badge}
+      </Badge>
+      
+      {/* Time Display */}
+      {status.canAccept && status.status !== 'result_announced' && (
+        <div className="flex items-center justify-center gap-1.5 text-sm">
+          <Clock className={cn(
+            "size-4",
+            status.isClosingSoon ? "text-orange-400" : "text-green-400"
+          )} />
+          <span className={cn(
+            "font-mono font-bold",
+            status.isClosingSoon ? "text-orange-400" : "text-green-400"
+          )}>
+            {timeRemaining}
+          </span>
+        </div>
+      )}
+      
+      {/* Close time */}
+      {lottery.close_time && (
+        <p className="text-xs text-slate-400">
+          ปิด {lottery.close_time.slice(0, 5)} น.
+        </p>
+      )}
     </button>
   );
 }

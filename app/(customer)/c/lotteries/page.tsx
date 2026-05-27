@@ -148,28 +148,22 @@ export default function LotteriesPage() {
     
     if (flag.type === 'image') {
       return (
-        <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-800 flex items-center justify-center">
-          <Image 
-            src={flag.value} 
-            alt={lottery.name} 
-            width={48} 
-            height={48} 
-            className="object-cover"
-          />
-        </div>
+        <Image 
+          src={flag.value} 
+          alt={lottery.name} 
+          width={24} 
+          height={24} 
+          className="object-cover rounded"
+        />
       );
     }
     
     if (flag.type === 'icon') {
       const IconComponent = ICON_MAP[flag.value];
-      return (
-        <div className="w-12 h-12 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center">
-          <IconComponent className="w-6 h-6 text-amber-400" />
-        </div>
-      );
+      return <IconComponent className="w-5 h-5 text-amber-400" />;
     }
     
-    return <span className="text-4xl">{flag.value}</span>;
+    return <span className="text-xl">{flag.value}</span>;
   };
 
   return (
@@ -209,7 +203,7 @@ export default function LotteriesPage() {
 
         {error && (
           <div className="text-center py-12 text-red-400">
-            เกิดข้อผิดพลาดในการโหลดข้อมูล
+            เกิดข��อผิดพลาดในการโหลดข้อมูล
           </div>
         )}
 
@@ -222,52 +216,42 @@ export default function LotteriesPage() {
                 className="block"
               >
                 <div 
-                  className="premium-card p-4 hover:scale-[1.02] transition-transform cursor-pointer group relative overflow-hidden"
-                  style={{
-                    backgroundColor: lottery.card_color || lottery.bg_color || undefined,
-                    borderColor: lottery.bg_color ? `${lottery.bg_color}40` : undefined,
-                  }}
+                  className="relative p-4 rounded-xl bg-gradient-to-b from-slate-800/90 to-slate-900/95 border border-slate-700/50 hover:border-amber-500/50 hover:scale-[1.02] transition-all cursor-pointer group overflow-hidden"
                 >
-                  {/* Background Image */}
-                  {lottery.background_image && (
-                    <div 
-                      className="absolute inset-0 bg-cover bg-center opacity-30"
-                      style={{ backgroundImage: `url(${lottery.background_image})` }}
-                    />
-                  )}
-                  
-                  {/* Content with z-index to be above background */}
-                  <div className="relative z-10">
-                    {/* Flag/Icon with Glow */}
-                    <div className="flex justify-center mb-3">
-                      <div className="relative">
-                        <div className="absolute inset-0 blur-md bg-amber-500/20 rounded-full scale-75 group-hover:scale-100 transition-transform" />
-                        <div className="relative">{renderLotteryIcon(lottery)}</div>
+                  {/* Content */}
+                  <div className="relative z-10 flex flex-col gap-3">
+                    {/* Top row: Small flag + Status indicator */}
+                    <div className="flex items-center justify-between">
+                      <div className="size-10 rounded-lg bg-slate-700/50 border border-slate-600/50 flex items-center justify-center">
+                        {renderLotteryIcon(lottery)}
                       </div>
+                      <div className="size-2.5 rounded-full bg-green-500" />
                     </div>
                     
-                    {/* Name */}
-                    <h3 
-                      className="text-sm font-medium text-center mb-1 truncate"
-                      style={{ color: lottery.text_color || '#ffffff' }}
-                    >
-                      {lottery.name}
-                    </h3>
+                    {/* Lottery Name - HERO ELEMENT */}
+                    <div className="min-h-[48px] flex items-center justify-center">
+                      <h3 
+                        className="text-lg font-bold text-center leading-tight text-white group-hover:text-amber-300 transition-colors"
+                      >
+                        {lottery.name}
+                      </h3>
+                    </div>
                     
                     {/* Close time */}
-                    <p className="text-xs text-neutral-500 text-center mb-2">
+                    <p className="text-xs text-slate-400 text-center">
                       ปิดรับ {lottery.close_time} น.
                     </p>
                     
-                    {/* Countdown - Premium */}
-                    <div className="text-center mb-3">
-                      <span className="countdown-premium text-sm">
+                    {/* Countdown */}
+                    <div className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/50">
+                      <Clock className="size-4 text-green-400" />
+                      <span className="text-sm font-mono font-bold text-green-400">
                         {countdowns[lottery.id] || '-- : -- : --'}
                       </span>
                     </div>
                     
-                    {/* Button - Luxury */}
-                    <button className="btn-luxury w-full py-2 rounded-lg text-sm">
+                    {/* Button */}
+                    <button className="w-full py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-400 hover:to-amber-500 transition-all">
                       แทงหวย
                     </button>
                   </div>
