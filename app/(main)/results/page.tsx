@@ -88,10 +88,10 @@ export default function ResultsPage() {
     winners: Array<{ number: string; bet_type: string; amount: number; payout: number }>;
   } | null>(null);
   
-  // History filters
+  // History filters - default to TODAY only
+  const today = new Date().toISOString().split('T')[0];
   const [historyLotteryFilter, setHistoryLotteryFilter] = useState('all');
-  const [historyDateFrom, setHistoryDateFrom] = useState('');
-  const [historyDateTo, setHistoryDateTo] = useState('');
+  const [historyDateFilter, setHistoryDateFilter] = useState<'today' | 'all'>('today');
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedResultDetail, setSelectedResultDetail] = useState<any>(null);
   const [resultDetailData, setResultDetailData] = useState<{
@@ -282,8 +282,13 @@ export default function ResultsPage() {
   const runTop = threeTop ? threeTop.slice(-1) : '-';
   const runBot = twoBot ? twoBot.slice(-1) : '-';
   
+  // Filter results by date first (today only by default)
+  const dateFilteredResults = historyDateFilter === 'today'
+    ? resultsHistory.filter((r: any) => r.draw_date === today)
+    : resultsHistory;
+  
   // Group results by lottery for history display
-  const groupedResults = resultsHistory.reduce((acc: Record<string, any[]>, result: any) => {
+  const groupedResults = dateFilteredResults.reduce((acc: Record<string, any[]>, result: any) => {
     const lottery = lotteries.find((l: any) => l.id === result.lottery_id);
     const lotteryName = lottery?.name || 'ไม่ระบุ';
     if (!acc[lotteryName]) {
@@ -630,22 +635,39 @@ export default function ResultsPage() {
               ประวัติผลหวยย้อนหลัง
             </CardTitle>
             
-            {/* Filter by Lottery */}
-            <div className="flex items-center gap-2">
-              <Label className="text-sm whitespace-nowrap">เลือกหวย:</Label>
-              <Select value={historyLotteryFilter} onValueChange={setHistoryLotteryFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="ทั้งหมด" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทั้งหมด</SelectItem>
-                  {Object.keys(groupedResults).map((lotteryName) => (
-                    <SelectItem key={lotteryName} value={lotteryName}>
-                      {lotteryName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Filters */}
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Date Filter - Today / All */}
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">วันที่:</Label>
+                <Select value={historyDateFilter} onValueChange={(v) => setHistoryDateFilter(v as 'today' | 'all')}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">วันนี้เท่านั้น</SelectItem>
+                    <SelectItem value="all">ทั้งหมด</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Filter by Lottery */}
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">หวย:</Label>
+                <Select value={historyLotteryFilter} onValueChange={setHistoryLotteryFilter}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="ทั้งหมด" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทั้งหมด</SelectItem>
+                    {Object.keys(groupedResults).map((lotteryName) => (
+                      <SelectItem key={lotteryName} value={lotteryName}>
+                        {lotteryName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardHeader>
