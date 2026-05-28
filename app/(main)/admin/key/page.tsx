@@ -195,6 +195,8 @@ export default function LotteryTerminalPage() {
   const [digitMode, setDigitMode] = useState<'2' | '3'>('2');
   const [currentInput, setCurrentInput] = useState('');
   const [defaultPrice, setDefaultPrice] = useState(1);
+  const [priceTop, setPriceTop] = useState(1);
+  const [priceBot, setPriceBot] = useState(1);
   const [bets, setBets] = useState<BetItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -922,7 +924,7 @@ export default function LotteryTerminalPage() {
   // รองรับสูงสุด 10 ตัว (0-9)
   const generateWinAndAdd = useCallback(() => {
     if (winSelectedDigits.length < 2) {
-      toast.error('กรุณาเลือกอย่างน้อย 2 ตัวเ���ข');
+      toast.error('กรุณาเลือกอย่างน้อย 2 ตัวเ������');
       return;
     }
     if (winSelectedDigits.length > 10) {
