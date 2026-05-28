@@ -49,7 +49,7 @@ export async function POST() {
     }
     
     // Generate new secret
-    const { secret, otpauthUrl } = await generate2FASecret(user.username);
+    const { secret, otpauthUrl } = generate2FASecret(user.username);
     
     // Generate QR code as data URL
     const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
@@ -131,7 +131,7 @@ export async function PUT(request: NextRequest) {
     }
     
     // Verify the code with pending secret
-    const isValid = await verify2FACode(pendingSecret, code);
+    const isValid = verify2FACode(pendingSecret, code);
     
     if (!isValid) {
       return NextResponse.json({ error: 'รหัสไม่ถูกต้อง กรุณาลองใหม่' }, { status: 400 });
