@@ -66,33 +66,14 @@ async function verifyAndUseBackupCode(userId: string, code: string): Promise<boo
 }
 
 export async function POST(request: Request) {
-  console.log('[v0] 2FA verify: Handler started');
-  
-  let supabase;
-  let cookieStore;
-  let pendingUserId;
-  
   try {
-    console.log('[v0] 2FA verify: Creating supabase client');
-    supabase = await createClient();
-    console.log('[v0] 2FA verify: Supabase client created');
-  } catch (err) {
-    console.error('[v0] 2FA verify: Supabase createClient error:', err);
-    return NextResponse.json({ error: 'Database connection failed', details: String(err) }, { status: 500 });
-  }
-  
-  try {
-    console.log('[v0] 2FA verify: Getting cookies');
-    cookieStore = await cookies();
-    pendingUserId = cookieStore.get('pending_2fa_user')?.value;
+    console.log('[v0] 2FA verify: Starting verification');
+    
+    const supabase = await createClient();
+    const cookieStore = await cookies();
+    const pendingUserId = cookieStore.get('pending_2fa_user')?.value;
+
     console.log('[v0] 2FA verify: pendingUserId =', pendingUserId);
-  } catch (err) {
-    console.error('[v0] 2FA verify: Cookies error:', err);
-    return NextResponse.json({ error: 'Cookie access failed', details: String(err) }, { status: 500 });
-  }
-  
-  try {
-    console.log('[v0] 2FA verify: Starting main verification logic');
 
     if (!pendingUserId) {
       return NextResponse.json({ error: 'No pending 2FA verification' }, { status: 400 });
