@@ -1289,20 +1289,11 @@ export default function LottoBettingPage() {
         total_amount: totals.total,
       };
       
-      // Create a timeout promise for mock fallback (1.5 seconds)
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('TIMEOUT_MOCK')), 1500);
+      const res = await fetch('/api/bets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      
-      // Race between actual API call and timeout
-      const res = await Promise.race([
-        fetch('/api/bets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }),
-        timeoutPromise,
-      ]) as Response;
       
       const data = await res.json();
       
@@ -1322,22 +1313,6 @@ export default function LottoBettingPage() {
       router.push('/c/history');
       
     } catch (error) {
-      // Check if this is a timeout - use mock success flow for preview testing
-      if (error instanceof Error && error.message === 'TIMEOUT_MOCK') {
-        // Mock success flow for preview environment
-        toast.success(`ส่งโพยสำเร็จ! (${betItems.length} รายการ, ${totals.total.toLocaleString()} บาท)`);
-        setBetItems([]);
-        setShowConfirmDialog(false);
-        
-        // Mock credit deduction by triggering mutate (will show updated UI)
-        if (mutateCustomer) {
-          mutateCustomer();
-        }
-        
-        router.push('/c/history');
-        return;
-      }
-      
       console.error('confirmSubmit error:', error);
       const errorMessage = error instanceof Error ? error.message : 'ส่งโพยไม่สำเร็จ กรุณาลองใหม่';
       toast.error(errorMessage);
