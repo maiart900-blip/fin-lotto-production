@@ -218,6 +218,8 @@ export default function LotteryTerminalPage() {
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   
   const inputRef = useRef<HTMLInputElement>(null);
+  const priceTopRef = useRef<HTMLInputElement>(null);
+  const priceBotRef = useRef<HTMLInputElement>(null);
   
   // Fetch latest result for selected lottery
   const todayDate = new Date().toISOString().split('T')[0];
@@ -590,13 +592,8 @@ export default function LotteryTerminalPage() {
   
   // Add bets to list
   const addBets = useCallback((number: string) => {
-    if (selectedBetTypes.length === 0) {
-      toast.error('กรุณาเลือกประเภทการแทง');
-      return;
-    }
-    
-    if (!defaultPrice || defaultPrice <= 0) {
-      toast.error('กรุณาใส่ราคา');
+    if (priceTop === 0 && priceBot === 0) {
+      toast.error('กรุณาใส่ราคาอย่างน้อย 1 ช่อง');
       return;
     }
     
@@ -610,57 +607,45 @@ export default function LotteryTerminalPage() {
       return;
     }
     
-    // Expand numbers based on selected bet types
-    const expandedBets = expandNumbers(number, selectedBetTypes);
+    // Determine which bet types to add based on prices
+    const betTypesToAdd: Array<{ betType: string; amount: number }> = [];
     
-    if (expandedBets.length === 0) {
-      // If no expansion happened (e.g., selected เบิ้ล but number is not a double)
-      // Add as normal bets
-      selectedBetTypes.forEach(betType => {
-        if (!betType.includes('rev') && !betType.includes('dbl') && !betType.includes('tong') && !betType.includes('win')) {
-          const newBet: BetItem = {
-            id: generateId(),
-            number,
-            betType,
-            amount: defaultPrice,
-          };
-          setBets(prev => {
-            // Check for duplicates
-            const exists = prev.some(b => b.number === number && b.betType === betType);
-            if (exists) {
-              toast.info(`${number} ${BET_TYPE_LABELS[betType]} มีในรายการแล้ว`);
-              return prev;
-            }
-            return [...prev, newBet];
-          });
-        }
-      });
-    } else {
-      // Add expanded bets
-      expandedBets.forEach(({ number: num, betType }) => {
-        const newBet: BetItem = {
-          id: generateId(),
-          number: num,
-          betType,
-          amount: defaultPrice,
-        };
-        setBets(prev => {
-          // Check for duplicates
-          const exists = prev.some(b => b.number === num && b.betType === betType);
-          if (exists) {
-            return prev;
-          }
-          return [...prev, newBet];
-        });
-      });
-      
-      if (expandedBets.length > 1) {
-        toast.success(`เพิ่ม ${expandedBets.length} รายการ`);
-      }
+    if (priceTop > 0) {
+      // Add top bet type based on digit mode
+      const topBetType = digitMode === '2' ? '2top' : '3top';
+      betTypesToAdd.push({ betType: topBetType, amount: priceTop });
     }
-  }, [selectedBetTypes, defaultPrice, digitMode, expandNumbers]);
+    
+    if (priceBot > 0) {
+      // Add bottom bet type based on digit mode
+      const botBetType = digitMode === '2' ? '2bot' : '3back';
+      betTypesToAdd.push({ betType: botBetType, amount: priceBot });
+    }
+    
+    // Add bets
+    betTypesToAdd.forEach(({ betType, amount }) => {
+      const newBet: BetItem = {
+        id: generateId(),
+        number,
+        betType,
+        amount,
+      };
+      setBets(prev => {
+        // Check for duplicates
+        const exists = prev.some(b => b.number === number && b.betType === betType);
+        if (exists) {
+          toast.info(`${number} ${BET_TYPE_LABELS[betType]} มีในรายการแล้ว`);
+          return prev;
+        }
+        return [...prev, newBet];
+      });
+    });
+    
+    // Clear input after adding
+    setCurrentInput('');
+  }, [priceTop, priceBot, digitMode]);
   
-// Handle input change with auto-submit
+// Handle input change - NO auto-submit, user must press Enter
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const cleaned = value.replace(/\D/g, '');
@@ -668,15 +653,8 @@ export default function LotteryTerminalPage() {
     
     if (cleaned.length <= targetLength) {
       setCurrentInput(cleaned);
-      
-      // Auto-submit when reaching target length
-      if (cleaned.length === targetLength) {
-        addBets(cleaned);
-        setCurrentInput('');
-        inputRef.current?.focus();
-      }
     }
-  }, [digitMode, addBets]);
+  }, [digitMode]);
   
   // Handle numpad input (from on-screen keyboard)
   const handleNumpadInput = useCallback((key: string) => {
@@ -695,7 +673,7 @@ export default function LotteryTerminalPage() {
     }
   }, [currentInput, digitMode, addBets]);
   
-  // Handle paste - รองรับการ paste หลายเลขพ�����อมกัน
+  // Handle paste - รองรับการ paste หลายเลขพ�����อม��ัน
   // รูปแบบที่รองรับ: "12 34 56", "12,34,56", "12\n34\n56", "123456" (แยกตาม digit mode)
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -934,7 +912,7 @@ export default function LotteryTerminalPage() {
     
     // generateWinNumbers สร้าง permutation ครบแล้ว
     // 2 ตัว: เช่น [1,2,3] -> 12,13,21,23,31,32 (ครบทุกคู่)
-    // 3 ตัว: เช่น [1,2,3] -> 123,132,213,231,312,321 (6 กลับครบ)
+    // 3 ตัว: เช��น [1,2,3] -> 123,132,213,231,312,321 (6 กลับครบ)
     const winNumbers = generateWinNumbers(winSelectedDigits, digitMode);
     
     // กำหนด betTypes ตาม mode
@@ -1373,6 +1351,13 @@ export default function LotteryTerminalPage() {
                     value={currentInput}
                     onChange={handleInputChange}
                     onPaste={handlePaste}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && currentInput.length === parseInt(digitMode)) {
+                        e.preventDefault();
+                        priceTopRef.current?.focus();
+                        priceTopRef.current?.select();
+                      }
+                    }}
                     placeholder={digitMode === '3' ? '___' : '__'}
                     className="w-24 h-9 text-lg font-mono text-center bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] placeholder:text-gray-400 rounded"
                   />
@@ -1390,11 +1375,19 @@ export default function LotteryTerminalPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-[#333]">ใส่ราคา บน</span>
                   <Input
+                    ref={priceTopRef}
                     type="number"
-                    min={1}
+                    min={0}
                     max={10000}
-                    value={defaultPrice}
-                    onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
+                    value={priceTop}
+                    onChange={(e) => setPriceTop(Math.min(10000, Math.max(0, parseInt(e.target.value) || 0)))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        priceBotRef.current?.focus();
+                        priceBotRef.current?.select();
+                      }
+                    }}
                     className="w-16 h-9 text-center bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] font-medium rounded"
                   />
                 </div>
@@ -1403,11 +1396,21 @@ export default function LotteryTerminalPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-[#333]">ล่าง</span>
                   <Input
+                    ref={priceBotRef}
                     type="number"
-                    min={1}
+                    min={0}
                     max={10000}
-                    value={defaultPrice}
-                    onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
+                    value={priceBot}
+                    onChange={(e) => setPriceBot(Math.min(10000, Math.max(0, parseInt(e.target.value) || 0)))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (currentInput.length === parseInt(digitMode) && (priceTop > 0 || priceBot > 0)) {
+                          addBets(currentInput);
+                          inputRef.current?.focus();
+                        }
+                      }
+                    }}
                     className="w-16 h-9 text-center bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] font-medium rounded"
                   />
                 </div>
@@ -1415,11 +1418,11 @@ export default function LotteryTerminalPage() {
                 {/* Add Bill Button - Right aligned */}
                 <Button
                   onClick={() => {
-                    if (currentInput.length === parseInt(digitMode) && selectedBetTypes.length > 0) {
+                    if (currentInput.length === parseInt(digitMode) && (priceTop > 0 || priceBot > 0)) {
                       addBets(currentInput);
                     }
                   }}
-                  disabled={currentInput.length !== parseInt(digitMode) || selectedBetTypes.length === 0}
+                  disabled={currentInput.length !== parseInt(digitMode) || (priceTop === 0 && priceBot === 0)}
                   className="ml-auto px-4 py-2 bg-[#009bf2] hover:bg-[#0086d4] text-white font-bold rounded"
                 >
                   + เพิ่มบิล
@@ -1441,6 +1444,10 @@ export default function LotteryTerminalPage() {
                   const uniqueNumbers = [...new Set(digitBets.map(b => b.number))];
                   const topBets = digitBets.filter(b => b.betType.includes('top') || b.betType === '3top');
                   const botBets = digitBets.filter(b => b.betType.includes('bot') || b.betType === '2bot' || b.betType === '3back');
+                  
+                  // Get actual prices from bets (take the first one as they should be the same per type)
+                  const topPrice = topBets.length > 0 ? topBets[0].amount : 0;
+                  const botPrice = botBets.length > 0 ? botBets[0].amount : 0;
                   const topCount = topBets.length > 0 ? [...new Set(topBets.map(b => b.number))].length : 0;
                   const botCount = botBets.length > 0 ? [...new Set(botBets.map(b => b.number))].length : 0;
                   
@@ -1456,7 +1463,7 @@ export default function LotteryTerminalPage() {
                         {/* Left Cell - Type Info (centered stacked text) */}
                         <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
                           <p className="text-sm font-bold text-[#009bf2]">{digitType}</p>
-                          <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
+                          <p className="text-xs text-[#e91e63]">{topPrice} x {botPrice}</p>
                           <p className="text-[11px] text-gray-400">{topCount} x {botCount}</p>
                         </div>
                         
@@ -1800,7 +1807,7 @@ export default function LotteryTerminalPage() {
                 <p className="text-2xl font-bold text-[#009bf2]">
                   ฿{(prizeCheckResult?.totalPayout || 0).toLocaleString()}
                 </p>
-                <p className="text-xs text-gray-500">ยอดจ่ายรางวัล</p>
+                <p className="text-xs text-gray-500">ยอดจ่ายรางวั��</p>
               </div>
             </div>
             
