@@ -214,7 +214,7 @@ export default function LotteriesPage() {
 
         {error && (
           <div className="text-center py-12 text-red-400">
-            เกิดข��อผิดพลาดในการโหลดข้อมูล
+            เกิดข้อผิดพลาดในการโหลดข้อมูล
           </div>
         )}
 

@@ -386,7 +386,7 @@ export default function CustomerLayout({
                   <LogOut className="size-5 text-red-400" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-medium">��อกจากระบบ</p>
+                  <p className="font-medium">ออกจากระบบ</p>
                   <p className="text-xs text-red-400/60">กลับสู่หน้า Login</p>
                 </div>
               </button>

@@ -200,7 +200,7 @@ export default function AdminPerformancePage() {
                 <Users className="size-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-blue-200/80">แอดมินทั้งหม��</p>
+                <p className="text-sm text-blue-200/80">แอดมินทั้งหมด</p>
                 <p className="text-2xl font-bold text-white">{summary.totalAdmins}</p>
               </div>
             </div>

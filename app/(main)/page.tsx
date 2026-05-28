@@ -243,7 +243,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center space-y-4">
           <Loader2 className="size-8 animate-spin text-accent mx-auto" />
-          <p className="text-muted-foreground">���ำลังโหลดข้อมูล...</p>
+          <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
         </div>
       </div>
     );

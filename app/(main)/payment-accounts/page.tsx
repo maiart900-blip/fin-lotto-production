@@ -906,7 +906,7 @@ export default function PaymentAccountsPage() {
       <div className="space-y-3 p-4 rounded-lg border-2 border-amber-500/30 bg-amber-500/5">
         <div className="flex items-center gap-2 text-amber-600">
           <Eye className="size-4" />
-          <Label className="font-semibold">โหมดแสดงผลฝั่งลูกค้��</Label>
+          <Label className="font-semibold">โหมดแสดงผลฝั่งลูกค้า</Label>
         </div>
         <div className="grid gap-2">
           {DISPLAY_MODES.map((mode) => (
@@ -943,7 +943,7 @@ export default function PaymentAccountsPage() {
       <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
         <div>
           <div className="font-medium">เปิดใช้งาน</div>
-          <div className="text-sm text-muted-foreground">แสดงบัญชี���ี้ให้ลูกค้าเห็น</div>
+          <div className="text-sm text-muted-foreground">แสดงบัญชีนี้ให้ลูกค้าเห็น</div>
         </div>
         <Switch checked={formData.is_active} onCheckedChange={(v) => setFormData({ ...formData, is_active: v })} />
       </div>
@@ -1009,7 +1009,7 @@ export default function PaymentAccountsPage() {
                 <CheckCircle className="size-5 text-green-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">เปิดใช��งาน</p>
+                <p className="text-sm text-muted-foreground">เปิดใช้งาน</p>
                 <p className="text-2xl font-bold text-green-600">{activeAccounts.length}</p>
               </div>
             </div>

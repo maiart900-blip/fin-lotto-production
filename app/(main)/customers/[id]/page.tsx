@@ -420,7 +420,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                         <TableCell className="text-right font-mono">{(t.amount || 0).toLocaleString()}</TableCell>
                         <TableCell>
                           <Badge variant={t.status === 'approved' ? 'default' : t.status === 'rejected' ? 'destructive' : 'secondary'}>
-                            {t.status === 'approved' ? 'อนุมัติ' : t.status === 'rejected' ? 'ปฏิเสธ' : 'รอดำเ���ินการ'}
+                            {t.status === 'approved' ? 'อนุมัติ' : t.status === 'rejected' ? 'ปฏิเสธ' : 'รอดำเนินการ'}
                           </Badge>
                         </TableCell>
                       </TableRow>

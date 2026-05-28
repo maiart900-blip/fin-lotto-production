@@ -469,7 +469,7 @@ export default function SuperAdminDownlinePage() {
 
           {/* Today Win/Loss */}
           <div>
-            <p className="text-sm text-slate-400">กำไร/ขาดทุนวัน���ี้</p>
+            <p className="text-sm text-slate-400">กำไร/ขาดทุนวันนี้</p>
             <p className={cn("text-xl md:text-2xl font-bold mt-1", todayWinLoss >= 0 ? "text-emerald-400" : "text-red-400")}>
               {todayWinLoss >= 0 ? '+' : ''}{todayWinLoss.toLocaleString()}
             </p>

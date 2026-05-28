@@ -540,7 +540,7 @@ export default function BettingDashboard() {
     text += `\n━━━━━━━━━━━━━━━━\n`;
     text += `💰 รวม: ${totalAmount.toLocaleString()} บาท\n`;
     text += `📝 จำนวน: ${totalItems} รายการ\n`;
-    text += `━━━━━━━���━━━━━━━━\n`;
+    text += `━━━━━━━━━━━━━━━\n`;
     text += `✅ FIN LOTTO R+ Premium`;
     
     return text;

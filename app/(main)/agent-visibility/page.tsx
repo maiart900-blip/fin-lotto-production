@@ -401,7 +401,7 @@ export default function AgentVisibilityPage() {
           </CardContent>
         </Card>
 
-        {/* ต���้งค่าการมองเห็น */}
+        {/* ตั้งค่าการมองเห็น */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg flex items-center justify-between">
@@ -436,7 +436,7 @@ export default function AgentVisibilityPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>สร้างเอเย่นย่อยได้</Label>
-                      <p className="text-xs text-muted-foreground">อนุญาต��ห้สร้างเอเย่นระดับล่าง</p>
+                      <p className="text-xs text-muted-foreground">อนุญาตให้สร้างเอเย่นระดับล่าง</p>
                     </div>
                     <Switch 
                       checked={canCreateSubAgent} 
