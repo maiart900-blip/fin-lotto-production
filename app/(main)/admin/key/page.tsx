@@ -588,7 +588,7 @@ export default function LotteryTerminalPage() {
   // Add bets to list
   const addBets = useCallback((number: string) => {
     if (selectedBetTypes.length === 0) {
-      toast.error('กรุณาเลือกปร��เภทการแทง');
+      toast.error('กรุณาเลือกประเภทการแทง');
       return;
     }
     
@@ -878,7 +878,7 @@ export default function LotteryTerminalPage() {
   }, []);
   
   // Generate Win numbers - อัตโนมัติทั้งบน ล่าง และกลับ
-  // วินเลข 2 ตัว: จับคู่ permutation + บน+ล่าง (ไม่ต้องกลับเพิ่ม��พราะ permutation ครบแล้ว)
+  // วินเลข 2 ตัว: จับคู่ permutation + บน+ล่าง (ไม่ต้องกลับเพิ่มเพราะ permutation ครบแล้ว)
   // วินเลข 3 ตัว: จับคู่ permutation 6 กลับ + 3บน+โต๊ด
   // รองรับสูงสุด 10 ตัว (0-9)
   const generateWinAndAdd = useCallback(() => {
@@ -1177,7 +1177,7 @@ export default function LotteryTerminalPage() {
                   }> = {};
                   
                   bets.forEach(bet => {
-                    const digitType = bet.number.length === 2 ? '2 ตัว' : bet.number.length === 3 ? '3 ตัว' : 'วิ��ง';
+                    const digitType = bet.number.length === 2 ? '2 ตัว' : bet.number.length === 3 ? '3 ตัว' : 'วิ่ง';
                     const key = `${digitType}-${bet.amount}`;
                     
                     if (!grouped[key]) {
@@ -1312,7 +1312,7 @@ export default function LotteryTerminalPage() {
               ส่งโพย
             </Button>
             <p className="text-[10px] text-center text-gray-600">
-              กด Enter ��พื่อส่งโพย | Esc ล้าง | Tab สลับโหมด
+              กด Enter เพื่อส่งโพย | Esc ล้าง | Tab สลับโหมด
             </p>
           </div>
         </div>
@@ -1373,7 +1373,7 @@ export default function LotteryTerminalPage() {
                   <AlertCircle className="h-4 w-4 text-amber-500" />
                   <span className="text-sm text-gray-400">เลือกประเภทการแทง (เลือกได้หลายประเภท)</span>
                   <Badge className="bg-amber-500/20 text-amber-400 text-xs">
-                    เลือก {selectedBetTypes.length} ป���ะเภท
+                    เลือก {selectedBetTypes.length} ประเภท
                   </Badge>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center">
@@ -1487,7 +1487,7 @@ export default function LotteryTerminalPage() {
                     <Grid3X3 className="h-6 w-6 text-purple-500" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white">19 ประต���</h3>
+                    <h3 className="font-bold text-white">19 ประตู</h3>
                     <p className="text-xs text-gray-500">เลือกตัวเลข</p>
                   </div>
                 </div>
@@ -1545,7 +1545,7 @@ export default function LotteryTerminalPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
                 <Keyboard className="h-4 w-4" />
-                แ��้นพิมพ์
+                แป้นพิมพ์
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
@@ -1653,7 +1653,7 @@ export default function LotteryTerminalPage() {
                           </div>
                           
                           <div className="text-right min-w-[100px]">
-                            <p className="text-xs text-gray-500">��ูกรางวัล</p>
+                            <p className="text-xs text-gray-500">ถูกรางวัล</p>
                             {group.total_won > 0 ? (
                               <p className="text-lg font-bold text-green-400">
                                 +฿{group.total_won.toLocaleString()}
@@ -1865,7 +1865,7 @@ export default function LotteryTerminalPage() {
                       `${w.number} (${w.betType}) - แทง ฿${w.amount} ถูก ฿${w.payout.toLocaleString()}`
                     ).join('\n') + `\n\nรวมจ่าย: ฿${prizeCheckResult.totalPayout.toLocaleString()}`;
                     navigator.clipboard.writeText(text);
-                    toast.success('คัดลอกแล้��');
+                    toast.success('คัดลอกแล้ว');
                   }}
                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white border-0"
                 >
@@ -1890,7 +1890,7 @@ export default function LotteryTerminalPage() {
           
           <div className="py-4">
             <p className="text-sm text-gray-400 mb-2">
-              เลือกตัวเลข���ี่ต้องการ (อย่างน้อย 2 ตัว) แล้วระบบจะสร้างคู่ทั้งหมดให้
+              เลือกตัวเลขที่ต้องการ (อย่างน้อย 2 ตัว) แล้วระบบจะสร้างคู่ทั้งหมดให้
             </p>
             <p className="text-xs text-amber-500/70 mb-4">
               กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = สร้างเลข | Backspace = ลบตัวสุดท้าย
@@ -1915,12 +1915,12 @@ export default function LotteryTerminalPage() {
             
             {winSelectedDigits.length >= 2 && (() => {
               const winNumbers = generateWinNumbers(winSelectedDigits, digitMode);
-              // permutation คร���แล้ว ไม่ต้องกลับเพิ่ม
+              // permutation ครบแล้ว ไม่ต้องกลับเพิ่ม
               // 2 ตัว: จับคู่ครบทุกคู่ (n*(n-1) คู่)
               // 3 ตัว: 6 กลับครบ (n*(n-1)*(n-2) permutations)
               const betTypes = digitMode === '2' ? 2 : 2; // บน+ล่าง หรือ 3บน+โต๊ด
               const totalBets = winNumbers.length * betTypes;
-              const modeText = digitMode === '2' ? '���น+ล่าง' : '3บน+โต๊ด (6กลับ)';
+              const modeText = digitMode === '2' ? 'บน+ล่าง' : '3บน+โต๊ด (6กลับ)';
               return (
                 <div className="text-center p-3 bg-green-500/10 rounded-lg border border-green-500/30">
                   <p className="text-sm text-green-400">
