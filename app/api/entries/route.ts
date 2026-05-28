@@ -112,6 +112,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Auth guard - get session for tenant_id
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
+    
     const body = await request.json();
     const supabase = await createClient();
     
@@ -120,8 +125,9 @@ export async function POST(request: Request) {
     const entriesToInsert = Array.isArray(entries) ? entries : [body];
     const finalLotteryId = lotteryId || lottery_id || null;
     const finalCustomerId = customerId || customer_id || null;
-    const finalCreatedBy = created_by || body.createdBy || userId || null;
+    const finalCreatedBy = created_by || body.createdBy || userId || session.id || null;
     const finalSourceType = source_type || 'manual';
+    const finalTenantId = session.tenant_id || null;
     
     // ===== VALIDATION: Manual key entries MUST have customer linkage =====
     // For manual_key or manual source_type, we need either:
@@ -162,7 +168,8 @@ export async function POST(request: Request) {
               system_type: 'manual_key',
               credit_balance: 0,
               is_active: true,
-              agent_id: agent_id || finalCreatedBy || null,
+              agent_id: agent_id || finalCreatedBy || session.id || null,
+              tenant_id: finalTenantId,
               agent_level: null,
               user_type: 'customer',
             })
@@ -338,6 +345,7 @@ export async function POST(request: Request) {
         user_id: userId || e.userId || e.user_id || null,
         created_by: finalCreatedBy || e.createdBy || e.created_by || null,
         agent_id: finalAgentId || e.agent_id || null,
+        tenant_id: finalTenantId,
         status: 'pending',
         payout_rate: e.payoutRate || e.payout_rate || null,
         source_type: finalSourceType || e.source_type || 'manual',
