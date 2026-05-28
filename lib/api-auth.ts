@@ -54,10 +54,13 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     // Check for lottery_session (localStorage backup in cookie)
     const sessionCookie = cookieStore.get('lottery_session')?.value;
     
+    // Check for main 'session' cookie (used by login flow)
+    const mainSessionCookie = cookieStore.get('session')?.value;
+    
     let userId: string | null = null;
     let userRole: UserRole = 'customer';
     
-    // Priority: admin > customer > session cookie
+    // Priority: admin > customer > session cookie > main session
     if (adminId) {
       userId = adminId;
       userRole = (adminRole as UserRole) || 'admin';
@@ -71,6 +74,14 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
         userRole = session.role || 'customer';
       } catch {
         // Invalid session cookie
+      }
+    } else if (mainSessionCookie) {
+      try {
+        const session = JSON.parse(decodeURIComponent(mainSessionCookie));
+        userId = session.userId || session.id;
+        userRole = (session.role as UserRole) || 'customer';
+      } catch {
+        // Invalid main session cookie
       }
     }
     
