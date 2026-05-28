@@ -1361,240 +1361,135 @@ export default function LotteryTerminalPage() {
         </div>
         
         {/* Main Content */}
-        <div className="flex-1 p-6 overflow-auto bg-[#0a0a0a]">
-          {/* Mode Selection & Input */}
-          <Card className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-amber-900/30 mb-6 shadow-xl">
-            <CardContent className="p-6">
-              {/* Digit Mode Selection */}
-              <div className="flex items-center justify-center gap-4 mb-6">
-                <div className="flex gap-3">
-                  <Button
-                    variant={digitMode === '3' ? 'default' : 'outline'}
-                    size="lg"
-                    onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
-                    className={digitMode === '3' 
-                      ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black hover:from-amber-600 hover:to-yellow-600 font-bold px-8 shadow-lg shadow-amber-500/30' 
-                      : 'border-amber-900/50 text-amber-500 hover:bg-amber-900/20 px-8'
-                    }
-                  >
-                    3 ตัว
-                  </Button>
-                  <Button
-                    variant={digitMode === '2' ? 'default' : 'outline'}
-                    size="lg"
-                    onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
-                    className={digitMode === '2' 
-                      ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black hover:from-amber-600 hover:to-yellow-600 font-bold px-8 shadow-lg shadow-amber-500/30' 
-                      : 'border-amber-900/50 text-amber-500 hover:bg-amber-900/20 px-8'
-                    }
-                  >
-                    2 ตัว
-                  </Button>
-                </div>
-                
-                {/* Price */}
-                <div className="flex items-center gap-3 bg-[#0a0a0a] px-4 py-2 rounded-lg border border-amber-900/30">
-                  <span className="text-gray-400 text-sm">ราคา:</span>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={10000}
-                    value={defaultPrice}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value) || 0;
-                      setDefaultPrice(Math.min(10000, Math.max(0, val)));
-                    }}
-                    className="w-20 bg-transparent border-0 text-center text-amber-400 font-bold text-xl p-0 focus-visible:ring-0"
-                  />
-                  <span className="text-gray-400 text-xs">บาท</span>
-                </div>
-                
-                {/* Quick Amount Buttons */}
-                <div className="flex gap-1">
-                  {[1, 5, 10, 20, 50, 100].map(amt => (
-                    <Button
-                      key={amt}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDefaultPrice(amt)}
-                      className={`h-7 px-2 text-xs ${defaultPrice === amt ? 'bg-amber-500 text-black border-amber-500' : 'border-gray-700 text-gray-400 hover:border-amber-500/50'}`}
-                    >
-                      {amt}
-                    </Button>
-                  ))}
-                </div>
+        <div className="flex-1 p-3 overflow-auto bg-[#0a0a0a]">
+          {/* Inline Operator Entry Row */}
+          <div className="bg-gradient-to-r from-[#111111] to-[#0d0d0d] border border-amber-900/30 rounded-lg p-3 mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Mode Toggle - Compact */}
+              <div className="flex border border-amber-900/50 rounded overflow-hidden">
+                <button
+                  onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
+                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '3' ? 'bg-amber-500 text-black' : 'text-amber-500 hover:bg-amber-900/30'}`}
+                >
+                  3ตัว
+                </button>
+                <button
+                  onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
+                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '2' ? 'bg-amber-500 text-black' : 'text-amber-500 hover:bg-amber-900/30'}`}
+                >
+                  2ตัว
+                </button>
               </div>
               
-              {/* Bet Type Multi-Select - Compact */}
-              <div className="mb-4">
-                <div className="flex flex-wrap gap-1.5 justify-center">
-                  {currentBetTypes.map((betType) => (
-                    <Button
-                      key={betType.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleBetType(betType.id)}
-                      className={`h-7 px-2 text-xs transition-all ${
-                        selectedBetTypes.includes(betType.id)
-                          ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black border-amber-500 font-bold'
-                          : 'border-gray-700 text-gray-400 hover:border-amber-500/50 hover:text-amber-400'
-                      }`}
-                    >
-                      {betType.shortLabel}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+              {/* Number Input - Prominent */}
+              <Input
+                ref={inputRef}
+                type="text"
+                inputMode="numeric"
+                value={currentInput}
+                onChange={handleInputChange}
+                onPaste={handlePaste}
+                placeholder={digitMode === '3' ? '___' : '__'}
+                className="w-24 h-10 text-2xl font-mono text-center bg-[#0a0a0a] border-2 border-amber-500/50 focus:border-amber-400 text-amber-400 placeholder:text-gray-700 rounded"
+              />
               
-              {/* Main Input */}
-              <div className="relative max-w-sm mx-auto">
-                <Input
-                  ref={inputRef}
-                  type="text"
-                  inputMode="numeric"
-                  value={currentInput}
-                  onChange={handleInputChange}
-                  onPaste={handlePaste}
-                  placeholder={`พิมพ์เลข ${digitMode} ตัว`}
-                  className="w-full h-14 text-3xl font-mono text-center bg-[#0a0a0a] border-2 border-amber-900/50 focus:border-amber-500 text-amber-400 placeholder:text-gray-700 rounded-lg shadow-inner"
-                />
-                {currentInput && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setCurrentInput('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white h-8 w-8"
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                )}
-              </div>
-              
-              {/* Input Indicators */}
-              <div className="flex justify-center gap-2 mt-2">
-                {Array.from({ length: digitMode === '3' ? 3 : 2 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center text-2xl font-mono font-bold transition-all ${
-                      currentInput[i]
-                        ? 'bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border-amber-500 text-amber-400'
-                        : 'bg-[#0a0a0a] border-gray-800 text-gray-700'
+              {/* Bet Types - Inline Toggle */}
+              <div className="flex gap-1">
+                {currentBetTypes.map((betType) => (
+                  <button
+                    key={betType.id}
+                    onClick={() => toggleBetType(betType.id)}
+                    className={`px-2 py-1.5 text-xs font-bold rounded transition-colors ${
+                      selectedBetTypes.includes(betType.id)
+                        ? 'bg-amber-500 text-black'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                     }`}
                   >
-                    {currentInput[i] || '_'}
-                  </div>
+                    {betType.shortLabel}
+                  </button>
                 ))}
               </div>
               
-              {/* Selected Types Preview */}
-              {selectedBetTypes.length > 0 && (
-                <div className="flex justify-center gap-1.5 mt-3 flex-wrap">
-                  {selectedBetTypes.map(typeId => (
-                    <Badge key={typeId} className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
-                      {BET_TYPE_LABELS[typeId]}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-              
-              {/* Keyboard Hints - More comprehensive */}
-              <div className="flex flex-wrap justify-center gap-2 mt-3">
-                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-gray-500 border border-gray-800">
-                  Tab=2/3
-                </span>
-                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-gray-500 border border-gray-800">
-                  Esc=ล้าง
-                </span>
-                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-gray-500 border border-gray-800">
-                  Enter=ส่ง
-                </span>
-                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-amber-600 border border-amber-900/50">
-                  F1=บน
-                </span>
-                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-amber-600 border border-amber-900/50">
-                  F2=ล่าง
-                </span>
-                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-amber-600 border border-amber-900/50">
-                  F3=กลับ
-                </span>
+              {/* Price Input */}
+              <div className="flex items-center gap-1 bg-[#0a0a0a] px-2 py-1 rounded border border-gray-700">
+                <span className="text-gray-500 text-xs">฿</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={defaultPrice}
+                  onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
+                  className="w-14 bg-transparent border-0 text-center text-amber-400 font-bold text-sm p-0 h-6 focus-visible:ring-0"
+                />
               </div>
-            </CardContent>
-          </Card>
-          
-          {/* Quick Actions */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            {/* Doubles */}
-            <Card 
-              className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-amber-900/30 hover:border-amber-500/50 cursor-pointer transition-all group"
-              onClick={addDoubles}
-            >
-              <CardContent className="p-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/20 to-yellow-500/10 flex items-center justify-center border border-amber-500/30 group-hover:scale-110 transition-transform">
-                  <Copy className="h-5 w-5 text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-sm">เลขเบิ้ล</h3>
-                  <p className="text-xs text-gray-500">00-99</p>
-                </div>
-              </CardContent>
-            </Card>
+              
+              {/* Quick Amounts */}
+              <div className="flex gap-0.5">
+                {[1, 5, 10, 20, 50].map(amt => (
+                  <button
+                    key={amt}
+                    onClick={() => setDefaultPrice(amt)}
+                    className={`w-7 h-7 text-[10px] font-bold rounded ${defaultPrice === amt ? 'bg-amber-500 text-black' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                  >
+                    {amt}
+                  </button>
+                ))}
+              </div>
+              
+              {/* Add Button */}
+              <Button
+                onClick={() => {
+                  if (currentInput.length === parseInt(digitMode) && selectedBetTypes.length > 0) {
+                    addBet(currentInput);
+                  }
+                }}
+                disabled={currentInput.length !== parseInt(digitMode) || selectedBetTypes.length === 0}
+                className="h-10 px-4 bg-green-600 hover:bg-green-500 text-white font-bold"
+              >
+                +เพิ่ม
+              </Button>
+            </div>
             
-            {/* 19 Gates */}
-            <Card className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-purple-900/30 hover:border-purple-500/50 transition-all">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/10 flex items-center justify-center border border-purple-500/30">
-                    <Grid3X3 className="h-4 w-4 text-purple-500" />
-                  </div>
-                  <h3 className="font-bold text-white text-sm">19 ประตู</h3>
-                </div>
-                <div className="grid grid-cols-5 gap-1">
-                  {[0,1,2,3,4,5,6,7,8,9].map(d => (
-                    <Button
-                      key={d}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => add19Gates(String(d))}
-                      className="h-7 text-xs border-purple-900/50 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 hover:border-purple-500/50 font-bold"
-                    >
-                      {d}
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Keyboard Hints - Ultra Compact */}
+            <div className="flex gap-2 mt-2 text-[9px] text-gray-600">
+              <span>Tab=สลับ</span>
+              <span>Enter=ส่ง</span>
+              <span>F1=บน</span>
+              <span>F2=ล่าง</span>
+              <span>F3=กลับ</span>
+            </div>
+          </div>
+          
+          {/* Quick Actions - Ultra Compact Inline */}
+          <div className="flex flex-wrap gap-2 mb-3 p-2 bg-[#111111] rounded border border-gray-800">
+            {/* Doubles */}
+            <button onClick={addDoubles} className="flex items-center gap-1.5 px-2 py-1 bg-amber-900/30 hover:bg-amber-900/50 rounded text-xs text-amber-400">
+              <Copy className="h-3 w-3" /> เบิ้ล
+            </button>
+            
+            {/* 19 Gates - Inline */}
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-purple-400 mr-1">19ประตู:</span>
+              {[0,1,2,3,4,5,6,7,8,9].map(d => (
+                <button
+                  key={d}
+                  onClick={() => add19Gates(String(d))}
+                  className="w-5 h-5 text-[10px] font-bold rounded bg-purple-900/30 text-purple-400 hover:bg-purple-900/50"
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
             
             {/* Win Numbers */}
-            <Card 
-              className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-green-900/30 hover:border-green-500/50 cursor-pointer transition-all group"
-              onClick={() => setShowWinDialog(true)}
-            >
-              <CardContent className="p-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/10 flex items-center justify-center border border-green-500/30 group-hover:scale-110 transition-transform">
-                  <Trophy className="h-5 w-5 text-green-500" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-sm">วินเลข</h3>
-                  <p className="text-xs text-gray-500">สร้างคู่</p>
-                </div>
-              </CardContent>
-            </Card>
+            <button onClick={() => setShowWinDialog(true)} className="flex items-center gap-1.5 px-2 py-1 bg-green-900/30 hover:bg-green-900/50 rounded text-xs text-green-400">
+              <Trophy className="h-3 w-3" /> วิน
+            </button>
             
             {/* Reverse */}
-            <Card 
-              className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-blue-900/30 hover:border-blue-500/50 cursor-pointer transition-all group"
-              onClick={addReverse}
-            >
-              <CardContent className="p-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/10 flex items-center justify-center border border-blue-500/30 group-hover:scale-110 transition-transform">
-                  <RotateCcw className="h-5 w-5 text-blue-500" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-sm">กลับเลข</h3>
-                  <p className="text-xs text-gray-500">สลับหลัก</p>
-                </div>
-              </CardContent>
-            </Card>
+            <button onClick={addReverse} className="flex items-center gap-1.5 px-2 py-1 bg-blue-900/30 hover:bg-blue-900/50 rounded text-xs text-blue-400">
+              <RotateCcw className="h-3 w-3" /> กลับ
+            </button>
           </div>
           
           {/* Virtual Numpad for Mobile */}
