@@ -250,7 +250,7 @@ export const liveStreamItems: MenuItem[] = [
 // 15. Multi-Tenant (Master Only)
 export const multiTenantItems: MenuItem[] = [
   { id: 'mt-dashboard', title: 'Dashboard ยอดรวม', href: '/multi-tenant/dashboard', icon: BarChart3, description: 'ดูยอดรวมทุกเว็บลูก' },
-  { id: 'mt-settlements', title: 'รายการส่งยอด', href: '/multi-tenant/settlements', icon: Receipt, description: 'รายการส่งยอดจาก���ว็บลูก' },
+  { id: 'mt-settlements', title: 'รายการส่งยอด', href: '/multi-tenant/settlements', icon: Receipt, description: 'รายการส่งยอดจากเว็บลูก' },
   { id: 'enterprise-summary', title: 'Enterprise Summary', href: '/enterprise-summary', icon: Crown, description: 'สรุปข้อมูล Enterprise' },
   { id: 'sub-sites', title: 'จัดการเว็บลูก', href: '/sub-sites', icon: Globe, description: 'จัดการเว็บลูกทั้งหมด' },
   { id: 'vip-dashboard', title: 'VIP Dashboard', href: '/vip-dashboard', icon: Crown, description: 'แดชบอร์ดลูกค้า VIP' },

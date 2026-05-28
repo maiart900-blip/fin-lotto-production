@@ -355,16 +355,16 @@ const comparisonReportItems = [
   const memberAdminItems = [
   { title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
   { title: 'การเงิน', href: '/member/finance', icon: Wallet },
-  { title: '��ัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
+  { title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
   ];
 
 // 19.5 จัดการพนักงาน/แอดมิน (เว็บแม่และเอเย่นต์ดูได้)
 const staffManagementItems = [
   { title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
   { title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck },
-  { title: 'สรุปเงินเด��อน', href: '/payroll', icon: Wallet },
-  { title: 'ตั���งค่า Payroll', href: '/payroll/settings', icon: Settings },
-  { title: 'รายงานโ���ที', href: '/payroll/ot-report', icon: Clock },
+  { title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
+  { title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings },
+  { title: 'รายงานโอที', href: '/payroll/ot-report', icon: Clock },
   { title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3 },
 ];
 
@@ -458,7 +458,7 @@ const menuSections: MenuSection[] = [
 // - สายงานคีย์หวย (manualKeyAgentItems)
 // - การตลาดคีย์หวย (manualKeyMarketingItems)
 // - การตลาดออโต้ (autoMarketingItems)
-// - หุ���นลม / Credit Line (creditLineItems)
+// - หุ้นลม / Credit Line (creditLineItems)
 // - รายงานเปรียบเทียบ (comparisonReportItems)
 
 export function AppSidebar() {

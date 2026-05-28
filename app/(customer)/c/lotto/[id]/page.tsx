@@ -451,7 +451,7 @@ export default function LottoBettingPage() {
     if (added > 0 || merged > 0) {
       const parts = [];
       if (added > 0) parts.push(`เพิ่ม ${added} เลข`);
-      if (merged > 0) parts.push(`รวม ${merged} ��ลข`);
+      if (merged > 0) parts.push(`รวม ${merged} เลข`);
       toast.success(parts.join(', '));
     } else if (skipped > 0) {
       toast.warning('เลขทั้งหมดมีอยู่ในตะกร้าแล้ว');
@@ -873,9 +873,9 @@ export default function LottoBettingPage() {
       addedCount = newItems.length;
       if (addedCount > 0) {
         setBetItems(prev => [...prev, ...newItems]);
-        toast.success(`เ���ิ่มเลขวิน บน+ล่าง+กลับ (${addedCount} รายการ)`);
+        toast.success(`เพิ่มเลขวิน บน+ล่าง+กลับ (${addedCount} รายการ)`);
       } else {
-        toast.warning('เลขทั้งหมดมีอยู่ในตะกร้าแล้วหรือถูกอั้���');
+        toast.warning('เลขทั้งหมดมีอยู่ในตะกร้าแล้วหรือถูกอั้น');
       }
       return;
     }
@@ -1046,7 +1046,7 @@ export default function LottoBettingPage() {
       setBetItems([...betItems, ...newItems]);
       toast.success(`เพิ่ม ${newItems.length} รายการ${skipped > 0 ? ` (ข้าม ${skipped} รายการซ้ำ/อั้น)` : ''}`);
     } else {
-      toast.warning('ไม่มีรายการใหม่ที่จ��เพิ่ม');
+      toast.warning('ไม่มีรายการใหม่ที่จะเพิ่ม');
     }
   };
 
@@ -1244,14 +1244,14 @@ export default function LottoBettingPage() {
         return;
       }
       
-      // Validation 6: เครดิตต้อง���อ
+      // Validation 6: เครดิตต้องพอ
       const customerBalance = Number(customer.credit_balance) || 0;
       if (customerBalance < totals.total) {
         toast.error(`เครดิตไม่เพียงพอ (มี ${customerBalance.toLocaleString()} ต้องการ ${totals.total.toLocaleString()} บาท) กรุณาเติมเงิน`);
         return;
       }
       
-      // Validation 7: หวย���ังไม่ปิด
+      // Validation 7: หวยยังไม่ปิด
       if (isClosed) {
         toast.error('หวยปิดรับแทงแล้ว');
         return;
@@ -1751,7 +1751,7 @@ export default function LottoBettingPage() {
                             onCheckedChange={(c) => setInclude2Bot(!!c)}
                             className="border-emerald-400 data-[state=checked]:bg-emerald-400"
                           />
-                          <span className="text-emerald-300 text-sm">2 ���ัวล่าง (x95)</span>
+                          <span className="text-emerald-300 text-sm">2 ตัวล่าง (x95)</span>
                         </label>
                       </div>
                       <p className="text-fuchsia-300/70 text-xs">
@@ -2133,7 +2133,7 @@ export default function LottoBettingPage() {
                                   </div>
                                 </div>
                               )}
-                              {/* Show "โต���ด" for: 3tod, 3top_tod */}
+                              {/* Show "โต๊ด" for: 3tod, 3top_tod */}
                               {['3tod', '3top_tod'].includes(item.bet_type) && (
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-2">

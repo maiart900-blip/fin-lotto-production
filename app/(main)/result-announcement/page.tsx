@@ -516,7 +516,7 @@ export default function ResultAnnouncementPage() {
             <Settings className="size-5 text-amber-400" />
             ตั้งค่าบอท
           </CardTitle>
-          <CardDescription>กรอกข้อมูล Token และ API Key สำหรับแต่ละแ��ลตฟอร์ม</CardDescription>
+          <CardDescription>กรอกข้อมูล Token และ API Key สำหรับแต่ละแพลตฟอร์ม</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>

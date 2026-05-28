@@ -188,7 +188,7 @@ export default function ControlCenterPage() {
             </div>
             {systemMode.mode === 'manual' && (
               <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                <p className="text-xs text-blue-300">กำลังใช้งาน - ทุกรายการต้องได้รับก��รอนุมัติ</p>
+                <p className="text-xs text-blue-300">กำลังใช้งาน - ทุกรายการต้องได้รับการอนุมัติ</p>
               </div>
             )}
           </CardContent>

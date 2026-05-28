@@ -1611,7 +1611,7 @@ function LotteryDisplayDialog({
                   className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
                 >
                   <option value="">ใช้ค่าเริ่มต้น</option>
-                  <option value="Prompt">Prompt (ไ��ย)</option>
+                  <option value="Prompt">Prompt (ไทย)</option>
                   <option value="Sarabun">Sarabun (ไทย)</option>
                   <option value="Kanit">Kanit (ไทย)</option>
                   <option value="Mitr">Mitr (ไทย)</option>
