@@ -391,8 +391,39 @@ export default function LotteryTerminalPage() {
   }, [digitMode]);
   
   // Calculate totals
-  const totalAmount = bets.reduce((sum, bet) => sum + bet.amount, 0);
+  const totalAmount = useMemo(() => bets.reduce((sum, bet) => sum + bet.amount, 0), [bets]);
   const totalItems = bets.length;
+  
+  // Memoized summary table data - only recalculate when bets change
+  const summaryTableData = useMemo(() => {
+    const twoDigitBets = bets.filter(b => b.number.length === 2);
+    const threeDigitBets = bets.filter(b => b.number.length === 3);
+    
+    const processDigitGroup = (digitBets: BetItem[]) => {
+      if (digitBets.length === 0) return null;
+      
+      const uniqueNumbers = [...new Set(digitBets.map(b => b.number))];
+      const topBets = digitBets.filter(b => b.betType.includes('top') || b.betType === '3top');
+      const botBets = digitBets.filter(b => b.betType.includes('bot') || b.betType === '2bot' || b.betType === '3back');
+      
+      const topPrice = topBets.length > 0 ? topBets[0].amount : 0;
+      const botPrice = botBets.length > 0 ? botBets[0].amount : 0;
+      
+      // Chunk numbers into groups of 20 max per line
+      const chunkedNumbers: string[][] = [];
+      for (let i = 0; i < uniqueNumbers.length; i += 20) {
+        chunkedNumbers.push(uniqueNumbers.slice(i, i + 20));
+      }
+      
+      return { uniqueNumbers, topPrice, botPrice, chunkedNumbers };
+    };
+    
+    return {
+      twoDigit: processDigitGroup(twoDigitBets),
+      threeDigit: processDigitGroup(threeDigitBets),
+      hasBets: bets.length > 0,
+    };
+  }, [bets]);
   
   // Check prizes for current bets
   const checkPrizes = useCallback(() => {
@@ -475,7 +506,7 @@ export default function LotteryTerminalPage() {
       if (prev.includes(betTypeId)) {
         // Don't allow deselecting if it's the only one
         if (prev.length === 1) {
-          toast.error('ต้องเลือ���ประเภทแทงอย่างน้อย 1 ประเภท');
+          toast.error('ต้องเลือ����ประเภทแทงอย่างน้อย 1 ประเภท');
           return prev;
         }
         return prev.filter(id => id !== betTypeId);
@@ -916,7 +947,7 @@ export default function LotteryTerminalPage() {
     const winNumbers = generateWinNumbers(winSelectedDigits, digitMode);
     
     // กำหนด betTypes ตาม mode
-    // 2 ตัว: บน + ล่า���
+    // 2 ตัว: บน + ล���า���
     // 3 ตัว: 3บน + โต๊ด
     const betTypes = digitMode === '2' ? ['2top', '2bot'] : ['3top', '3tod'];
     const newBets: BetItem[] = [];
@@ -1373,7 +1404,7 @@ export default function LotteryTerminalPage() {
                 
                 {/* Price Input - Top */}
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#333]">ใส่ราคา บน</span>
+                  <span className="text-sm text-[#333]">ใส่ราค��� บน</span>
                   <Input
                     ref={priceTopRef}
                     type="number"
@@ -1432,100 +1463,82 @@ export default function LotteryTerminalPage() {
             
             {/* ROW 6: Summary Tables - Separate 2-digit and 3-digit */}
             <div className="mx-3 mt-3 space-y-0">
-              {/* Dynamically render rows for 2-digit and 3-digit bets */}
-              {(() => {
-                // Group bets by digit length
-                const twoDigitBets = bets.filter(b => b.number.length === 2);
-                const threeDigitBets = bets.filter(b => b.number.length === 3);
-                
-                const renderRow = (digitBets: typeof bets, digitType: string, isFirst: boolean) => {
-                  if (digitBets.length === 0) return null;
-                  
-                  const uniqueNumbers = [...new Set(digitBets.map(b => b.number))];
-                  const topBets = digitBets.filter(b => b.betType.includes('top') || b.betType === '3top');
-                  const botBets = digitBets.filter(b => b.betType.includes('bot') || b.betType === '2bot' || b.betType === '3back');
-                  
-                  // Get actual prices from bets (take the first one as they should be the same per type)
-                  const topPrice = topBets.length > 0 ? topBets[0].amount : 0;
-                  const botPrice = botBets.length > 0 ? botBets[0].amount : 0;
-                  const topCount = topBets.length > 0 ? [...new Set(topBets.map(b => b.number))].length : 0;
-                  const botCount = botBets.length > 0 ? [...new Set(botBets.map(b => b.number))].length : 0;
-                  
-                  // Chunk numbers into groups of 20 max per line
-                  const chunkedNumbers: string[][] = [];
-                  for (let i = 0; i < uniqueNumbers.length; i += 20) {
-                    chunkedNumbers.push(uniqueNumbers.slice(i, i + 20));
-                  }
-                  
-                  return (
-                    <div key={digitType} className={`border border-[#333] ${isFirst ? 'rounded-t' : 'border-t-0 rounded-b'}`}>
-                      <div className="flex min-h-[60px]">
-                        {/* Left Cell - Type Info (centered stacked text) */}
-                        <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
-                          <p className="text-sm font-bold text-[#009bf2]">{digitType}</p>
-                          <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
-                          <p className="text-[11px] text-gray-400">{topPrice} x {botPrice}</p>
-                        </div>
-                        
-                        {/* Center Cell - Numbers List (max 20 per line, no overflow) */}
-                        <div className="flex-1 p-2 overflow-hidden">
-                          {chunkedNumbers.map((chunk, chunkIdx) => (
-                            <div key={chunkIdx} className="leading-relaxed">
-                              {chunk.map((num, idx) => (
-                                <span key={idx} className="font-mono text-sm text-[#333] mr-2 inline-block">{num}</span>
-                              ))}
-                            </div>
-                          ))}
-                          {uniqueNumbers.length === 0 && (
-                            <span className="text-gray-400 text-sm">ยังไม่มีเลข</span>
-                          )}
-                        </div>
-                        
-                        {/* Right Cell - Edit Button (perfect square with hard border) */}
-                        <div className="w-12 shrink-0 border-l border-[#333] flex items-center justify-center bg-white">
-                          <button
-                            onClick={() => {
-                              // Clear only bets of this digit type
-                              setBets(prev => prev.filter(b => b.number.length !== (digitType === '2 ตัว' ? 2 : 3)));
-                            }}
-                            className="w-7 h-7 bg-[#e3f2fd] hover:bg-[#bbdefb] rounded-sm flex items-center justify-center"
-                          >
-                            <Pencil className="h-3.5 w-3.5 text-[#009bf2]" />
-                          </button>
-                        </div>
-                      </div>
+              {/* 2-digit row */}
+              {summaryTableData.twoDigit && (
+                <div className={`border border-[#333] ${summaryTableData.threeDigit ? 'rounded-t' : 'rounded'}`}>
+                  <div className="flex min-h-[60px]">
+                    <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
+                      <p className="text-sm font-bold text-[#009bf2]">2 ตัว</p>
+                      <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
+                      <p className="text-[11px] text-gray-400">{summaryTableData.twoDigit.topPrice} x {summaryTableData.twoDigit.botPrice}</p>
                     </div>
-                  );
-                };
-                
-                const has2Digit = twoDigitBets.length > 0;
-                const has3Digit = threeDigitBets.length > 0;
-                
-                return (
-                  <>
-                    {renderRow(twoDigitBets, '2 ตัว', true)}
-                    {renderRow(threeDigitBets, '3 ตัว', !has2Digit)}
-                    {bets.length === 0 && (
-                      <div className="border border-[#333] rounded">
-                        <div className="flex min-h-[60px]">
-                          {/* Left Cell - Shows current price state */}
-                          <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
-                            <p className="text-sm font-bold text-[#009bf2]">{digitMode} ตัว</p>
-                            <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
-                            <p className="text-[11px] text-gray-400">{priceTop} x {priceBot}</p>
-                          </div>
-                          {/* Center Cell - Empty state */}
-                          <div className="flex-1 p-2 flex items-center justify-center">
-                            <span className="text-gray-400 text-sm">ยังไม่มีเลข</span>
-                          </div>
-                          {/* Right Cell - Placeholder */}
-                          <div className="w-12 shrink-0 border-l border-[#333] bg-white" />
+                    <div className="flex-1 p-2 overflow-hidden">
+                      {summaryTableData.twoDigit.chunkedNumbers.map((chunk, chunkIdx) => (
+                        <div key={chunkIdx} className="leading-relaxed">
+                          {chunk.map((num, idx) => (
+                            <span key={idx} className="font-mono text-sm text-[#333] mr-2 inline-block">{num}</span>
+                          ))}
                         </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
+                      ))}
+                    </div>
+                    <div className="w-12 shrink-0 border-l border-[#333] flex items-center justify-center bg-white">
+                      <button
+                        onClick={() => setBets(prev => prev.filter(b => b.number.length !== 2))}
+                        className="w-7 h-7 bg-[#e3f2fd] hover:bg-[#bbdefb] rounded-sm flex items-center justify-center"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-[#009bf2]" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* 3-digit row */}
+              {summaryTableData.threeDigit && (
+                <div className={`border border-[#333] ${summaryTableData.twoDigit ? 'border-t-0 rounded-b' : 'rounded'}`}>
+                  <div className="flex min-h-[60px]">
+                    <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
+                      <p className="text-sm font-bold text-[#009bf2]">3 ตัว</p>
+                      <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
+                      <p className="text-[11px] text-gray-400">{summaryTableData.threeDigit.topPrice} x {summaryTableData.threeDigit.botPrice}</p>
+                    </div>
+                    <div className="flex-1 p-2 overflow-hidden">
+                      {summaryTableData.threeDigit.chunkedNumbers.map((chunk, chunkIdx) => (
+                        <div key={chunkIdx} className="leading-relaxed">
+                          {chunk.map((num, idx) => (
+                            <span key={idx} className="font-mono text-sm text-[#333] mr-2 inline-block">{num}</span>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="w-12 shrink-0 border-l border-[#333] flex items-center justify-center bg-white">
+                      <button
+                        onClick={() => setBets(prev => prev.filter(b => b.number.length !== 3))}
+                        className="w-7 h-7 bg-[#e3f2fd] hover:bg-[#bbdefb] rounded-sm flex items-center justify-center"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-[#009bf2]" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Empty state */}
+              {!summaryTableData.hasBets && (
+                <div className="border border-[#333] rounded">
+                  <div className="flex min-h-[60px]">
+                    <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
+                      <p className="text-sm font-bold text-[#009bf2]">{digitMode} ตัว</p>
+                      <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
+                      <p className="text-[11px] text-gray-400">{priceTop} x {priceBot}</p>
+                    </div>
+                    <div className="flex-1 p-2 flex items-center justify-center">
+                      <span className="text-gray-400 text-sm">ยังไม่มีเลข</span>
+                    </div>
+                    <div className="w-12 shrink-0 border-l border-[#333] bg-white" />
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* ROW 7: Memo and Total Row */}
