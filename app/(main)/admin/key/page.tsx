@@ -28,6 +28,7 @@ import {
   DollarSign,
   User,
   Calendar,
+  Pencil,
   FileText,
   ChevronDown,
   RefreshCw,
@@ -1359,135 +1360,201 @@ export default function LotteryTerminalPage() {
         </div>
         
         {/* Main Content - Light Theme */}
-        <div className="flex-1 p-3 overflow-auto bg-[#f8f9fa]">
-          {/* Inline Operator Entry Row */}
-          <div className="bg-white border border-[#e9ecef] rounded-lg p-3 mb-3 shadow-sm">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Mode Toggle - Compact */}
-              <div className="flex border border-[#009bf2] rounded overflow-hidden">
-                <button
-                  onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
-                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '3' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'}`}
-                >
-                  3ตัว
-                </button>
-                <button
-                  onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
-                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'}`}
-                >
-                  2ตัว
-                </button>
-              </div>
-              
-              {/* Number Input - Prominent */}
-              <Input
-                ref={inputRef}
-                type="text"
-                inputMode="numeric"
-                value={currentInput}
-                onChange={handleInputChange}
-                onPaste={handlePaste}
-                placeholder={digitMode === '3' ? '___' : '__'}
-                className="w-24 h-10 text-2xl font-mono text-center bg-white border-2 border-[#ced4da] focus:border-[#009bf2] text-[#333333] placeholder:text-gray-400 rounded"
-              />
-              
-              {/* Bet Types - Inline Toggle */}
-              <div className="flex gap-1">
-                {currentBetTypes.map((betType) => (
-                  <button
-                    key={betType.id}
-                    onClick={() => toggleBetType(betType.id)}
-                    className={`px-2 py-1.5 text-xs font-bold rounded transition-colors ${
-                      selectedBetTypes.includes(betType.id)
-                        ? 'bg-[#009bf2] text-white'
-                        : 'bg-white text-[#009bf2] border border-[#009bf2] hover:bg-[#f0f8ff]'
-                    }`}
-                  >
-                    {betType.shortLabel}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Price Input */}
-              <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-[#ced4da]">
-                <span className="text-gray-600 text-xs">฿</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={10000}
-                  value={defaultPrice}
-                  onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
-                  className="w-14 bg-transparent border-0 text-center text-[#333333] font-bold text-sm p-0 h-6 focus-visible:ring-0"
-                />
-              </div>
-              
-              {/* Quick Amounts */}
-              <div className="flex gap-0.5">
-                {[1, 5, 10, 20, 50].map(amt => (
-                  <button
-                    key={amt}
-                    onClick={() => setDefaultPrice(amt)}
-                    className={`w-7 h-7 text-[10px] font-bold rounded ${defaultPrice === amt ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] border border-[#009bf2] hover:bg-[#f0f8ff]'}`}
-                  >
-                    {amt}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Add Button */}
-              <Button
-                onClick={() => {
-                  if (currentInput.length === parseInt(digitMode) && selectedBetTypes.length > 0) {
-                    addBet(currentInput);
-                  }
-                }}
-                disabled={currentInput.length !== parseInt(digitMode) || selectedBetTypes.length === 0}
-                className="h-10 px-4 bg-[#009bf2] hover:bg-[#0086d4] text-white font-bold shadow-sm"
+        <div className="flex-1 p-4 overflow-auto bg-[#f8f9fa]">
+          <div className="bg-white border border-[#e9ecef] rounded-lg shadow-sm">
+            
+            {/* ROW 1: Main Tabs - 4 columns */}
+            <div className="grid grid-cols-4 border-b border-[#e9ecef]">
+              <button
+                onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
+                className={`py-3 text-sm font-bold transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'
+                }`}
               >
-                +เพิ่ม
-              </Button>
+                แทงเร็ว
+              </button>
+              <button
+                onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
+                className={`py-3 text-sm font-bold transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'
+                }`}
+              >
+                2ตัว/3ตัว
+              </button>
+              <button
+                onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
+                className={`py-3 text-sm font-bold transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '3' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'
+                }`}
+              >
+                วิ่ง
+              </button>
+              <button
+                onClick={() => setShowWinDialog(true)}
+                className="py-3 text-sm font-bold transition-colors bg-white text-[#009bf2] hover:bg-[#f0f8ff]"
+              >
+                จับวิน
+              </button>
             </div>
             
-            {/* Keyboard Hints - Ultra Compact */}
-            <div className="flex gap-2 mt-2 text-[9px] text-gray-500">
-              <span>Tab=สลับ</span>
-              <span>Enter=ส่ง</span>
-              <span>F1=บน</span>
-              <span>F2=ล่าง</span>
-              <span>F3=กลับ</span>
+            {/* ROW 2: Instruction Text Box - 2 columns */}
+            <div className="grid grid-cols-2 border-b border-[#e9ecef] bg-[#f8f9fa]">
+              <div className="p-3 border-r border-[#e9ecef]">
+                <p className="text-xs text-gray-600">พิมพ์ตัวเลข: กดปุ่มตัวเลข 0-9</p>
+              </div>
+              <div className="p-3">
+                <p className="text-xs text-gray-600">ลบตัวเลข: กด Backspace หรือ C</p>
+              </div>
             </div>
-          </div>
-          
-          {/* Quick Actions - Ultra Compact Inline */}
-          <div className="flex flex-wrap gap-2 mb-3 p-2 bg-white rounded border border-[#e9ecef] shadow-sm">
-            {/* Doubles */}
-            <button onClick={addDoubles} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#009bf2] hover:bg-[#0086d4] rounded text-xs text-white font-medium shadow-sm">
-              <Copy className="h-3 w-3" /> เบิ้ล/ตอง
-            </button>
             
-            {/* 19 Gates - Inline */}
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-gray-600 mr-1">19ประตู:</span>
-              {[0,1,2,3,4,5,6,7,8,9].map(d => (
+            {/* ROW 3: Sub Categories - 5 columns */}
+            <div className="grid grid-cols-5 border-b border-[#e9ecef]">
+              <button
+                onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
+                className={`py-2.5 text-xs font-medium transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#333] hover:bg-[#f0f8ff]'
+                }`}
+              >
+                2 ตัว
+              </button>
+              <button
+                onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
+                className={`py-2.5 text-xs font-medium transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '3' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#333] hover:bg-[#f0f8ff]'
+                }`}
+              >
+                3 ตัว
+              </button>
+              <button
+                onClick={addReverse}
+                className="py-2.5 text-xs font-medium transition-colors border-r border-[#e9ecef] bg-white text-[#333] hover:bg-[#f0f8ff]"
+              >
+                6 กลับ
+              </button>
+              <button
+                onClick={() => add19Gates('0')}
+                className="py-2.5 text-xs font-medium transition-colors border-r border-[#e9ecef] bg-white text-[#333] hover:bg-[#f0f8ff]"
+              >
+                รูด-19 ประตู
+              </button>
+              <button
+                onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
+                className="py-2.5 text-xs font-medium transition-colors bg-white text-[#333] hover:bg-[#f0f8ff]"
+              >
+                วิ่ง
+              </button>
+            </div>
+            
+            {/* ROW 4: Special Button - Doubles/Tong */}
+            <div className="p-3 border-b border-[#e9ecef]">
+              <button
+                onClick={addDoubles}
+                className="px-4 py-2 bg-[#009bf2] hover:bg-[#0086d4] text-white text-sm font-medium rounded"
+              >
+                + ใส่เลขเบิ้ล/ตอง
+              </button>
+            </div>
+            
+            {/* ROW 5: Input Form Row */}
+            <div className="p-3 border-b border-[#e9ecef]">
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Number Input */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-[#333]">ใส่เลข</span>
+                  <Input
+                    ref={inputRef}
+                    type="text"
+                    inputMode="numeric"
+                    value={currentInput}
+                    onChange={handleInputChange}
+                    onPaste={handlePaste}
+                    placeholder={digitMode === '3' ? '___' : '__'}
+                    className="w-24 h-9 text-lg font-mono text-center bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] placeholder:text-gray-400 rounded"
+                  />
+                </div>
+                
+                {/* Reverse Button */}
                 <button
-                  key={d}
-                  onClick={() => add19Gates(String(d))}
-                  className="w-5 h-5 text-[10px] font-bold rounded bg-white text-[#009bf2] border border-[#009bf2] hover:bg-[#f0f8ff]"
+                  onClick={addReverse}
+                  className="px-3 py-2 bg-[#009bf2] hover:bg-[#0086d4] text-white text-sm font-medium rounded"
                 >
-                  {d}
+                  กลับเลข
                 </button>
-              ))}
+                
+                {/* Price Input - Top */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-[#333]">ใส่ราคา บน</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10000}
+                    value={defaultPrice}
+                    onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-16 h-9 text-center bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] font-medium rounded"
+                  />
+                </div>
+                
+                {/* Price Input - Bottom */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-[#333]">ล่าง</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10000}
+                    value={defaultPrice}
+                    onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-16 h-9 text-center bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] font-medium rounded"
+                  />
+                </div>
+                
+                {/* Add Bill Button - Right aligned */}
+                <Button
+                  onClick={() => {
+                    if (currentInput.length === parseInt(digitMode) && selectedBetTypes.length > 0) {
+                      addBet(currentInput);
+                    }
+                  }}
+                  disabled={currentInput.length !== parseInt(digitMode) || selectedBetTypes.length === 0}
+                  className="ml-auto px-4 py-2 bg-[#009bf2] hover:bg-[#0086d4] text-white font-bold rounded"
+                >
+                  + เพิ่มบิล
+                </Button>
+              </div>
             </div>
             
-            {/* Win Numbers */}
-            <button onClick={() => setShowWinDialog(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#009bf2] hover:bg-[#f0f8ff] rounded text-xs text-[#009bf2] font-medium">
-              <Trophy className="h-3 w-3" /> วิน
-            </button>
-            
-            {/* Reverse */}
-            <button onClick={addReverse} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#009bf2] hover:bg-[#f0f8ff] rounded text-xs text-[#009bf2] font-medium">
-              <RotateCcw className="h-3 w-3" /> กลับ
-            </button>
+            {/* ROW 6: Summary Table */}
+            <div className="border border-[#333] m-3 rounded">
+              <div className="flex">
+                {/* Left Cell - Type Info */}
+                <div className="w-32 p-3 border-r border-[#333] bg-[#f8f9fa] text-center">
+                  <p className="text-sm font-medium text-[#333]">{digitMode} ตัว</p>
+                  <p className="text-xs text-gray-500">บน x ล่าง</p>
+                  <p className="text-xs text-gray-500">{selectedBetTypes.length} x {selectedBetTypes.length}</p>
+                </div>
+                
+                {/* Center Cell - Numbers List */}
+                <div className="flex-1 p-3 flex flex-wrap gap-2 items-center">
+                  {bets.length > 0 ? (
+                    bets.slice(0, 20).map((bet, idx) => (
+                      <span key={idx} className="font-mono text-sm text-[#333]">{bet.number}</span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-sm">ยังไม่มีเลข</span>
+                  )}
+                  {bets.length > 20 && <span className="text-xs text-gray-400">+{bets.length - 20}</span>}
+                </div>
+                
+                {/* Right Cell - Edit Button */}
+                <div className="w-16 p-3 border-l border-[#333] flex items-center justify-center">
+                  <button
+                    onClick={clearAllBets}
+                    className="w-8 h-8 bg-[#e3f2fd] hover:bg-[#bbdefb] rounded flex items-center justify-center"
+                  >
+                    <Pencil className="h-4 w-4 text-[#009bf2]" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
           
           {/* Virtual Numpad for Mobile */}
