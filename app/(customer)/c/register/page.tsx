@@ -273,47 +273,47 @@ function RegisterContent() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between mt-2 px-1 text-[10px]">
-              <span className={step >= 1 ? 'text-emerald-400' : 'text-white/50'}>ยืนยันเบอร์</span>
-              <span className={step >= 2 ? 'text-emerald-400' : 'text-white/50'}>ตั้งค่าบัญชี</span>
-              <span className={step >= 3 ? 'text-emerald-400' : 'text-white/50'}>ยืนยัน</span>
+            <div className="flex justify-between mt-2 px-1 text-[10px] font-medium">
+              <span className={step >= 1 ? 'text-[#B8860B]' : 'text-gray-400'}>ยืนยันเบอร์</span>
+              <span className={step >= 2 ? 'text-[#B8860B]' : 'text-gray-400'}>ตั้งค่าบัญชี</span>
+              <span className={step >= 3 ? 'text-[#B8860B]' : 'text-gray-400'}>ยืนยัน</span>
             </div>
           </div>
         )}
 
-        {/* Register Box */}
+        {/* Register Box - PURE WHITE with THICK GOLD BORDER */}
         <div className="max-w-sm mx-auto mb-6">
           <div className="relative">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-500 rounded-2xl blur opacity-30" />
-            <div className="relative rounded-2xl bg-[#111928]/90 backdrop-blur-xl border border-white/10 p-5">
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#D4AF37] via-[#F4D03F] to-[#D4AF37] rounded-3xl blur-sm opacity-60" />
+            <div className="relative rounded-2xl bg-white border-4 border-[#D4AF37] p-6 shadow-2xl">
               <form onSubmit={handleRegister} className="space-y-4">
                 
                 {/* STEP 1: Phone Verification */}
                 {step === 1 && (
                   <div className="space-y-4 animate-fade-in">
                     <div className="flex items-center gap-2 mb-4">
-                      <Phone className="size-4 text-emerald-400" />
-                      <span className="text-sm text-white/80">ยืนยันเบอร์โทรศัพท์</span>
+                      <Phone className="size-5 text-[#D4AF37]" />
+                      <span className="text-base font-bold text-black">ยืนยันเบอร์โทรศัพท์</span>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs text-white/60">เบอร์โทรศัพท์</label>
+                      <label className="text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
                       {/* Phone Display */}
-                      <div className="flex justify-center gap-1 py-4">
+                      <div className="flex justify-center gap-1.5 py-4">
                         {Array.from({ length: 10 }).map((_, i) => (
                           <div
                             key={i}
-                            className={`w-7 h-10 rounded-lg flex items-center justify-center text-lg font-mono transition-all ${
+                            className={`w-8 h-11 rounded-lg flex items-center justify-center text-xl font-bold font-mono transition-all shadow-sm ${
                               phone[i] 
-                                ? 'bg-emerald-500/20 border-emerald-500 text-white' 
-                                : 'bg-white/5 border-white/20 text-white/30'
-                            } border`}
+                                ? 'bg-[#D4AF37]/10 border-2 border-[#D4AF37] text-black' 
+                                : 'bg-gray-50 border-2 border-gray-200 text-gray-300'
+                            }`}
                           >
                             {phone[i] || '-'}
                           </div>
                         ))}
                       </div>
-                      <p className="text-xs text-white/40 text-center">ใช้สำหรับเข้าสู่ระบบและรับ OTP</p>
+                      <p className="text-xs text-gray-500 text-center">ใช้สำหรับเข้าสู่ระบบและรับ OTP</p>
                     </div>
 
                     {/* Numeric Keypad */}
@@ -332,7 +332,7 @@ function RegisterContent() {
                       type="button"
                       onClick={nextStep}
                       disabled={phone.length !== 10}
-                      className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-500/90 hover:to-green-500/90 text-white font-semibold shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50"
+                      className="w-full h-14 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#996515] text-white font-bold text-lg shadow-lg shadow-[#D4AF37]/40 transition-all disabled:opacity-50 border-2 border-[#B8860B]"
                     >
                       ยืนยันเบอร์โทร
                     </Button>
@@ -343,56 +343,56 @@ function RegisterContent() {
                 {step === 2 && (
                   <div className="space-y-4 animate-fade-in">
                     <div className="flex items-center gap-2 mb-2">
-                      <User className="size-4 text-emerald-400" />
-                      <span className="text-sm text-white/80">ตั้งค่าบัญชีผู้ใช้</span>
+                      <User className="size-5 text-[#D4AF37]" />
+                      <span className="text-base font-bold text-black">ตั้งค่าบัญชีผู้ใช้</span>
                     </div>
 
                     {/* Username */}
                     <div className="space-y-1.5">
-                      <label className="text-xs text-white/60">Username (ใช้ภาษาอังกฤษ ตัวเลข หรือ _ เท่านั้น)</label>
+                      <label className="text-sm font-medium text-gray-700">Username (ใช้ภาษาอังกฤษ ตัวเลข หรือ _ เท่านั้น)</label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                         <Input
                           type="text"
                           placeholder="ตั้ง username ของคุณ"
                           value={username}
                           onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                          className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20"
+                          className="pl-10 pr-10 h-11 bg-white border-2 border-gray-200 text-black placeholder:text-gray-400 rounded-xl focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
                         />
                         {checkingUsername && (
-                          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white/40 animate-spin" />
+                          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 animate-spin" />
                         )}
                         {!checkingUsername && usernameAvailable === true && (
-                          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-emerald-400" />
+                          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-green-500" />
                         )}
                         {!checkingUsername && usernameAvailable === false && (
-                          <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-red-400" />
+                          <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-red-500" />
                         )}
                       </div>
                       {usernameAvailable === false && (
-                        <p className="text-xs text-red-400">Username นี้ถูกใช้งานแล้ว</p>
+                        <p className="text-xs text-red-500">Username นี้ถูกใช้งานแล้ว</p>
                       )}
                       {usernameAvailable === true && (
-                        <p className="text-xs text-emerald-400">Username นี้ใช้งานได้</p>
+                        <p className="text-xs text-green-600">Username นี้ใช้งานได้</p>
                       )}
                     </div>
 
                     {/* Password */}
                     <div className="space-y-1.5">
-                      <label className="text-xs text-white/60">รหัสผ่าน</label>
+                      <label className="text-sm font-medium text-gray-700">รหัสผ่าน</label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                         <Input
                           type={showPassword ? 'text' : 'password'}
                           placeholder="อย่างน้อย 6 ตัวอักษร"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20"
+                          className="pl-10 pr-10 h-11 bg-white border-2 border-gray-200 text-black placeholder:text-gray-400 rounded-xl focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
                           {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                         </button>
@@ -405,12 +405,12 @@ function RegisterContent() {
                               <div
                                 key={level}
                                 className={`h-1 flex-1 rounded-full transition-all ${
-                                  passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-white/10'
+                                  passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-gray-200'
                                 }`}
                               />
                             ))}
                           </div>
-                          <p className={`text-xs ${passwordStrength >= 3 ? 'text-emerald-400' : passwordStrength >= 2 ? 'text-yellow-400' : 'text-red-400'}`}>
+                          <p className={`text-xs ${passwordStrength >= 3 ? 'text-green-600' : passwordStrength >= 2 ? 'text-yellow-600' : 'text-red-500'}`}>
                             ความแข็งแกร่ง: {strengthLabels[passwordStrength]}
                           </p>
                         </div>
@@ -419,26 +419,26 @@ function RegisterContent() {
 
                     {/* Confirm Password */}
                     <div className="space-y-1.5">
-                      <label className="text-xs text-white/60">ยืนยันรหัสผ่าน</label>
+                      <label className="text-sm font-medium text-gray-700">ยืนยันรหัสผ่าน</label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                         <Input
                           type={showConfirmPassword ? 'text' : 'password'}
                           placeholder="กรอกรหัสผ่านอีกครั้ง"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20"
+                          className="pl-10 pr-10 h-11 bg-white border-2 border-gray-200 text-black placeholder:text-gray-400 rounded-xl focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
                           {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                         </button>
                       </div>
                       {confirmPassword && (
-                        <p className={`text-xs ${password === confirmPassword ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <p className={`text-xs ${password === confirmPassword ? 'text-green-600' : 'text-red-500'}`}>
                           {password === confirmPassword ? 'รหัสผ่านตรงกัน' : 'รหัสผ่านไม่ตรงกัน'}
                         </p>
                       )}
@@ -446,17 +446,17 @@ function RegisterContent() {
 
                     {/* Bank Selection */}
                     <div className="space-y-1.5">
-                      <label className="text-xs text-white/60">ธนาคาร</label>
+                      <label className="text-sm font-medium text-gray-700">ธนาคาร</label>
                       <div className="grid grid-cols-4 gap-2">
                         {banks.map((bank) => (
                           <button
                             key={bank.code}
                             type="button"
                             onClick={() => setBankCode(bank.code)}
-                            className={`p-2 rounded-lg border transition-all ${
+                            className={`p-2 rounded-lg border-2 transition-all ${
                               bankCode === bank.code
-                                ? 'border-emerald-500 bg-emerald-500/20'
-                                : 'border-white/10 bg-white/5 hover:bg-white/10'
+                                ? 'border-[#D4AF37] bg-[#D4AF37]/10'
+                                : 'border-gray-200 bg-white hover:bg-gray-50'
                             }`}
                           >
                             <div 
@@ -465,7 +465,7 @@ function RegisterContent() {
                             >
                               {bank.code.slice(0, 3)}
                             </div>
-                            <p className="text-[8px] text-white/60 mt-1 truncate">{bank.name.replace('ธนาคาร', '')}</p>
+                            <p className="text-[8px] text-gray-500 mt-1 truncate">{bank.name.replace('ธนาคาร', '')}</p>
                           </button>
                         ))}
                       </div>
@@ -473,24 +473,24 @@ function RegisterContent() {
 
                     {/* Account Number */}
                     <div className="space-y-1.5">
-                      <label className="text-xs text-white/60">เลขบัญชี</label>
+                      <label className="text-sm font-medium text-gray-700">เลขบัญชี</label>
                       <div className="relative">
-                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
+                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                         <Input
                           type="text"
                           placeholder="กรอกเลขบัญชีธนาคาร"
                           value={accountNumber}
                           onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 15))}
-                          className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 tracking-wider"
+                          className="pl-10 h-11 bg-white border-2 border-gray-200 text-black placeholder:text-gray-400 rounded-xl focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 tracking-wider"
                         />
                       </div>
                     </div>
 
                     {/* Account Name - รองรับภาษาไทย */}
                     <div className="space-y-1.5">
-                      <label className="text-xs text-white/60">ชื่อบัญชี (ภาษาไทยหรืออังกฤษ)</label>
+                      <label className="text-sm font-medium text-gray-700">ชื่อบัญชี (ภาษาไทยหรืออังกฤษ)</label>
                       <div className="relative">
-                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                         <Input
                           type="text"
                           placeholder="เช่น สมชาย ใจดี หรือ Somchai Jaidee"
@@ -502,22 +502,22 @@ function RegisterContent() {
                             const cleaned = value.replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s.\-]/g, '');
                             setAccountName(cleaned);
                           }}
-                          className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20"
+                          className="pl-10 h-11 bg-white border-2 border-gray-200 text-black placeholder:text-gray-400 rounded-xl focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
                         />
                       </div>
                     </div>
 
                     {/* Referral Code */}
                     <div className="space-y-1.5">
-                      <label className="text-xs text-white/60">รหัสแนะนำ (ถ้ามี)</label>
+                      <label className="text-sm font-medium text-gray-700">รหัสแนะนำ (ถ้ามี)</label>
                       <div className="relative">
-                        <Gift className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-amber-400/60" />
+                        <Gift className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#D4AF37]" />
                         <Input
                           type="text"
                           placeholder="รหัสแนะนำ"
                           value={referralCode}
                           onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                          className="pl-10 h-11 bg-white/5 border-amber-500/20 text-white placeholder:text-white/40 rounded-xl focus:border-amber-500 focus:ring-amber-500/20"
+                          className="pl-10 h-11 bg-white border-2 border-[#D4AF37]/30 text-black placeholder:text-gray-400 rounded-xl focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
                         />
                       </div>
                     </div>
@@ -527,14 +527,14 @@ function RegisterContent() {
                         type="button"
                         onClick={() => setStep(1)}
                         variant="outline"
-                        className="flex-1 h-11 rounded-xl border-white/10 text-white hover:bg-white/10"
+                        className="flex-1 h-11 rounded-xl border-2 border-gray-300 text-gray-700 hover:bg-gray-100"
                       >
                         ย้อนกลับ
                       </Button>
                       <Button 
                         type="button"
                         onClick={nextStep}
-                        className="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-500/90 hover:to-green-500/90 text-white font-semibold shadow-lg shadow-emerald-500/25 transition-all"
+                        className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#996515] text-white font-bold shadow-lg shadow-[#D4AF37]/30 transition-all"
                       >
                         ถัดไป
                       </Button>
@@ -546,36 +546,36 @@ function RegisterContent() {
                 {step === 3 && (
                   <div className="space-y-4 animate-fade-in">
                     <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle2 className="size-4 text-emerald-400" />
-                      <span className="text-sm text-white/80">ยืนยันข้อมูล</span>
+                      <CheckCircle2 className="size-5 text-[#D4AF37]" />
+                      <span className="text-base font-bold text-black">ยืนยันข้อมูล</span>
                     </div>
 
                     {/* Summary */}
-                    <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2.5">
+                    <div className="p-4 rounded-xl bg-gray-50 border-2 border-[#D4AF37]/30 space-y-2.5">
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/60">เบอร์โทร</span>
-                        <span className="text-white font-medium">{phone}</span>
+                        <span className="text-gray-500">เบอร์โทร</span>
+                        <span className="text-black font-medium">{phone}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/60">Username</span>
-                        <span className="text-emerald-400 font-medium">{username}</span>
+                        <span className="text-gray-500">Username</span>
+                        <span className="text-[#B8860B] font-medium">{username}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/60">ธนาคาร</span>
-                        <span className="text-white">{banks.find(b => b.code === bankCode)?.name}</span>
+                        <span className="text-gray-500">ธนาคาร</span>
+                        <span className="text-black">{banks.find(b => b.code === bankCode)?.name}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/60">เลขบัญชี</span>
-                        <span className="text-white font-mono">{accountNumber}</span>
+                        <span className="text-gray-500">เลขบัญชี</span>
+                        <span className="text-black font-mono">{accountNumber}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/60">ชื่อบัญชี</span>
-                        <span className="text-white">{accountName}</span>
+                        <span className="text-gray-500">ชื่อบัญชี</span>
+                        <span className="text-black">{accountName}</span>
                       </div>
                       {referralCode && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-white/60">รหัสแนะนำ</span>
-                          <span className="text-amber-400 font-medium">{referralCode}</span>
+                          <span className="text-gray-500">รหัสแนะนำ</span>
+                          <span className="text-[#D4AF37] font-medium">{referralCode}</span>
                         </div>
                       )}
                     </div>
@@ -587,13 +587,13 @@ function RegisterContent() {
                           id="terms"
                           checked={acceptTerms}
                           onCheckedChange={(checked) => setAcceptTerms(checked === true)}
-                          className="mt-0.5 border-white/20 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                          className="mt-0.5 border-gray-300 data-[state=checked]:bg-[#D4AF37] data-[state=checked]:border-[#D4AF37]"
                         />
-                        <label htmlFor="terms" className="text-xs text-white/60 cursor-pointer">
+                        <label htmlFor="terms" className="text-xs text-gray-600 cursor-pointer">
                           ข้าพเจ้ายอมรับ{' '}
-                          <span className="text-emerald-400 underline">เงื่อนไขการใช้งาน</span>
+                          <span className="text-[#B8860B] underline">เงื่อนไขการใช้งาน</span>
                           {' '}และ{' '}
-                          <span className="text-emerald-400 underline">นโยบายความเป็นส่วนตัว</span>
+                          <span className="text-[#B8860B] underline">นโยบายความเป็นส่วนตัว</span>
                         </label>
                       </div>
 
@@ -602,9 +602,9 @@ function RegisterContent() {
                           id="age"
                           checked={acceptAge}
                           onCheckedChange={(checked) => setAcceptAge(checked === true)}
-                          className="mt-0.5 border-white/20 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                          className="mt-0.5 border-gray-300 data-[state=checked]:bg-[#D4AF37] data-[state=checked]:border-[#D4AF37]"
                         />
-                        <label htmlFor="age" className="text-xs text-white/60 cursor-pointer">
+                        <label htmlFor="age" className="text-xs text-gray-600 cursor-pointer">
                           ข้าพเจ้ามีอายุ 20 ปีขึ้นไป และยินยอมให้ใช้บริการ
                         </label>
                       </div>
@@ -615,14 +615,14 @@ function RegisterContent() {
                         type="button"
                         onClick={() => setStep(2)}
                         variant="outline"
-                        className="flex-1 h-11 rounded-xl border-white/10 text-white hover:bg-white/10"
+                        className="flex-1 h-11 rounded-xl border-2 border-gray-300 text-gray-700 hover:bg-gray-100"
                       >
                         ย้อนกลับ
                       </Button>
                       <Button 
                         type="submit"
                         disabled={isLoading || !acceptTerms || !acceptAge}
-                        className="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-500/90 hover:to-green-500/90 text-white font-semibold shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50"
+                        className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#996515] text-white font-bold shadow-lg shadow-[#D4AF37]/30 transition-all disabled:opacity-50"
                       >
                         {isLoading ? (
                           <>
