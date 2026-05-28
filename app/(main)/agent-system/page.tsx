@@ -398,7 +398,7 @@ export default function AgentSystemPage() {
       });
       
       if (res.ok) {
-        toast.success(agent.is_active ? 'ระงับเอเย่นต์แล้ว' : 'เปิดใ���้งานเอเย่นต์แล้ว');
+        toast.success(agent.is_active ? 'ระงับเอเย่นต์แล้ว' : 'เปิดใช้งานเอเย่นต์แล้ว');
         mutate();
       }
     } catch {

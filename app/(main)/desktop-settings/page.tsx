@@ -484,7 +484,7 @@ export default function DesktopSettingsPage() {
                   <Gift className="size-5" />
                   โปรโมชั่นสมัครสมาชิก
                 </CardTitle>
-                <CardDescription>จัดการ���ปรโมชั่นแจกเครดิตฟรีสำหร��บสมาชิกใหม่</CardDescription>
+                <CardDescription>จัดการโปรโมชั่นแจกเครดิตฟรีสำหรับสมาชิกใหม่</CardDescription>
               </div>
               <Button onClick={() => { setEditingPromo(null); setShowPromoDialog(true); }}>
                 <Plus className="size-4 mr-2" />
@@ -779,7 +779,7 @@ export default function DesktopSettingsPage() {
                     placeholder="@yourlineid"
                     className="mt-1"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">ไม่ต้องใส��� @ นำหน้า</p>
+                        <p className="text-xs text-muted-foreground mt-1">ไม่ต้องใส่ @ นำหน้า</p>
                 </div>
                 <div>
                   <Label>LINE URL</Label>
@@ -1370,7 +1370,7 @@ function PromotionDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{promotion ? 'แก้ไขโปรโมชั่น' : 'เพิ่มโปรโมชั่นใ��ม่'}</DialogTitle>
+                <DialogTitle>{promotion ? 'แก้ไขโปรโมชั่น' : 'เพิ่มโปรโมชั่นใหม่'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>

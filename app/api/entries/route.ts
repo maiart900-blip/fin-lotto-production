@@ -304,7 +304,7 @@ export async function POST(request: Request) {
         const currentBalance = Number(user.credit_balance) || 0;
         if (currentBalance < totalAmount) {
           return NextResponse.json({ 
-            error: `เครดิตไ�����่เพียงพอ (ยอดแทง: ${totalAmount.toLocaleString()} บาท, คงเหลือ: ${currentBalance.toLocaleString()} บาท)` 
+            error: `เครดิตไม่เพียงพอ (ยอดแทง: ${totalAmount.toLocaleString()} บาท, คงเหลือ: ${currentBalance.toLocaleString()} บาท)` 
           }, { status: 400 });
         }
         
@@ -567,7 +567,7 @@ export async function POST(request: Request) {
       entries: data,
       totalAmount,
       synced: !!(parentSiteUrl && siteId !== 'master'),
-      message: `บันทึกโพย ${data?.length || 0} รายการ ���อดรวม ${totalAmount.toLocaleString()} บาท`
+      message: `บันทึกโพย ${data?.length || 0} รายการ ยอดรวม ${totalAmount.toLocaleString()} บาท`
     });
   } catch {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการบันทึกโพย' }, { status: 500 });

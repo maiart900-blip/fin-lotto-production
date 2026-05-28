@@ -435,7 +435,7 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">บทบา��</Label>
+              <Label className="text-gray-300">บทบาท</Label>
               <Select
                 value={formData.role}
                 onValueChange={(value) => setFormData({ ...formData, role: value })}

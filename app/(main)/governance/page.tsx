@@ -369,7 +369,7 @@ export default function GovernancePage() {
                     <TableHead className="text-zinc-400 text-right">ยอดแทง</TableHead>
                     <TableHead className="text-zinc-400 text-right">จ่ายรางวัล</TableHead>
                     <TableHead className="text-zinc-400 text-right">กำไร</TableHead>
-                    <TableHead className="text-zinc-400 text-right">ลูกค���า</TableHead>
+                    <TableHead className="text-zinc-400 text-right">ลูกค้า</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

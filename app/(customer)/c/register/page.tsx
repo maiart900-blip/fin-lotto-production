@@ -336,7 +336,7 @@ function RegisterContent() {
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
                         <Input
                           type="text"
-                          placeholder="ตั้ง username ข��งคุณ"
+                          placeholder="ตั้ง username ของคุณ"
                           value={username}
                           onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                           className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20"
@@ -529,7 +529,7 @@ function RegisterContent() {
                   <div className="space-y-4 animate-fade-in">
                     <div className="flex items-center gap-2 mb-2">
                       <CheckCircle2 className="size-4 text-emerald-400" />
-                      <span className="text-sm text-white/80">���ืนยันข้อมูล</span>
+                      <span className="text-sm text-white/80">ยืนยันข้อมูล</span>
                     </div>
 
                     {/* Summary */}
@@ -635,7 +635,7 @@ function RegisterContent() {
 
                     <div>
                       <h2 className="text-xl font-bold text-white mb-1">สมัครสำเร็จ!</h2>
-                      <p className="text-white/60 text-sm">ยินดีต้อนรับ��ู่ FIN LOTTO PREMIUM</p>
+                      <p className="text-white/60 text-sm">ยินดีต้อนรับสู่ FIN LOTTO PREMIUM</p>
                     </div>
 
                     {/* Info Card */}

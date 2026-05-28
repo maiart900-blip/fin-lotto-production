@@ -412,7 +412,7 @@ export default function CustomerProfilePage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-white/80">
-            แชร์ลิงก์นี้ให้เพื่อน เมื่อเพื่อนสมัครและซื้อเลขคร��้งแรก คุณจะได้รับโบนัส!
+            แชร์ลิงก์นี้ให้เพื่อน เมื่อเพื่อนสมัครและซื้อเลขครั้งแรก คุณจะได้รับโบนัส!
           </p>
           
           <div className="flex gap-2">

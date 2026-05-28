@@ -245,7 +245,7 @@ export default function MasterRatesPage() {
       resetForm();
       fetchBlockedNumbers();
     } catch (error) {
-      toast.error('เกิ��ข้อผิดพลาด');
+      toast.error('เกิดข้อผิดพลาด');
     } finally {
       setSubmitting(false);
     }

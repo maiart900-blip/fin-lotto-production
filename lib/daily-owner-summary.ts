@@ -539,7 +539,7 @@ export class DailyOwnerSummaryService {
     } else if (data.risk.riskLevel === 'high') {
       alerts.push({
         type: 'warning',
-        message: `ความเสี่ยงส���ง: Exposure ${data.risk.totalExposure.toLocaleString()} บาท`,
+        message: `ความเสี่ยงสูง: Exposure ${data.risk.totalExposure.toLocaleString()} บาท`,
       });
     }
 
