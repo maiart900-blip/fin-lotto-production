@@ -167,16 +167,20 @@ export async function POST(request: Request) {
         })
         .eq('id', pendingUserId);
 
-      // Log failed attempt
-      await supabase.from('audit_logs').insert({
-        user_id: pendingUserId,
-        action: '2fa_verify_failed',
-        metadata: { 
-          attempt: currentAttempts,
-          isBackupCode,
-        },
-        created_at: new Date().toISOString(),
-      }).catch(() => {}); // Silent fail for audit log
+      // Log failed attempt (silent fail if audit_logs table doesn't exist)
+      try {
+        await supabase.from('audit_logs').insert({
+          user_id: pendingUserId,
+          action: '2fa_verify_failed',
+          metadata: { 
+            attempt: currentAttempts,
+            isBackupCode,
+          },
+          created_at: new Date().toISOString(),
+        });
+      } catch {
+        // Ignore audit log errors
+      }
 
       if (currentAttempts >= 5) {
         return NextResponse.json({ 
@@ -197,13 +201,17 @@ export async function POST(request: Request) {
       })
       .eq('id', pendingUserId);
 
-    // Log success
-    await supabase.from('audit_logs').insert({
-      user_id: pendingUserId,
-      action: '2fa_verify_success',
-      metadata: { isBackupCode },
-      created_at: new Date().toISOString(),
-    }).catch(() => {}); // Silent fail for audit log
+    // Log success (silent fail if audit_logs table doesn't exist)
+    try {
+      await supabase.from('audit_logs').insert({
+        user_id: pendingUserId,
+        action: '2fa_verify_success',
+        metadata: { isBackupCode },
+        created_at: new Date().toISOString(),
+      });
+    } catch {
+      // Ignore audit log errors
+    }
 
     // Determine redirect URL based on role
     let redirectTo = '/dashboard';
