@@ -475,7 +475,7 @@ export default function LotteryTerminalPage() {
       if (prev.includes(betTypeId)) {
         // Don't allow deselecting if it's the only one
         if (prev.length === 1) {
-          toast.error('ต้องเลือ��ประเภทแทงอย่างน้อย 1 ประเภท');
+          toast.error('ต้องเลือ���ประเภทแทงอย่างน้อย 1 ประเภท');
           return prev;
         }
         return prev.filter(id => id !== betTypeId);
@@ -1463,8 +1463,8 @@ export default function LotteryTerminalPage() {
                         {/* Left Cell - Type Info (centered stacked text) */}
                         <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
                           <p className="text-sm font-bold text-[#009bf2]">{digitType}</p>
-                          <p className="text-xs text-[#e91e63]">{topPrice} x {botPrice}</p>
-                          <p className="text-[11px] text-gray-400">{topCount} x {botCount}</p>
+                          <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
+                          <p className="text-[11px] text-gray-400">{topPrice} x {botPrice}</p>
                         </div>
                         
                         {/* Center Cell - Numbers List (max 20 per line, no overflow) */}
@@ -1511,8 +1511,8 @@ export default function LotteryTerminalPage() {
                           {/* Left Cell - Shows current price state */}
                           <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
                             <p className="text-sm font-bold text-[#009bf2]">{digitMode} ตัว</p>
-                            <p className="text-xs text-[#e91e63]">{priceTop} x {priceBot}</p>
-                            <p className="text-[11px] text-gray-400">0 x 0</p>
+                            <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
+                            <p className="text-[11px] text-gray-400">{priceTop} x {priceBot}</p>
                           </div>
                           {/* Center Cell - Empty state */}
                           <div className="flex-1 p-2 flex items-center justify-center">
