@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, Loader2, Key } from 'lucide-react';
+import { Shield, Loader2, Key, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function TwoFactorVerifyPage() {
@@ -10,9 +10,13 @@ export default function TwoFactorVerifyPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [useBackupCode, setUseBackupCode] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setErrorDetails(null);
     
     const codeLength = useBackupCode ? 6 : 6;
     if (verificationCode.length < codeLength) {
@@ -34,6 +38,14 @@ export default function TwoFactorVerifyPage() {
       const data = await res.json();
       
       if (!res.ok) {
+        // Show detailed error
+        setError(data.error || 'รหัสไม่ถูกต้อง');
+        if (data.details) {
+          setErrorDetails(data.details);
+        }
+        if (res.status === 500) {
+          setErrorDetails('Server error - กรุณาติดต่อผู้ดูแลระบบ หรือใช้ Recovery Mode');
+        }
         throw new Error(data.error || 'รหัสไม่ถูกต้อง');
       }
       
@@ -50,8 +62,8 @@ export default function TwoFactorVerifyPage() {
       // Redirect to dashboard or intended page
       const redirectTo = data.redirectTo || '/dashboard';
       router.push(redirectTo);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'รหัสไม่ถูกต้อง');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'รหัสไม่ถูกต้อง');
       setVerificationCode('');
     } finally {
       setIsVerifying(false);
@@ -136,6 +148,21 @@ export default function TwoFactorVerifyPage() {
               </div>
             </div>
 
+            {/* Error display */}
+            {error && (
+              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="size-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-red-400 text-sm font-medium">{error}</p>
+                    {errorDetails && (
+                      <p className="text-red-400/70 text-xs mt-1">{errorDetails}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Verify button */}
             <button
               type="submit"
@@ -153,7 +180,7 @@ export default function TwoFactorVerifyPage() {
             </button>
 
             {/* Back to login */}
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <button
                 type="button"
                 onClick={() => router.push('/login')}
@@ -161,6 +188,14 @@ export default function TwoFactorVerifyPage() {
               >
                 ยกเลิกและกลับหน้าเข้าสู่ระบบ
               </button>
+              <div>
+                <a
+                  href="/auth/recovery"
+                  className="text-xs text-amber-500/70 hover:text-amber-400 transition-colors"
+                >
+                  Super Admin Recovery Mode
+                </a>
+              </div>
             </div>
           </form>
         </div>
