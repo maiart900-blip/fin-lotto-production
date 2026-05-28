@@ -40,12 +40,12 @@ export async function GET(
     // Get bets today
     const { data: betsToday } = await supabase
       .from('entries')
-      .select('total_amount, status')
+      .select('amount, total_amount, status')
       .eq('tenant_id', tenantId)
       .gte('created_at', today.toISOString());
 
     const totalBetsToday = betsToday?.length || 0;
-    const totalBetsAmount = betsToday?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
+    const totalBetsAmount = betsToday?.reduce((sum, b) => sum + (b.amount || b.total_amount || 0), 0) || 0;
 
     // Get payouts today (won bets)
     const { data: payoutsToday } = await supabase

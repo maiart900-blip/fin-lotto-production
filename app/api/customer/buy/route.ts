@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get customer balance
+    // Get customer balance and tenant_id
     const { data: customer, error: customerError } = await supabase
       .from('customers')
-      .select('credit_balance, is_active')
+      .select('credit_balance, is_active, tenant_id, current_turnover, total_bets')
       .eq('id', customer_id)
       .single();
 
@@ -94,9 +94,11 @@ export async function POST(request: NextRequest) {
     const entriesToInsert = entryItems.map((item: { number: string; bet_type?: string; betType?: string; amount: number }) => ({
       lottery_id,
       customer_id,
+      tenant_id: customer.tenant_id, // Include tenant_id for stats queries
       number: item.number,
       bet_type: item.bet_type || item.betType,
       amount: item.amount,
+      total_amount: item.amount, // Also set total_amount for stats
       source_type: 'auto', // ลูกค้าแทงเองผ่านระบบออโต้
     }));
 
