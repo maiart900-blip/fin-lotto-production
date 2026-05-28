@@ -1264,22 +1264,19 @@ export default function LotteryTerminalPage() {
                       : `${data.topAmount || data.botAmount || data.bets[0]?.amount || 0}`;
 
                     return (
-                      <div key={key} className="bg-white/95 rounded px-2 py-1.5 text-black">
-                        <div className="flex justify-between items-center gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-[10px] text-gray-500 shrink-0">{data.digitType}</span>
-                            <span className="text-[10px] text-amber-600 shrink-0">{betTypeLabel}</span>
-                            <span className="text-xs font-bold text-gray-800 shrink-0">฿{amountLabel}</span>
-                          </div>
-                          <span className="text-[10px] text-gray-400">{uniqueNumbers.length}x</span>
+                      <div key={key} className="bg-white rounded px-1.5 py-1 text-black text-[11px]">
+                        {/* Header row: type | bet | amount | count */}
+                        <div className="flex items-center gap-1 border-b border-gray-200 pb-0.5 mb-0.5">
+                          <span className="text-gray-500 w-8">{data.digitType}</span>
+                          <span className="text-amber-600 flex-1">{betTypeLabel}</span>
+                          <span className="font-bold text-gray-800">฿{amountLabel}</span>
+                          <span className="text-gray-400 text-[10px] w-6 text-right">{uniqueNumbers.length}x</span>
                         </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {uniqueNumbers.slice(0, 12).map((num, idx) => (
-                            <span key={idx} className="text-xs font-mono text-gray-700 bg-gray-100 px-1 rounded">{num}</span>
+                        {/* Numbers queue - inline scroll */}
+                        <div className="flex gap-0.5 overflow-x-auto scrollbar-hide">
+                          {uniqueNumbers.map((num, idx) => (
+                            <span key={idx} className="font-mono text-gray-700 bg-gray-100 px-1 rounded text-[11px] shrink-0">{num}</span>
                           ))}
-                          {uniqueNumbers.length > 12 && (
-                            <span className="text-[10px] text-gray-400">+{uniqueNumbers.length - 12}</span>
-                          )}
                         </div>
                       </div>
                     );
@@ -1336,27 +1333,28 @@ export default function LotteryTerminalPage() {
             )}
           </div>
           
-          <div className="p-4 border-t border-amber-900/30 space-y-3 bg-[#0f0f0f]">
-            <Button
-              onClick={clearAllBets}
-              variant="outline"
-              disabled={bets.length === 0}
-              className="w-full border-red-900/50 text-red-400 hover:bg-red-900/20 hover:border-red-500/50"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              ล้างทั้งหมด
-            </Button>
-            <Button
-              onClick={() => setShowConfirmDialog(true)}
-              disabled={bets.length === 0}
-              className="w-full h-14 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-600 hover:via-yellow-600 hover:to-amber-700 text-black font-bold text-lg shadow-lg shadow-amber-500/20"
-            >
-              <Send className="h-5 w-5 mr-2" />
-              ส่งโพย
-            </Button>
-            <p className="text-[10px] text-center text-gray-600">
-              กด Enter เพื่อส่งโพย | Esc ล้าง | Tab สลับโหมด
-            </p>
+          <div className="p-2 border-t border-amber-900/30 space-y-2 bg-[#0f0f0f]">
+            <div className="flex gap-2">
+              <Button
+                onClick={clearAllBets}
+                variant="outline"
+                disabled={bets.length === 0}
+                size="sm"
+                className="flex-1 h-8 border-red-900/50 text-red-400 hover:bg-red-900/20 hover:border-red-500/50 text-xs"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                ล้าง
+              </Button>
+              <Button
+                onClick={() => setShowConfirmDialog(true)}
+                disabled={bets.length === 0}
+                size="sm"
+                className="flex-[2] h-8 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold text-xs"
+              >
+                <Send className="h-3 w-3 mr-1" />
+                ส่งโพย (Enter)
+              </Button>
+            </div>
           </div>
         </div>
         
