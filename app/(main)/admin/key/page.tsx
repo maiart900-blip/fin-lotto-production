@@ -1426,21 +1426,21 @@ export default function LotteryTerminalPage() {
             </div>
             
             {/* ROW 6: Summary Tables - Separate 2-digit and 3-digit */}
-            <div className="m-3 space-y-2">
+            <div className="mx-3 mt-3 space-y-0">
               {/* Dynamically render rows for 2-digit and 3-digit bets */}
               {(() => {
                 // Group bets by digit length
                 const twoDigitBets = bets.filter(b => b.number.length === 2);
                 const threeDigitBets = bets.filter(b => b.number.length === 3);
                 
-                const renderRow = (digitBets: typeof bets, digitType: string) => {
+                const renderRow = (digitBets: typeof bets, digitType: string, isFirst: boolean) => {
                   if (digitBets.length === 0) return null;
                   
                   const uniqueNumbers = [...new Set(digitBets.map(b => b.number))];
                   const topBets = digitBets.filter(b => b.betType.includes('top') || b.betType === '3top');
                   const botBets = digitBets.filter(b => b.betType.includes('bot') || b.betType === '2bot' || b.betType === '3back');
-                  const topCount = topBets.length > 0 ? 1 : 0;
-                  const botCount = botBets.length > 0 ? 1 : 0;
+                  const topCount = topBets.length > 0 ? [...new Set(topBets.map(b => b.number))].length : 0;
+                  const botCount = botBets.length > 0 ? [...new Set(botBets.map(b => b.number))].length : 0;
                   
                   // Chunk numbers into groups of 20 max per line
                   const chunkedNumbers: string[][] = [];
@@ -1449,21 +1449,21 @@ export default function LotteryTerminalPage() {
                   }
                   
                   return (
-                    <div key={digitType} className="border border-[#333] rounded">
-                      <div className="flex">
+                    <div key={digitType} className={`border border-[#333] ${isFirst ? 'rounded-t' : 'border-t-0 rounded-b'}`}>
+                      <div className="flex min-h-[60px]">
                         {/* Left Cell - Type Info (centered stacked text) */}
-                        <div className="w-28 p-3 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center">
-                          <p className="text-sm font-bold text-[#333]">{digitType}</p>
-                          <p className="text-xs text-pink-500">บน x ล่าง</p>
-                          <p className="text-xs text-gray-500">{topCount} x {botCount}</p>
+                        <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
+                          <p className="text-sm font-bold text-[#009bf2]">{digitType}</p>
+                          <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
+                          <p className="text-[11px] text-gray-400">{topCount} x {botCount}</p>
                         </div>
                         
-                        {/* Center Cell - Numbers List (max 20 per line) */}
-                        <div className="flex-1 p-3">
+                        {/* Center Cell - Numbers List (max 20 per line, no overflow) */}
+                        <div className="flex-1 p-2 overflow-hidden">
                           {chunkedNumbers.map((chunk, chunkIdx) => (
-                            <div key={chunkIdx} className="flex flex-wrap gap-1.5 mb-1 last:mb-0">
+                            <div key={chunkIdx} className="leading-relaxed">
                               {chunk.map((num, idx) => (
-                                <span key={idx} className="font-mono text-sm text-[#333]">{num}</span>
+                                <span key={idx} className="font-mono text-sm text-[#333] mr-2 inline-block">{num}</span>
                               ))}
                             </div>
                           ))}
@@ -1472,16 +1472,16 @@ export default function LotteryTerminalPage() {
                           )}
                         </div>
                         
-                        {/* Right Cell - Edit Button (light blue square) */}
-                        <div className="w-14 border-l border-[#333] flex items-center justify-center">
+                        {/* Right Cell - Edit Button (perfect square with hard border) */}
+                        <div className="w-12 shrink-0 border-l border-[#333] flex items-center justify-center bg-white">
                           <button
                             onClick={() => {
                               // Clear only bets of this digit type
                               setBets(prev => prev.filter(b => b.number.length !== (digitType === '2 ตัว' ? 2 : 3)));
                             }}
-                            className="w-8 h-8 bg-[#e3f2fd] hover:bg-[#bbdefb] rounded flex items-center justify-center"
+                            className="w-7 h-7 bg-[#e3f2fd] hover:bg-[#bbdefb] rounded-sm flex items-center justify-center"
                           >
-                            <Pencil className="h-4 w-4 text-[#009bf2]" />
+                            <Pencil className="h-3.5 w-3.5 text-[#009bf2]" />
                           </button>
                         </div>
                       </div>
@@ -1489,10 +1489,13 @@ export default function LotteryTerminalPage() {
                   );
                 };
                 
+                const has2Digit = twoDigitBets.length > 0;
+                const has3Digit = threeDigitBets.length > 0;
+                
                 return (
                   <>
-                    {renderRow(twoDigitBets, '2 ตัว')}
-                    {renderRow(threeDigitBets, '3 ตัว')}
+                    {renderRow(twoDigitBets, '2 ตัว', true)}
+                    {renderRow(threeDigitBets, '3 ตัว', !has2Digit)}
                     {bets.length === 0 && (
                       <div className="border border-[#333] rounded p-4 text-center text-gray-400">
                         ยังไม่มีรายการ
@@ -1504,23 +1507,23 @@ export default function LotteryTerminalPage() {
             </div>
             
             {/* ROW 7: Memo and Total Row */}
-            <div className="flex items-center justify-between p-3 border-t border-[#e9ecef]">
+            <div className="flex items-center justify-between px-3 py-3 mt-2">
               {/* Left: Memo Input */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-[#333]">บันทึกช่วยจำ</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-[#333] whitespace-nowrap">บันทึกช่วยจำ</span>
                 <Input
                   type="text"
                   placeholder=""
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-48 h-8 text-sm bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] rounded-sm"
+                  className="w-52 h-8 text-sm bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] rounded-sm"
                 />
               </div>
               
-              {/* Right: Total */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-[#333]">ยอดรวม (บาท)</span>
-                <span className="text-2xl font-bold text-[#333]">{totalAmount}</span>
+              {/* Right: Total - perfectly aligned */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-[#333] whitespace-nowrap">ยอดรวม (บาท)</span>
+                <span className="text-2xl font-bold text-[#333] min-w-[60px] text-right">{totalAmount}</span>
               </div>
             </div>
           </div>
@@ -1878,7 +1881,7 @@ export default function LotteryTerminalPage() {
               เลือกตัวเลขที่ต้องการ (อย่างน้อย 2 ตัว) แล้วระบบจะสร้างคู่ทั้งหมดให้
             </p>
             <p className="text-xs text-[#009bf2]/70 mb-4">
-              กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = สร้างเลข | Backspace = ลบตัวสุดท้าย
+              กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = สร้างเลข | Backspace = ล��ตัวสุดท้าย
             </p>
             
             <div className="grid grid-cols-5 gap-3 mb-4">
