@@ -28,6 +28,7 @@ import {
   DollarSign,
   User,
   Calendar,
+  Pencil,
   FileText,
   ChevronDown,
   RefreshCw,
@@ -921,7 +922,7 @@ export default function LotteryTerminalPage() {
   // รองรับสูงสุด 10 ตัว (0-9)
   const generateWinAndAdd = useCallback(() => {
     if (winSelectedDigits.length < 2) {
-      toast.error('กรุณาเลือกอย่างน้อย 2 ตัวเลข');
+      toast.error('กรุณาเลือกอย่างน้อย 2 ตัวเ���ข');
       return;
     }
     if (winSelectedDigits.length > 10) {
@@ -1162,132 +1163,31 @@ export default function LotteryTerminalPage() {
       </div>
       
       <div className="flex h-[calc(100vh-60px)]">
-        {/* Left Sidebar - Cart */}
-        <div className="w-72 bg-gradient-to-b from-[#111111] to-[#0a0a0a] border-r border-amber-900/30 flex flex-col">
+        {/* Left Sidebar - Minimal */}
+        <div className="w-64 bg-gradient-to-b from-[#111111] to-[#0a0a0a] border-r border-amber-900/30 flex flex-col">
           {/* Sticky Header with Totals */}
-          <div className="p-2 border-b border-amber-900/30 bg-[#0f0f0f] sticky top-0 z-10">
-            <div className="flex items-center justify-between">
+          <div className="p-3 border-b border-amber-900/30 bg-[#0f0f0f]">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-xl font-bold text-amber-400">฿{totalAmount.toLocaleString()}</span>
                 <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0">
                   {totalItems}
                 </Badge>
               </div>
-              {bets.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearAllBets}
-                  className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                >
-                  ล้าง
-                </Button>
-              )}
             </div>
             
-            {/* Customer Name Input - Compact */}
+            {/* Customer Name Input */}
             <Input
               type="text"
               placeholder="ชื่อลูกค้า"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="mt-1.5 bg-[#0a0a0a] border-amber-900/30 text-white placeholder:text-gray-600 text-xs h-7"
+              className="bg-[#0a0a0a] border-amber-900/30 text-white placeholder:text-gray-600 text-xs h-8"
             />
           </div>
           
-          <ScrollArea className="flex-1 p-1.5">
-            {bets.length === 0 ? (
-              <div className="text-center text-gray-500 py-6">
-                <Keyboard className="h-10 w-10 mx-auto mb-1.5 opacity-30" />
-                <p className="text-xs">ยังไม่มีรายการ</p>
-                <p className="text-[10px] mt-0.5 text-gray-600">พิมพ์เลขได้เลย</p>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {/* Group bets by digit type and bet type */}
-                {(() => {
-                  // Group by digit length (2 ตัว, 3 ตัว) then by bet type combination
-                  const grouped: Record<string, { 
-                    bets: BetItem[]; 
-                    digitType: string;
-                    topAmount: number; 
-                    botAmount: number;
-                    betTypes: string[];
-                  }> = {};
-                  
-                  bets.forEach(bet => {
-                    const digitType = bet.number.length === 2 ? '2 ตัว' : bet.number.length === 3 ? '3 ตัว' : 'วิ่ง';
-                    const key = `${digitType}-${bet.amount}`;
-                    
-                    if (!grouped[key]) {
-                      grouped[key] = { 
-                        bets: [], 
-                        digitType,
-                        topAmount: 0, 
-                        botAmount: 0,
-                        betTypes: []
-                      };
-                    }
-                    grouped[key].bets.push(bet);
-                    
-                    // Track bet types and amounts
-                    if (!grouped[key].betTypes.includes(bet.betType)) {
-                      grouped[key].betTypes.push(bet.betType);
-                    }
-                    if (bet.betType.includes('top') || bet.betType === '3top') {
-                      grouped[key].topAmount = bet.amount;
-                    }
-                    if (bet.betType.includes('bot') || bet.betType === '2bot' || bet.betType === '3back') {
-                      grouped[key].botAmount = bet.amount;
-                    }
-                  });
-
-                  return Object.entries(grouped).map(([key, data]) => {
-                    // Get unique numbers
-                    const uniqueNumbers = [...new Set(data.bets.map(b => b.number))];
-                    
-                    // Format bet type labels
-                    const betTypeLabels = data.betTypes.map(bt => {
-                      if (bt === '2top' || bt === '3top') return 'บน';
-                      if (bt === '2bot' || bt === '3back') return 'ล่าง';
-                      if (bt === '2rev' || bt === '3rev') return 'กลับ';
-                      if (bt === '2dbl') return 'เบิ้ล';
-                      if (bt === '3tod') return 'โต๊ด';
-                      if (bt === 'run_top') return 'วิ่งบน';
-                      if (bt === 'run_bot') return 'วิ่งล่าง';
-                      return BET_TYPE_LABELS[bt] || bt;
-                    });
-                    
-                    const betTypeLabel = betTypeLabels.join(' x ');
-                    const amountLabel = data.topAmount > 0 && data.botAmount > 0 
-                      ? `${data.topAmount} x ${data.botAmount}`
-                      : `${data.topAmount || data.botAmount || data.bets[0]?.amount || 0}`;
-
-                    return (
-                      <div key={key} className="bg-white rounded px-1.5 py-1 text-black text-[11px]">
-                        {/* Header row: type | bet | amount | count */}
-                        <div className="flex items-center gap-1 border-b border-gray-200 pb-0.5 mb-0.5">
-                          <span className="text-gray-500 w-8">{data.digitType}</span>
-                          <span className="text-amber-600 flex-1">{betTypeLabel}</span>
-                          <span className="font-bold text-gray-800">฿{amountLabel}</span>
-                          <span className="text-gray-400 text-[10px] w-6 text-right">{uniqueNumbers.length}x</span>
-                        </div>
-                        {/* Numbers queue - inline scroll */}
-                        <div className="flex gap-0.5 overflow-x-auto scrollbar-hide">
-                          {uniqueNumbers.map((num, idx) => (
-                            <span key={idx} className="font-mono text-gray-700 bg-gray-100 px-1 rounded text-[11px] shrink-0">{num}</span>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-          </ScrollArea>
-          
           {/* Prize Check Section */}
-          <div className="p-3 border-t border-amber-900/30 bg-gradient-to-r from-green-900/20 to-emerald-900/20">
+          <div className="p-3 border-b border-amber-900/30 bg-gradient-to-r from-green-900/20 to-emerald-900/20">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-green-400 flex items-center gap-2">
                 <Trophy className="h-4 w-4" />
@@ -1333,7 +1233,11 @@ export default function LotteryTerminalPage() {
             )}
           </div>
           
-          <div className="p-2 border-t border-amber-900/30 space-y-2 bg-[#0f0f0f]">
+          {/* Spacer */}
+          <div className="flex-1" />
+          
+          {/* Action Buttons */}
+          <div className="p-3 border-t border-amber-900/30 space-y-2 bg-[#0f0f0f]">
             <div className="flex gap-2">
               <Button
                 onClick={clearAllBets}
@@ -1359,135 +1263,269 @@ export default function LotteryTerminalPage() {
         </div>
         
         {/* Main Content - Light Theme */}
-        <div className="flex-1 p-3 overflow-auto bg-[#f8f9fa]">
-          {/* Inline Operator Entry Row */}
-          <div className="bg-white border border-[#e9ecef] rounded-lg p-3 mb-3 shadow-sm">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Mode Toggle - Compact */}
-              <div className="flex border border-[#009bf2] rounded overflow-hidden">
-                <button
-                  onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
-                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '3' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'}`}
-                >
-                  3ตัว
-                </button>
-                <button
-                  onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
-                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'}`}
-                >
-                  2ตัว
-                </button>
+        <div className="flex-1 p-4 overflow-auto bg-[#f8f9fa]">
+          <div className="bg-white border border-[#e9ecef] rounded-lg shadow-sm">
+            
+            {/* ROW 1: Main Tabs - 4 columns */}
+            <div className="grid grid-cols-4 border-b border-[#e9ecef]">
+              <button
+                onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
+                className={`py-3 text-sm font-bold transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'
+                }`}
+              >
+                แทงเร็ว
+              </button>
+              <button
+                onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
+                className={`py-3 text-sm font-bold transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'
+                }`}
+              >
+                2ตัว/3ตัว
+              </button>
+              <button
+                onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
+                className={`py-3 text-sm font-bold transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '3' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'
+                }`}
+              >
+                วิ่ง
+              </button>
+              <button
+                onClick={() => setShowWinDialog(true)}
+                className="py-3 text-sm font-bold transition-colors bg-white text-[#009bf2] hover:bg-[#f0f8ff]"
+              >
+                จับวิน
+              </button>
+            </div>
+            
+            {/* ROW 2: Instruction Text Box - 2 columns */}
+            <div className="grid grid-cols-2 border-b border-[#e9ecef] bg-[#f8f9fa]">
+              <div className="p-3 border-r border-[#e9ecef]">
+                <p className="text-xs text-gray-600">พิมพ์ตัวเลข: กดปุ่มตัวเลข 0-9</p>
               </div>
-              
-              {/* Number Input - Prominent */}
-              <Input
-                ref={inputRef}
-                type="text"
-                inputMode="numeric"
-                value={currentInput}
-                onChange={handleInputChange}
-                onPaste={handlePaste}
-                placeholder={digitMode === '3' ? '___' : '__'}
-                className="w-24 h-10 text-2xl font-mono text-center bg-white border-2 border-[#ced4da] focus:border-[#009bf2] text-[#333333] placeholder:text-gray-400 rounded"
-              />
-              
-              {/* Bet Types - Inline Toggle */}
-              <div className="flex gap-1">
-                {currentBetTypes.map((betType) => (
-                  <button
-                    key={betType.id}
-                    onClick={() => toggleBetType(betType.id)}
-                    className={`px-2 py-1.5 text-xs font-bold rounded transition-colors ${
-                      selectedBetTypes.includes(betType.id)
-                        ? 'bg-[#009bf2] text-white'
-                        : 'bg-white text-[#009bf2] border border-[#009bf2] hover:bg-[#f0f8ff]'
-                    }`}
-                  >
-                    {betType.shortLabel}
-                  </button>
-                ))}
+              <div className="p-3">
+                <p className="text-xs text-gray-600">ลบตัวเลข: กด Backspace หรือ C</p>
               </div>
-              
-              {/* Price Input */}
-              <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-[#ced4da]">
-                <span className="text-gray-600 text-xs">฿</span>
+            </div>
+            
+            {/* ROW 3: Sub Categories - 5 columns */}
+            <div className="grid grid-cols-5 border-b border-[#e9ecef]">
+              <button
+                onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
+                className={`py-2.5 text-xs font-medium transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#333] hover:bg-[#f0f8ff]'
+                }`}
+              >
+                2 ตัว
+              </button>
+              <button
+                onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
+                className={`py-2.5 text-xs font-medium transition-colors border-r border-[#e9ecef] ${
+                  digitMode === '3' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#333] hover:bg-[#f0f8ff]'
+                }`}
+              >
+                3 ตัว
+              </button>
+              <button
+                onClick={addReverse}
+                className="py-2.5 text-xs font-medium transition-colors border-r border-[#e9ecef] bg-white text-[#333] hover:bg-[#f0f8ff]"
+              >
+                6 กลับ
+              </button>
+              <button
+                onClick={() => add19Gates('0')}
+                className="py-2.5 text-xs font-medium transition-colors border-r border-[#e9ecef] bg-white text-[#333] hover:bg-[#f0f8ff]"
+              >
+                รูด-19 ประตู
+              </button>
+              <button
+                onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
+                className="py-2.5 text-xs font-medium transition-colors bg-white text-[#333] hover:bg-[#f0f8ff]"
+              >
+                วิ่ง
+              </button>
+            </div>
+            
+            {/* ROW 4: Special Button - Doubles/Tong */}
+            <div className="p-3 border-b border-[#e9ecef]">
+              <button
+                onClick={addDoubles}
+                className="px-4 py-2 bg-[#009bf2] hover:bg-[#0086d4] text-white text-sm font-medium rounded"
+              >
+                + ใส่เลขเบิ้ล/ตอง
+              </button>
+            </div>
+            
+            {/* ROW 5: Input Form Row */}
+            <div className="p-3 border-b border-[#e9ecef]">
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Number Input */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-[#333]">ใส่เลข</span>
+                  <Input
+                    ref={inputRef}
+                    type="text"
+                    inputMode="numeric"
+                    value={currentInput}
+                    onChange={handleInputChange}
+                    onPaste={handlePaste}
+                    placeholder={digitMode === '3' ? '___' : '__'}
+                    className="w-24 h-9 text-lg font-mono text-center bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] placeholder:text-gray-400 rounded"
+                  />
+                </div>
+                
+                {/* Reverse Button */}
+                <button
+                  onClick={addReverse}
+                  className="px-3 py-2 bg-[#009bf2] hover:bg-[#0086d4] text-white text-sm font-medium rounded"
+                >
+                  กลับเลข
+                </button>
+                
+                {/* Price Input - Top */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-[#333]">ใส่ราคา บน</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10000}
+                    value={defaultPrice}
+                    onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-16 h-9 text-center bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] font-medium rounded"
+                  />
+                </div>
+                
+                {/* Price Input - Bottom */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-[#333]">ล่าง</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10000}
+                    value={defaultPrice}
+                    onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-16 h-9 text-center bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] font-medium rounded"
+                  />
+                </div>
+                
+                {/* Add Bill Button - Right aligned */}
+                <Button
+                  onClick={() => {
+                    if (currentInput.length === parseInt(digitMode) && selectedBetTypes.length > 0) {
+                      addBets(currentInput);
+                    }
+                  }}
+                  disabled={currentInput.length !== parseInt(digitMode) || selectedBetTypes.length === 0}
+                  className="ml-auto px-4 py-2 bg-[#009bf2] hover:bg-[#0086d4] text-white font-bold rounded"
+                >
+                  + เพิ่มบิล
+                </Button>
+              </div>
+            </div>
+            
+            {/* ROW 6: Summary Tables - Separate 2-digit and 3-digit */}
+            <div className="mx-3 mt-3 space-y-0">
+              {/* Dynamically render rows for 2-digit and 3-digit bets */}
+              {(() => {
+                // Group bets by digit length
+                const twoDigitBets = bets.filter(b => b.number.length === 2);
+                const threeDigitBets = bets.filter(b => b.number.length === 3);
+                
+                const renderRow = (digitBets: typeof bets, digitType: string, isFirst: boolean) => {
+                  if (digitBets.length === 0) return null;
+                  
+                  const uniqueNumbers = [...new Set(digitBets.map(b => b.number))];
+                  const topBets = digitBets.filter(b => b.betType.includes('top') || b.betType === '3top');
+                  const botBets = digitBets.filter(b => b.betType.includes('bot') || b.betType === '2bot' || b.betType === '3back');
+                  const topCount = topBets.length > 0 ? [...new Set(topBets.map(b => b.number))].length : 0;
+                  const botCount = botBets.length > 0 ? [...new Set(botBets.map(b => b.number))].length : 0;
+                  
+                  // Chunk numbers into groups of 20 max per line
+                  const chunkedNumbers: string[][] = [];
+                  for (let i = 0; i < uniqueNumbers.length; i += 20) {
+                    chunkedNumbers.push(uniqueNumbers.slice(i, i + 20));
+                  }
+                  
+                  return (
+                    <div key={digitType} className={`border border-[#333] ${isFirst ? 'rounded-t' : 'border-t-0 rounded-b'}`}>
+                      <div className="flex min-h-[60px]">
+                        {/* Left Cell - Type Info (centered stacked text) */}
+                        <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
+                          <p className="text-sm font-bold text-[#009bf2]">{digitType}</p>
+                          <p className="text-xs text-[#e91e63]">บน x ล่าง</p>
+                          <p className="text-[11px] text-gray-400">{topCount} x {botCount}</p>
+                        </div>
+                        
+                        {/* Center Cell - Numbers List (max 20 per line, no overflow) */}
+                        <div className="flex-1 p-2 overflow-hidden">
+                          {chunkedNumbers.map((chunk, chunkIdx) => (
+                            <div key={chunkIdx} className="leading-relaxed">
+                              {chunk.map((num, idx) => (
+                                <span key={idx} className="font-mono text-sm text-[#333] mr-2 inline-block">{num}</span>
+                              ))}
+                            </div>
+                          ))}
+                          {uniqueNumbers.length === 0 && (
+                            <span className="text-gray-400 text-sm">ยังไม่มีเลข</span>
+                          )}
+                        </div>
+                        
+                        {/* Right Cell - Edit Button (perfect square with hard border) */}
+                        <div className="w-12 shrink-0 border-l border-[#333] flex items-center justify-center bg-white">
+                          <button
+                            onClick={() => {
+                              // Clear only bets of this digit type
+                              setBets(prev => prev.filter(b => b.number.length !== (digitType === '2 ตัว' ? 2 : 3)));
+                            }}
+                            className="w-7 h-7 bg-[#e3f2fd] hover:bg-[#bbdefb] rounded-sm flex items-center justify-center"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-[#009bf2]" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                };
+                
+                const has2Digit = twoDigitBets.length > 0;
+                const has3Digit = threeDigitBets.length > 0;
+                
+                return (
+                  <>
+                    {renderRow(twoDigitBets, '2 ตัว', true)}
+                    {renderRow(threeDigitBets, '3 ตัว', !has2Digit)}
+                    {bets.length === 0 && (
+                      <div className="border border-[#333] rounded p-4 text-center text-gray-400">
+                        ยังไม่มีรายการ
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+            
+            {/* ROW 7: Memo and Total Row */}
+            <div className="flex items-center justify-between px-3 py-3 mt-2">
+              {/* Left: Memo Input */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-[#333] whitespace-nowrap">บันทึกช่วยจำ</span>
                 <Input
-                  type="number"
-                  min={1}
-                  max={10000}
-                  value={defaultPrice}
-                  onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
-                  className="w-14 bg-transparent border-0 text-center text-[#333333] font-bold text-sm p-0 h-6 focus-visible:ring-0"
+                  type="text"
+                  placeholder=""
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-52 h-8 text-sm bg-white border border-[#ced4da] focus:border-[#009bf2] text-[#333] rounded-sm"
                 />
               </div>
               
-              {/* Quick Amounts */}
-              <div className="flex gap-0.5">
-                {[1, 5, 10, 20, 50].map(amt => (
-                  <button
-                    key={amt}
-                    onClick={() => setDefaultPrice(amt)}
-                    className={`w-7 h-7 text-[10px] font-bold rounded ${defaultPrice === amt ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] border border-[#009bf2] hover:bg-[#f0f8ff]'}`}
-                  >
-                    {amt}
-                  </button>
-                ))}
+              {/* Right: Total - perfectly aligned */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-[#333] whitespace-nowrap">ยอดรวม (บาท)</span>
+                <span className="text-2xl font-bold text-[#333] min-w-[60px] text-right">{totalAmount}</span>
               </div>
-              
-              {/* Add Button */}
-              <Button
-                onClick={() => {
-                  if (currentInput.length === parseInt(digitMode) && selectedBetTypes.length > 0) {
-                    addBet(currentInput);
-                  }
-                }}
-                disabled={currentInput.length !== parseInt(digitMode) || selectedBetTypes.length === 0}
-                className="h-10 px-4 bg-[#009bf2] hover:bg-[#0086d4] text-white font-bold shadow-sm"
-              >
-                +เพิ่ม
-              </Button>
             </div>
-            
-            {/* Keyboard Hints - Ultra Compact */}
-            <div className="flex gap-2 mt-2 text-[9px] text-gray-500">
-              <span>Tab=สลับ</span>
-              <span>Enter=ส่ง</span>
-              <span>F1=บน</span>
-              <span>F2=ล่าง</span>
-              <span>F3=กลับ</span>
-            </div>
-          </div>
-          
-          {/* Quick Actions - Ultra Compact Inline */}
-          <div className="flex flex-wrap gap-2 mb-3 p-2 bg-white rounded border border-[#e9ecef] shadow-sm">
-            {/* Doubles */}
-            <button onClick={addDoubles} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#009bf2] hover:bg-[#0086d4] rounded text-xs text-white font-medium shadow-sm">
-              <Copy className="h-3 w-3" /> เบิ้ล/ตอง
-            </button>
-            
-            {/* 19 Gates - Inline */}
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-gray-600 mr-1">19ประตู:</span>
-              {[0,1,2,3,4,5,6,7,8,9].map(d => (
-                <button
-                  key={d}
-                  onClick={() => add19Gates(String(d))}
-                  className="w-5 h-5 text-[10px] font-bold rounded bg-white text-[#009bf2] border border-[#009bf2] hover:bg-[#f0f8ff]"
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-            
-            {/* Win Numbers */}
-            <button onClick={() => setShowWinDialog(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#009bf2] hover:bg-[#f0f8ff] rounded text-xs text-[#009bf2] font-medium">
-              <Trophy className="h-3 w-3" /> วิน
-            </button>
-            
-            {/* Reverse */}
-            <button onClick={addReverse} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#009bf2] hover:bg-[#f0f8ff] rounded text-xs text-[#009bf2] font-medium">
-              <RotateCcw className="h-3 w-3" /> กลับ
-            </button>
           </div>
           
           {/* Virtual Numpad for Mobile */}
@@ -1843,7 +1881,7 @@ export default function LotteryTerminalPage() {
               เลือกตัวเลขที่ต้องการ (อย่างน้อย 2 ตัว) แล้วระบบจะสร้างคู่ทั้งหมดให้
             </p>
             <p className="text-xs text-[#009bf2]/70 mb-4">
-              กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = สร้างเลข | Backspace = ลบตัวสุดท้าย
+              กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = สร้างเลข | Backspace = ล��ตัวสุดท้าย
             </p>
             
             <div className="grid grid-cols-5 gap-3 mb-4">
@@ -1865,7 +1903,7 @@ export default function LotteryTerminalPage() {
             
             {winSelectedDigits.length >= 2 && (() => {
               const winNumbers = generateWinNumbers(winSelectedDigits, digitMode);
-              // permutation ครบแล้ว ไม่ต้องกลับเพิ่ม
+              // permutation ครบแล���ว ไม่ต้องกลับเพิ่ม
               // 2 ตัว: จับคู่ครบทุกคู่ (n*(n-1) คู่)
               // 3 ตัว: 6 กลับครบ (n*(n-1)*(n-2) permutations)
               const betTypes = digitMode === '2' ? 2 : 2; // บน+ล่าง หรือ 3บน+โต๊ด
