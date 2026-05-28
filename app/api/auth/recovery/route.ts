@@ -5,8 +5,8 @@ import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 
-// Recovery secret - CHANGE THIS in production or use env var
-const RECOVERY_SECRET = process.env.RECOVERY_SECRET || 'finlotto-recovery-2024';
+// Hardcoded recovery secret for emergency access (temporary)
+const RECOVERY_SECRET = 'finlotto-recovery-2024';
 
 export async function POST(request: Request) {
   try {
