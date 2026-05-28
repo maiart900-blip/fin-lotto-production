@@ -922,7 +922,7 @@ export default function LotteryTerminalPage() {
   // รองรับสูงสุด 10 ตัว (0-9)
   const generateWinAndAdd = useCallback(() => {
     if (winSelectedDigits.length < 2) {
-      toast.error('กรุณาเลือกอย่างน้อย 2 ตัวเลข');
+      toast.error('กรุณาเลือกอย่างน้อย 2 ตัวเ��ข');
       return;
     }
     if (winSelectedDigits.length > 10) {
@@ -1163,132 +1163,31 @@ export default function LotteryTerminalPage() {
       </div>
       
       <div className="flex h-[calc(100vh-60px)]">
-        {/* Left Sidebar - Cart */}
-        <div className="w-72 bg-gradient-to-b from-[#111111] to-[#0a0a0a] border-r border-amber-900/30 flex flex-col">
+        {/* Left Sidebar - Minimal */}
+        <div className="w-64 bg-gradient-to-b from-[#111111] to-[#0a0a0a] border-r border-amber-900/30 flex flex-col">
           {/* Sticky Header with Totals */}
-          <div className="p-2 border-b border-amber-900/30 bg-[#0f0f0f] sticky top-0 z-10">
-            <div className="flex items-center justify-between">
+          <div className="p-3 border-b border-amber-900/30 bg-[#0f0f0f]">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-xl font-bold text-amber-400">฿{totalAmount.toLocaleString()}</span>
                 <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0">
                   {totalItems}
                 </Badge>
               </div>
-              {bets.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearAllBets}
-                  className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                >
-                  ล้าง
-                </Button>
-              )}
             </div>
             
-            {/* Customer Name Input - Compact */}
+            {/* Customer Name Input */}
             <Input
               type="text"
               placeholder="ชื่อลูกค้า"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="mt-1.5 bg-[#0a0a0a] border-amber-900/30 text-white placeholder:text-gray-600 text-xs h-7"
+              className="bg-[#0a0a0a] border-amber-900/30 text-white placeholder:text-gray-600 text-xs h-8"
             />
           </div>
           
-          <ScrollArea className="flex-1 p-1.5">
-            {bets.length === 0 ? (
-              <div className="text-center text-gray-500 py-6">
-                <Keyboard className="h-10 w-10 mx-auto mb-1.5 opacity-30" />
-                <p className="text-xs">ยังไม่มีรายการ</p>
-                <p className="text-[10px] mt-0.5 text-gray-600">พิมพ์เลขได้เลย</p>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {/* Group bets by digit type and bet type */}
-                {(() => {
-                  // Group by digit length (2 ตัว, 3 ตัว) then by bet type combination
-                  const grouped: Record<string, { 
-                    bets: BetItem[]; 
-                    digitType: string;
-                    topAmount: number; 
-                    botAmount: number;
-                    betTypes: string[];
-                  }> = {};
-                  
-                  bets.forEach(bet => {
-                    const digitType = bet.number.length === 2 ? '2 ตัว' : bet.number.length === 3 ? '3 ตัว' : 'วิ่ง';
-                    const key = `${digitType}-${bet.amount}`;
-                    
-                    if (!grouped[key]) {
-                      grouped[key] = { 
-                        bets: [], 
-                        digitType,
-                        topAmount: 0, 
-                        botAmount: 0,
-                        betTypes: []
-                      };
-                    }
-                    grouped[key].bets.push(bet);
-                    
-                    // Track bet types and amounts
-                    if (!grouped[key].betTypes.includes(bet.betType)) {
-                      grouped[key].betTypes.push(bet.betType);
-                    }
-                    if (bet.betType.includes('top') || bet.betType === '3top') {
-                      grouped[key].topAmount = bet.amount;
-                    }
-                    if (bet.betType.includes('bot') || bet.betType === '2bot' || bet.betType === '3back') {
-                      grouped[key].botAmount = bet.amount;
-                    }
-                  });
-
-                  return Object.entries(grouped).map(([key, data]) => {
-                    // Get unique numbers
-                    const uniqueNumbers = [...new Set(data.bets.map(b => b.number))];
-                    
-                    // Format bet type labels
-                    const betTypeLabels = data.betTypes.map(bt => {
-                      if (bt === '2top' || bt === '3top') return 'บน';
-                      if (bt === '2bot' || bt === '3back') return 'ล่าง';
-                      if (bt === '2rev' || bt === '3rev') return 'กลับ';
-                      if (bt === '2dbl') return 'เบิ้ล';
-                      if (bt === '3tod') return 'โต๊ด';
-                      if (bt === 'run_top') return 'วิ่งบน';
-                      if (bt === 'run_bot') return 'วิ่งล่าง';
-                      return BET_TYPE_LABELS[bt] || bt;
-                    });
-                    
-                    const betTypeLabel = betTypeLabels.join(' x ');
-                    const amountLabel = data.topAmount > 0 && data.botAmount > 0 
-                      ? `${data.topAmount} x ${data.botAmount}`
-                      : `${data.topAmount || data.botAmount || data.bets[0]?.amount || 0}`;
-
-                    return (
-                      <div key={key} className="bg-white rounded px-1.5 py-1 text-black text-[11px]">
-                        {/* Header row: type | bet | amount | count */}
-                        <div className="flex items-center gap-1 border-b border-gray-200 pb-0.5 mb-0.5">
-                          <span className="text-gray-500 w-8">{data.digitType}</span>
-                          <span className="text-amber-600 flex-1">{betTypeLabel}</span>
-                          <span className="font-bold text-gray-800">฿{amountLabel}</span>
-                          <span className="text-gray-400 text-[10px] w-6 text-right">{uniqueNumbers.length}x</span>
-                        </div>
-                        {/* Numbers queue - inline scroll */}
-                        <div className="flex gap-0.5 overflow-x-auto scrollbar-hide">
-                          {uniqueNumbers.map((num, idx) => (
-                            <span key={idx} className="font-mono text-gray-700 bg-gray-100 px-1 rounded text-[11px] shrink-0">{num}</span>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-          </ScrollArea>
-          
           {/* Prize Check Section */}
-          <div className="p-3 border-t border-amber-900/30 bg-gradient-to-r from-green-900/20 to-emerald-900/20">
+          <div className="p-3 border-b border-amber-900/30 bg-gradient-to-r from-green-900/20 to-emerald-900/20">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-green-400 flex items-center gap-2">
                 <Trophy className="h-4 w-4" />
@@ -1315,8 +1214,111 @@ export default function LotteryTerminalPage() {
                     <p className="text-xl font-bold text-blue-400 font-mono">
                       {latestResult.two_bot || '-'}
                     </p>
-                  </div>
+            </div>
+          </div>
+          
+          {/* Bill Summary Section - Moved from sidebar */}
+          <div className="mt-4 bg-white border border-[#ced4da] rounded-sm shadow-sm">
+            <div className="p-3 border-b border-[#e9ecef] flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#333] flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#009bf2]" />
+                รายการโพย
+              </h3>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-[#009bf2]/10 text-[#009bf2] border-[#009bf2]/30 text-xs">
+                  {bets.length} รายการ
+                </Badge>
+                <span className="font-bold text-[#333]">฿{totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
+            
+            <div className="p-3 min-h-[100px]">
+              {bets.length === 0 ? (
+                <div className="text-center text-gray-400 py-6">
+                  <Keyboard className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">ยังไม่มีรายการ</p>
+                  <p className="text-xs mt-1 text-gray-400">พิมพ์เลขได้เลย</p>
                 </div>
+              ) : (
+                <div className="space-y-2">
+                  {/* Group bets by digit type and bet type */}
+                  {(() => {
+                    const grouped: Record<string, { 
+                      bets: BetItem[]; 
+                      digitType: string;
+                      topAmount: number; 
+                      botAmount: number;
+                      betTypes: string[];
+                    }> = {};
+                    
+                    bets.forEach(bet => {
+                      const digitType = bet.number.length === 2 ? '2 ตัว' : bet.number.length === 3 ? '3 ตัว' : 'วิ่ง';
+                      const key = `${digitType}-${bet.amount}`;
+                      
+                      if (!grouped[key]) {
+                        grouped[key] = { 
+                          bets: [], 
+                          digitType,
+                          topAmount: 0, 
+                          botAmount: 0,
+                          betTypes: []
+                        };
+                      }
+                      grouped[key].bets.push(bet);
+                      
+                      if (!grouped[key].betTypes.includes(bet.betType)) {
+                        grouped[key].betTypes.push(bet.betType);
+                      }
+                      if (bet.betType.includes('top') || bet.betType === '3top') {
+                        grouped[key].topAmount = bet.amount;
+                      }
+                      if (bet.betType.includes('bot') || bet.betType === '2bot' || bet.betType === '3back') {
+                        grouped[key].botAmount = bet.amount;
+                      }
+                    });
+
+                    return Object.entries(grouped).map(([key, data]) => {
+                      const uniqueNumbers = [...new Set(data.bets.map(b => b.number))];
+                      
+                      const betTypeLabels = data.betTypes.map(bt => {
+                        if (bt === '2top' || bt === '3top') return 'บน';
+                        if (bt === '2bot' || bt === '3back') return 'ล่าง';
+                        if (bt === '2rev' || bt === '3rev') return 'กลับ';
+                        if (bt === '2dbl') return 'เบิ้ล';
+                        if (bt === '3tod') return 'โต๊ด';
+                        if (bt === 'run_top') return 'วิ่งบน';
+                        if (bt === 'run_bot') return 'วิ่งล่าง';
+                        return BET_TYPE_LABELS[bt] || bt;
+                      });
+                      
+                      const betTypeLabel = betTypeLabels.join(' x ');
+                      const amountLabel = data.topAmount > 0 && data.botAmount > 0 
+                        ? `${data.topAmount} x ${data.botAmount}`
+                        : `${data.topAmount || data.botAmount || data.bets[0]?.amount || 0}`;
+
+                      return (
+                        <div key={key} className="bg-[#f8f9fa] border border-[#e9ecef] rounded px-3 py-2">
+                          {/* Header row */}
+                          <div className="flex items-center gap-2 border-b border-[#e9ecef] pb-1.5 mb-1.5">
+                            <span className="text-xs text-gray-500 w-12">{data.digitType}</span>
+                            <span className="text-xs text-[#009bf2] flex-1">{betTypeLabel}</span>
+                            <span className="font-bold text-sm text-[#333]">฿{amountLabel}</span>
+                            <span className="text-xs text-gray-400 w-8 text-right">{uniqueNumbers.length}x</span>
+                          </div>
+                          {/* Numbers */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {uniqueNumbers.map((num, idx) => (
+                              <span key={idx} className="font-mono text-sm text-[#333] bg-white px-2 py-0.5 rounded border border-[#ced4da]">{num}</span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
                 <Button
                   onClick={checkPrizes}
                   disabled={bets.length === 0}
@@ -1334,7 +1336,11 @@ export default function LotteryTerminalPage() {
             )}
           </div>
           
-          <div className="p-2 border-t border-amber-900/30 space-y-2 bg-[#0f0f0f]">
+          {/* Spacer */}
+          <div className="flex-1" />
+          
+          {/* Action Buttons */}
+          <div className="p-3 border-t border-amber-900/30 space-y-2 bg-[#0f0f0f]">
             <div className="flex gap-2">
               <Button
                 onClick={clearAllBets}
@@ -1932,7 +1938,7 @@ export default function LotteryTerminalPage() {
             
             {winSelectedDigits.length >= 2 && (() => {
               const winNumbers = generateWinNumbers(winSelectedDigits, digitMode);
-              // permutation ครบแล้ว ไม่ต้องกลับเพิ่ม
+              // permutation ครบแล���ว ไม่ต้องกลับเพิ่ม
               // 2 ตัว: จับคู่ครบทุกคู่ (n*(n-1) คู่)
               // 3 ตัว: 6 กลับครบ (n*(n-1)*(n-2) permutations)
               const betTypes = digitMode === '2' ? 2 : 2; // บน+ล่าง หรือ 3บน+โต๊ด
