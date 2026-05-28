@@ -33,7 +33,7 @@ export function NumericKeypad({
   };
 
   return (
-    <div className={cn('grid grid-cols-3 gap-3 p-4 bg-white rounded-2xl border-4 border-[#D4AF37]', className)}>
+    <div className={cn('grid grid-cols-3 gap-3 p-4 bg-white rounded-xl border-2 border-[#D4AF37]', className)}>
       {keys.map((key) => (
         <button
           key={key}
@@ -41,12 +41,12 @@ export function NumericKeypad({
           disabled={disabled}
           onClick={() => handleKeyPress(key)}
           className={cn(
-            'h-16 rounded-xl font-bold text-2xl transition-all duration-150 border-2',
-            'active:scale-95 shadow-md',
+            'h-14 rounded-xl font-bold text-2xl transition-all duration-150 shadow-md',
+            'active:scale-95 active:shadow-sm',
             'disabled:opacity-50 disabled:cursor-not-allowed',
-            key === 'delete' && 'bg-red-50 text-red-600 hover:bg-red-100 border-red-300',
-            key === 'clear' && 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300 text-base font-semibold',
-            !['delete', 'clear'].includes(key) && 'bg-white text-gray-900 hover:bg-[#D4AF37]/10 border-[#D4AF37] hover:border-[#B8860B]'
+            key === 'delete' && 'bg-gradient-to-b from-red-50 to-red-100 text-red-600 hover:from-red-100 hover:to-red-200 border-2 border-red-300',
+            key === 'clear' && 'bg-gradient-to-b from-gray-50 to-gray-100 text-gray-600 hover:from-gray-100 hover:to-gray-200 border-2 border-gray-300 text-sm font-semibold',
+            !['delete', 'clear'].includes(key) && 'bg-white text-black hover:bg-[#D4AF37]/10 border-2 border-[#D4AF37] hover:border-[#B8860B]'
           )}
         >
           {key === 'delete' ? (
