@@ -1287,6 +1287,7 @@ export default function LottoBettingPage() {
       const res = await fetch('/api/customer/buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
       
