@@ -692,7 +692,7 @@ export default function LotteryTerminalPage() {
     }
   }, [currentInput, digitMode, addBets]);
   
-  // Handle paste - รองรับการ paste หลายเลขพร���อมกัน
+  // Handle paste - รองรับการ paste หลายเลขพ�����อมกัน
   // รูปแบบที่รองรับ: "12 34 56", "12,34,56", "12\n34\n56", "123456" (แยกตาม digit mode)
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -1079,22 +1079,19 @@ export default function LotteryTerminalPage() {
         @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
       `}</style>
       
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#1a1a1a] via-[#0f0f0f] to-[#1a1a1a] border-b border-amber-900/30 px-6 py-4">
+      {/* Header - Compact */}
+      <div className="bg-gradient-to-r from-[#1a1a1a] via-[#0f0f0f] to-[#1a1a1a] border-b border-amber-900/30 px-4 py-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Crown className="h-7 w-7 text-amber-500" />
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-600 bg-clip-text text-transparent">
-                FIN LOTTO R+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Crown className="h-5 w-5 text-amber-500" />
+              <h1 className="text-lg font-bold bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-600 bg-clip-text text-transparent">
+                FIN LOTTO
               </h1>
-              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/50 text-xs">
-                PREMIUM
-              </Badge>
             </div>
             
             <Select value={selectedLotteryId} onValueChange={setSelectedLotteryId}>
-              <SelectTrigger className="w-[220px] bg-[#1a1a1a] border-amber-900/50 text-white">
+              <SelectTrigger className="w-[200px] h-8 bg-[#1a1a1a] border-amber-900/50 text-white text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[#1a1a1a] border-amber-900/50">
@@ -1112,59 +1109,58 @@ export default function LotteryTerminalPage() {
             </Select>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/30">
-              <Clock className="h-4 w-4" />
-              <span className="font-mono font-semibold">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/30">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="font-mono text-sm font-semibold">
                 {currentTime.toLocaleTimeString('th-TH')}
               </span>
             </div>
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/50 px-3 py-1">
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/50 px-2 py-0.5 text-xs">
               เปิดรับ
             </Badge>
           </div>
         </div>
       </div>
       
-      <div className="flex h-[calc(100vh-80px)]">
+      <div className="flex h-[calc(100vh-60px)]">
         {/* Left Sidebar - Cart */}
-        <div className="w-80 bg-gradient-to-b from-[#111111] to-[#0a0a0a] border-r border-amber-900/30 flex flex-col">
-          <div className="p-4 border-b border-amber-900/30 bg-[#0f0f0f]">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-amber-400 flex items-center gap-2">
-                <Hash className="h-5 w-5" />
+        <div className="w-72 bg-gradient-to-b from-[#111111] to-[#0a0a0a] border-r border-amber-900/30 flex flex-col">
+          <div className="p-3 border-b border-amber-900/30 bg-[#0f0f0f]">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-semibold text-amber-400 flex items-center gap-1.5 text-sm">
+                <Hash className="h-4 w-4" />
                 รายการโพย
               </h2>
-              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
                 {totalItems} รายการ
               </Badge>
             </div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
+            <div className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
               ฿{totalAmount.toLocaleString()}
             </div>
-            <p className="text-xs text-gray-500 mt-1">ยอดรวมทั้งหมด</p>
             
             {/* Customer Name Input */}
-            <div className="mt-3">
+            <div className="mt-2">
               <Input
                 type="text"
-                placeholder="ชื่อลูกค้า (ไม่บังคับ)"
+                placeholder="ชื่อลูกค้า"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="bg-[#0a0a0a] border-amber-900/30 text-white placeholder:text-gray-600 text-sm"
+                className="bg-[#0a0a0a] border-amber-900/30 text-white placeholder:text-gray-600 text-sm h-8"
               />
             </div>
           </div>
           
-          <ScrollArea className="flex-1 p-3">
+          <ScrollArea className="flex-1 p-2">
             {bets.length === 0 ? (
-              <div className="text-center text-gray-500 py-12">
-                <Keyboard className="h-16 w-16 mx-auto mb-3 opacity-30" />
-                <p className="font-medium">ยังไม่มีรายการ</p>
-                <p className="text-xs mt-1">พิมพ์เลขบนคีย์บอร์ดได้เลย</p>
+              <div className="text-center text-gray-500 py-8">
+                <Keyboard className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">ยังไม่มีรายการ</p>
+                <p className="text-xs mt-1">พิมพ์เลขได้เลย</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {/* Group bets by digit type and bet type */}
                 {(() => {
                   // Group by digit length (2 ตัว, 3 ตัว) then by bet type combination
@@ -1363,40 +1359,48 @@ export default function LotteryTerminalPage() {
                     }}
                     className="w-20 bg-transparent border-0 text-center text-amber-400 font-bold text-xl p-0 focus-visible:ring-0"
                   />
-                  <span className="text-gray-400 text-sm">บาท</span>
+                  <span className="text-gray-400 text-xs">บาท</span>
+                </div>
+                
+                {/* Quick Amount Buttons */}
+                <div className="flex gap-1">
+                  {[1, 5, 10, 20, 50, 100].map(amt => (
+                    <Button
+                      key={amt}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDefaultPrice(amt)}
+                      className={`h-7 px-2 text-xs ${defaultPrice === amt ? 'bg-amber-500 text-black border-amber-500' : 'border-gray-700 text-gray-400 hover:border-amber-500/50'}`}
+                    >
+                      {amt}
+                    </Button>
+                  ))}
                 </div>
               </div>
               
-              {/* Bet Type Multi-Select */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm text-gray-400">เลือกประเภทการแทง (เลือกได้หลายประเภท)</span>
-                  <Badge className="bg-amber-500/20 text-amber-400 text-xs">
-                    เลือก {selectedBetTypes.length} ประเภท
-                  </Badge>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-center">
+              {/* Bet Type Multi-Select - Compact */}
+              <div className="mb-4">
+                <div className="flex flex-wrap gap-1.5 justify-center">
                   {currentBetTypes.map((betType) => (
                     <Button
                       key={betType.id}
                       variant="outline"
                       size="sm"
                       onClick={() => toggleBetType(betType.id)}
-                      className={`transition-all ${
+                      className={`h-7 px-2 text-xs transition-all ${
                         selectedBetTypes.includes(betType.id)
-                          ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black border-amber-500 hover:from-amber-600 hover:to-yellow-600 font-bold shadow-lg shadow-amber-500/20'
-                          : 'border-gray-700 text-gray-400 hover:border-amber-500/50 hover:text-amber-400 hover:bg-amber-900/10'
+                          ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black border-amber-500 font-bold'
+                          : 'border-gray-700 text-gray-400 hover:border-amber-500/50 hover:text-amber-400'
                       }`}
                     >
-                      {betType.label}
+                      {betType.shortLabel}
                     </Button>
                   ))}
                 </div>
               </div>
               
               {/* Main Input */}
-              <div className="relative max-w-md mx-auto">
+              <div className="relative max-w-sm mx-auto">
                 <Input
                   ref={inputRef}
                   type="text"
@@ -1404,29 +1408,29 @@ export default function LotteryTerminalPage() {
                   value={currentInput}
                   onChange={handleInputChange}
                   onPaste={handlePaste}
-                  placeholder={`พิมพ์เลข ${digitMode} ตัว... (Paste ได้)`}
-                  className="w-full h-24 text-5xl font-mono text-center bg-[#0a0a0a] border-2 border-amber-900/50 focus:border-amber-500 text-amber-400 placeholder:text-gray-700 rounded-xl shadow-inner"
+                  placeholder={`พิมพ์เลข ${digitMode} ตัว`}
+                  className="w-full h-14 text-3xl font-mono text-center bg-[#0a0a0a] border-2 border-amber-900/50 focus:border-amber-500 text-amber-400 placeholder:text-gray-700 rounded-lg shadow-inner"
                 />
                 {currentInput && (
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setCurrentInput('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white h-8 w-8"
                   >
-                    <X className="h-6 w-6" />
+                    <X className="h-5 w-5" />
                   </Button>
                 )}
               </div>
               
               {/* Input Indicators */}
-              <div className="flex justify-center gap-3 mt-6">
+              <div className="flex justify-center gap-2 mt-2">
                 {Array.from({ length: digitMode === '3' ? 3 : 2 }).map((_, i) => (
                   <div
                     key={i}
-                    className={`w-16 h-16 rounded-xl border-2 flex items-center justify-center text-3xl font-mono font-bold transition-all ${
+                    className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center text-2xl font-mono font-bold transition-all ${
                       currentInput[i]
-                        ? 'bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border-amber-500 text-amber-400 shadow-lg shadow-amber-500/20'
+                        ? 'bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border-amber-500 text-amber-400'
                         : 'bg-[#0a0a0a] border-gray-800 text-gray-700'
                     }`}
                   >
@@ -1437,9 +1441,9 @@ export default function LotteryTerminalPage() {
               
               {/* Selected Types Preview */}
               {selectedBetTypes.length > 0 && (
-                <div className="flex justify-center gap-2 mt-4 flex-wrap">
+                <div className="flex justify-center gap-1.5 mt-3 flex-wrap">
                   {selectedBetTypes.map(typeId => (
-                    <Badge key={typeId} className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                    <Badge key={typeId} className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
                       {BET_TYPE_LABELS[typeId]}
                     </Badge>
                   ))}
@@ -1447,58 +1451,55 @@ export default function LotteryTerminalPage() {
               )}
               
               {/* Keyboard Hints */}
-              <div className="flex justify-center gap-4 mt-6">
-                <span className="px-3 py-1.5 bg-[#1a1a1a] rounded-lg text-xs text-gray-500 border border-gray-800">
-                  Tab = สลับ 2/3 ตัว
+              <div className="flex justify-center gap-3 mt-4">
+                <span className="px-2 py-1 bg-[#1a1a1a] rounded text-xs text-gray-500 border border-gray-800">
+                  Tab = 2/3
                 </span>
-                <span className="px-3 py-1.5 bg-[#1a1a1a] rounded-lg text-xs text-gray-500 border border-gray-800">
+                <span className="px-2 py-1 bg-[#1a1a1a] rounded text-xs text-gray-500 border border-gray-800">
                   Esc = ล้าง
                 </span>
-                <span className="px-3 py-1.5 bg-[#1a1a1a] rounded-lg text-xs text-gray-500 border border-gray-800">
-                  Enter = ส่งโพย
+                <span className="px-2 py-1 bg-[#1a1a1a] rounded text-xs text-gray-500 border border-gray-800">
+                  Enter = ส่ง
                 </span>
               </div>
             </CardContent>
           </Card>
           
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             {/* Doubles */}
             <Card 
-              className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-amber-900/30 hover:border-amber-500/50 cursor-pointer transition-all hover:shadow-lg hover:shadow-amber-500/10 group"
+              className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-amber-900/30 hover:border-amber-500/50 cursor-pointer transition-all group"
               onClick={addDoubles}
             >
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 flex items-center justify-center border border-amber-500/30 group-hover:scale-110 transition-transform">
-                  <Copy className="h-6 w-6 text-amber-500" />
+              <CardContent className="p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/20 to-yellow-500/10 flex items-center justify-center border border-amber-500/30 group-hover:scale-110 transition-transform">
+                  <Copy className="h-5 w-5 text-amber-500" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white">เลขเบิ้ล</h3>
-                  <p className="text-xs text-gray-500">00, 11, 22...99</p>
+                  <h3 className="font-bold text-white text-sm">เลขเบิ้ล</h3>
+                  <p className="text-xs text-gray-500">00-99</p>
                 </div>
               </CardContent>
             </Card>
             
             {/* 19 Gates */}
             <Card className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-purple-900/30 hover:border-purple-500/50 transition-all">
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/10 flex items-center justify-center border border-purple-500/30">
-                    <Grid3X3 className="h-6 w-6 text-purple-500" />
+              <CardContent className="p-3">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/10 flex items-center justify-center border border-purple-500/30">
+                    <Grid3X3 className="h-4 w-4 text-purple-500" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white">19 ประตู</h3>
-                    <p className="text-xs text-gray-500">เลือกตัวเลข</p>
-                  </div>
+                  <h3 className="font-bold text-white text-sm">19 ประตู</h3>
                 </div>
-                <div className="grid grid-cols-5 gap-1.5">
+                <div className="grid grid-cols-5 gap-1">
                   {[0,1,2,3,4,5,6,7,8,9].map(d => (
                     <Button
                       key={d}
                       variant="outline"
                       size="sm"
                       onClick={() => add19Gates(String(d))}
-                      className="h-9 border-purple-900/50 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 hover:border-purple-500/50 font-bold"
+                      className="h-7 text-xs border-purple-900/50 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 hover:border-purple-500/50 font-bold"
                     >
                       {d}
                     </Button>
@@ -1509,32 +1510,32 @@ export default function LotteryTerminalPage() {
             
             {/* Win Numbers */}
             <Card 
-              className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-green-900/30 hover:border-green-500/50 cursor-pointer transition-all hover:shadow-lg hover:shadow-green-500/10 group"
+              className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-green-900/30 hover:border-green-500/50 cursor-pointer transition-all group"
               onClick={() => setShowWinDialog(true)}
             >
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/10 flex items-center justify-center border border-green-500/30 group-hover:scale-110 transition-transform">
-                  <Trophy className="h-6 w-6 text-green-500" />
+              <CardContent className="p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/10 flex items-center justify-center border border-green-500/30 group-hover:scale-110 transition-transform">
+                  <Trophy className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white">วินเลข</h3>
-                  <p className="text-xs text-gray-500">สร้างคู่ตัวเลข</p>
+                  <h3 className="font-bold text-white text-sm">วินเลข</h3>
+                  <p className="text-xs text-gray-500">สร้างคู่</p>
                 </div>
               </CardContent>
             </Card>
             
             {/* Reverse */}
             <Card 
-              className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-blue-900/30 hover:border-blue-500/50 cursor-pointer transition-all hover:shadow-lg hover:shadow-blue-500/10 group"
+              className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-blue-900/30 hover:border-blue-500/50 cursor-pointer transition-all group"
               onClick={addReverse}
             >
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/10 flex items-center justify-center border border-blue-500/30 group-hover:scale-110 transition-transform">
-                  <RotateCcw className="h-6 w-6 text-blue-500" />
+              <CardContent className="p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/10 flex items-center justify-center border border-blue-500/30 group-hover:scale-110 transition-transform">
+                  <RotateCcw className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white">กลับเลข</h3>
-                  <p className="text-xs text-gray-500">สร้างเลขกลับ</p>
+                  <h3 className="font-bold text-white text-sm">กลับเลข</h3>
+                  <p className="text-xs text-gray-500">สลับหลัก</p>
                 </div>
               </CardContent>
             </Card>
@@ -1542,9 +1543,9 @@ export default function LotteryTerminalPage() {
           
           {/* Virtual Numpad for Mobile */}
           <Card className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-amber-900/30 lg:hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
-                <Keyboard className="h-4 w-4" />
+            <CardHeader className="py-2 px-3">
+              <CardTitle className="text-xs text-gray-400 flex items-center gap-2">
+                <Keyboard className="h-3 w-3" />
                 แป้นพิมพ์
               </CardTitle>
             </CardHeader>
@@ -1722,7 +1723,7 @@ export default function LotteryTerminalPage() {
             ) : (
               <div className="p-8 text-center">
                 <FileText className="h-12 w-12 text-gray-700 mx-auto mb-2" />
-                <p className="text-gray-500">ยังไม่มีโพยวั��นี้</p>
+                <p className="text-gray-500">ยั���ไม่มีโพยวั��นี้</p>
               </div>
             )}
           </CardContent>
