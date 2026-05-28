@@ -475,7 +475,7 @@ export default function LotteryTerminalPage() {
       if (prev.includes(betTypeId)) {
         // Don't allow deselecting if it's the only one
         if (prev.length === 1) {
-          toast.error('ต้องเลือกประเภทแทงอย่างน้อย 1 ประเภท');
+          toast.error('ต้องเลือ��ประเภทแทงอย่างน้อย 1 ประเภท');
           return prev;
         }
         return prev.filter(id => id !== betTypeId);
@@ -916,7 +916,7 @@ export default function LotteryTerminalPage() {
     const winNumbers = generateWinNumbers(winSelectedDigits, digitMode);
     
     // กำหนด betTypes ตาม mode
-    // 2 ตัว: บน + ล่าง
+    // 2 ตัว: บน + ล่า���
     // 3 ตัว: 3บน + โต๊ด
     const betTypes = digitMode === '2' ? ['2top', '2bot'] : ['3top', '3tod'];
     const newBets: BetItem[] = [];
@@ -1506,8 +1506,21 @@ export default function LotteryTerminalPage() {
                     {renderRow(twoDigitBets, '2 ตัว', true)}
                     {renderRow(threeDigitBets, '3 ตัว', !has2Digit)}
                     {bets.length === 0 && (
-                      <div className="border border-[#333] rounded p-4 text-center text-gray-400">
-                        ยังไม่มีรายการ
+                      <div className="border border-[#333] rounded">
+                        <div className="flex min-h-[60px]">
+                          {/* Left Cell - Shows current price state */}
+                          <div className="w-24 shrink-0 border-r border-[#333] bg-[#f8f9fa] flex flex-col items-center justify-center py-2">
+                            <p className="text-sm font-bold text-[#009bf2]">{digitMode} ตัว</p>
+                            <p className="text-xs text-[#e91e63]">{priceTop} x {priceBot}</p>
+                            <p className="text-[11px] text-gray-400">0 x 0</p>
+                          </div>
+                          {/* Center Cell - Empty state */}
+                          <div className="flex-1 p-2 flex items-center justify-center">
+                            <span className="text-gray-400 text-sm">ยังไม่มีเลข</span>
+                          </div>
+                          {/* Right Cell - Placeholder */}
+                          <div className="w-12 shrink-0 border-l border-[#333] bg-white" />
+                        </div>
                       </div>
                     )}
                   </>
