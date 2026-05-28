@@ -1751,7 +1751,7 @@ export default function LottoBettingPage() {
                             onCheckedChange={(c) => setInclude2Bot(!!c)}
                             className="border-emerald-400 data-[state=checked]:bg-emerald-400"
                           />
-                          <span className="text-emerald-300 text-sm">2 ตัวล่าง (x95)</span>
+                          <span className="text-emerald-300 text-sm">2 ต��วล่าง (x95)</span>
                         </label>
                       </div>
                       <p className="text-fuchsia-300/70 text-xs">
@@ -2228,56 +2228,56 @@ export default function LottoBettingPage() {
         </div>
       </div>
 
-      {/* Confirm Dialog */}
+      {/* Confirm Dialog - Premium White & Gold Theme */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-md">
+        <DialogContent className="bg-white border-4 border-[#D4AF37] text-black max-w-md shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-amber-400 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
+            <DialogTitle className="text-[#B8860B] flex items-center gap-2 text-xl font-bold">
+              <CheckCircle className="w-6 h-6" />
               ยืนยันการส่งโพย
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="bg-slate-700/50 rounded-lg p-4">
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-400">หวย</span>
-                <span className="text-white">{lottery.name}</span>
+            <div className="bg-gray-50 rounded-xl p-4 border-2 border-[#D4AF37]/30">
+              <div className="flex justify-between mb-3">
+                <span className="text-gray-600">หวย</span>
+                <span className="text-black font-semibold">{lottery?.name}</span>
               </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-400">จำนวนรายการ</span>
-                <span className="text-white">{totals.count} รายการ</span>
+              <div className="flex justify-between mb-3">
+                <span className="text-gray-600">จำนวนรายการ</span>
+                <span className="text-black font-semibold">{totals.count} รายการ</span>
               </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-400">ยอดรวม</span>
-                <span className="text-amber-400 font-semibold">{totals.total.toLocaleString()} บาท</span>
+              <div className="flex justify-between mb-3">
+                <span className="text-gray-600">ยอดรวม</span>
+                <span className="text-[#B8860B] font-bold text-lg">{totals.total.toLocaleString()} บาท</span>
               </div>
-              <div className="border-t border-slate-600 mt-3 pt-3">
-                <div className="flex justify-between mb-1">
-                  <span className="text-gray-400">เครดิตก่อนแทง</span>
-                  <span className="text-white">{(customer?.credit_balance || 0).toLocaleString()} บาท</span>
+              <div className="border-t-2 border-[#D4AF37]/20 mt-3 pt-3">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">เครดิตก่อนแทง</span>
+                  <span className="text-black font-medium">{(customer?.credit_balance || 0).toLocaleString()} บาท</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">เครดิตหลังแทง</span>
-                  <span className="text-emerald-400 font-semibold">
+                  <span className="text-gray-600">เครดิตหลังแทง</span>
+                  <span className="text-green-600 font-bold">
                     {((customer?.credit_balance || 0) - totals.total).toLocaleString()} บาท
                   </span>
                 </div>
               </div>
             </div>
-            <p className="text-sm text-gray-400 text-center">
+            <p className="text-sm text-gray-500 text-center">
               สามารถยกเลิกโพยได้ภายใน 30 นาที
             </p>
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-3 mt-4">
             <Button
               variant="outline"
-              className="border-slate-600 text-gray-300"
+              className="border-2 border-gray-300 text-gray-700 hover:bg-gray-100 font-medium"
               onClick={() => setShowConfirmDialog(false)}
             >
               ยกเลิก
             </Button>
             <Button
-              className="bg-gradient-to-r from-amber-500 to-orange-500 text-white min-w-[120px]"
+              className="bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#996515] text-white min-w-[140px] font-bold shadow-lg shadow-[#D4AF37]/30 border-2 border-[#B8860B]"
               onClick={confirmSubmit}
               disabled={isSubmitting}
             >
