@@ -201,7 +201,7 @@ function RegisterContent() {
 
   return (
     <div 
-      className="min-h-screen bg-gradient-to-b from-[#0a2e3d] to-[#051d2a] relative overflow-x-hidden"
+      className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 relative overflow-x-hidden"
       style={siteSettings?.login_background_url ? {
         backgroundImage: `url(${siteSettings.login_background_url})`,
         backgroundSize: 'cover',
@@ -212,21 +212,21 @@ function RegisterContent() {
       {/* Animated Background - only show if no custom background */}
       {!siteSettings?.login_background_url && (
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-[#D4AF37]/10 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
       )}
       
       {/* Dark overlay for custom background */}
       {siteSettings?.login_background_url && (
-        <div className="fixed inset-0 bg-black/60 pointer-events-none" />
+        <div className="fixed inset-0 bg-white/80 pointer-events-none" />
       )}
 
       {/* Header */}
       <header className="relative z-10 px-4 py-3">
-        <Link href="/c/login" className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors">
+        <Link href="/c/login" className="inline-flex items-center gap-2 text-gray-700 hover:text-[#D4AF37] transition-colors">
           <ArrowLeft className="size-5" />
-          <span className="text-sm">กลับ</span>
+          <span className="text-sm font-medium">กลับ</span>
         </Link>
       </header>
 
@@ -239,12 +239,12 @@ function RegisterContent() {
               <img
                 src={siteSettings.logo_url}
                 alt={siteSettings?.site_name || 'FIN LOTTO'}
-                className="h-16 w-auto drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]"
+                className="h-16 w-auto drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]"
               />
             ) : (
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl blur-lg opacity-50 animate-pulse" />
-                <div className="relative size-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-2xl border border-white/20">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] rounded-2xl blur-lg opacity-50 animate-pulse" />
+                <div className="relative size-14 rounded-2xl bg-gradient-to-br from-[#D4AF37] to-[#B8860B] flex items-center justify-center shadow-2xl border-2 border-white">
                   <Crown className="size-7 text-white drop-shadow-lg" />
                 </div>
               </div>
@@ -262,42 +262,42 @@ function RegisterContent() {
                 <div key={s} className="flex items-center gap-2">
                   <div className={`size-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
                     step >= s 
-                      ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white' 
-                      : 'bg-white/10 text-white/40'
+                      ? 'bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-white shadow-lg' 
+                      : 'bg-gray-200 text-gray-500'
                   }`}>
                     {step > s ? <CheckCircle2 className="size-4" /> : s}
                   </div>
                   {s < 3 && (
-                    <div className={`w-8 h-0.5 transition-all ${step > s ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                    <div className={`w-8 h-0.5 transition-all ${step > s ? 'bg-[#D4AF37]' : 'bg-gray-300'}`} />
                   )}
                 </div>
               ))}
             </div>
-            <div className="flex justify-between mt-2 px-1 text-[10px]">
-              <span className={step >= 1 ? 'text-emerald-400' : 'text-white/50'}>ยืนยันเบอร์</span>
-              <span className={step >= 2 ? 'text-emerald-400' : 'text-white/50'}>ตั้งค่าบัญชี</span>
-              <span className={step >= 3 ? 'text-emerald-400' : 'text-white/50'}>ยืนยัน</span>
+            <div className="flex justify-between mt-2 px-1 text-[10px] font-medium">
+              <span className={step >= 1 ? 'text-[#B8860B]' : 'text-gray-500'}>ยืนยันเบอร์</span>
+              <span className={step >= 2 ? 'text-[#B8860B]' : 'text-gray-500'}>ตั้งค่าบัญชี</span>
+              <span className={step >= 3 ? 'text-[#B8860B]' : 'text-gray-500'}>ยืนยัน</span>
             </div>
           </div>
         )}
 
-        {/* Register Box */}
+        {/* Register Box - White with Gold Border */}
         <div className="max-w-sm mx-auto mb-6">
           <div className="relative">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-500 rounded-2xl blur opacity-30" />
-            <div className="relative rounded-2xl bg-[#111928]/90 backdrop-blur-xl border border-white/10 p-5">
+            <div className="absolute -inset-1 bg-gradient-to-r from-[#D4AF37] via-[#F4D03F] to-[#D4AF37] rounded-2xl blur opacity-50" />
+            <div className="relative rounded-2xl bg-white border-4 border-[#D4AF37] p-6 shadow-xl">
               <form onSubmit={handleRegister} className="space-y-4">
                 
                 {/* STEP 1: Phone Verification */}
                 {step === 1 && (
                   <div className="space-y-4 animate-fade-in">
                     <div className="flex items-center gap-2 mb-4">
-                      <Phone className="size-4 text-emerald-400" />
-                      <span className="text-sm text-white/80">ยืนยันเบอร์โทรศัพท์</span>
+                      <Phone className="size-5 text-[#D4AF37]" />
+                      <span className="text-sm font-bold text-gray-900">ยืนยันเบอร์โทรศัพท์</span>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs text-white/60">เบอร์โทรศัพท์</label>
+                      <label className="text-xs font-medium text-gray-700">เบอร์โทรศัพท์</label>
                       {/* Phone Display */}
                       <div className="flex justify-center gap-1 py-4">
                         {Array.from({ length: 10 }).map((_, i) => (
@@ -305,15 +305,15 @@ function RegisterContent() {
                             key={i}
                             className={`w-7 h-10 rounded-lg flex items-center justify-center text-lg font-mono transition-all ${
                               phone[i] 
-                                ? 'bg-emerald-500/20 border-emerald-500 text-white' 
-                                : 'bg-white/5 border-white/20 text-white/30'
-                            } border`}
+                                ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-gray-900 border-2' 
+                                : 'bg-gray-100 border-gray-300 text-gray-400 border'
+                            }`}
                           >
                             {phone[i] || '-'}
                           </div>
                         ))}
                       </div>
-                      <p className="text-xs text-white/40 text-center">ใช้สำหรับเข้าสู่ระบบและรับ OTP</p>
+                      <p className="text-xs text-gray-500 text-center">ใช้สำหรับเข้าสู่ระบบและรับ OTP</p>
                     </div>
 
                     {/* Numeric Keypad */}
@@ -332,7 +332,7 @@ function RegisterContent() {
                       type="button"
                       onClick={nextStep}
                       disabled={phone.length !== 10}
-                      className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-500/90 hover:to-green-500/90 text-white font-semibold shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50"
+                      className="w-full h-12 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#996515] text-white font-bold shadow-lg shadow-[#D4AF37]/30 transition-all disabled:opacity-50"
                     >
                       ยืนยันเบอร์โทร
                     </Button>
@@ -593,7 +593,7 @@ function RegisterContent() {
                           ข้าพเจ้ายอมรับ{' '}
                           <span className="text-emerald-400 underline">เงื่อนไขการใช้งาน</span>
                           {' '}และ{' '}
-                          <span className="text-emerald-400 underline">นโยบายความเป็นส่วนตัว</span>
+                          <span className="text-emerald-400 underline">นโ��บายความเป็นส่วนตัว</span>
                         </label>
                       </div>
 
@@ -725,8 +725,8 @@ function RegisterContent() {
 export default function CustomerRegisterPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-b from-[#0a2e3d] to-[#051d2a] flex items-center justify-center">
-        <Loader2 className="size-8 text-emerald-500 animate-spin" />
+      <div className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 flex items-center justify-center">
+        <Loader2 className="size-8 text-[#D4AF37] animate-spin" />
       </div>
     }>
       <RegisterContent />
