@@ -82,13 +82,17 @@ export async function POST(request: Request) {
         path: '/',
       });
 
-      // Log recovery login
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        action: 'recovery_login',
-        metadata: { method: 'bypass' },
-        created_at: new Date().toISOString(),
-      }).catch(() => {});
+      // Log recovery login (ignore errors if audit_logs table doesn't exist)
+      try {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          action: 'recovery_login',
+          metadata: { method: 'bypass' },
+          created_at: new Date().toISOString(),
+        });
+      } catch {
+        // Ignore audit log errors
+      }
 
       return response;
 
@@ -108,13 +112,17 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to reset 2FA' }, { status: 500 });
       }
 
-      // Log 2FA reset
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        action: 'recovery_2fa_reset',
-        metadata: { resetBy: 'recovery_api' },
-        created_at: new Date().toISOString(),
-      }).catch(() => {});
+      // Log 2FA reset (ignore errors if audit_logs table doesn't exist)
+      try {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          action: 'recovery_2fa_reset',
+          metadata: { resetBy: 'recovery_api' },
+          created_at: new Date().toISOString(),
+        });
+      } catch {
+        // Ignore audit log errors
+      }
 
       return NextResponse.json({
         success: true,
