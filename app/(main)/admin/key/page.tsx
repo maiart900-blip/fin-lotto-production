@@ -1358,22 +1358,22 @@ export default function LotteryTerminalPage() {
           </div>
         </div>
         
-        {/* Main Content */}
-        <div className="flex-1 p-3 overflow-auto bg-[#0a0a0a]">
+        {/* Main Content - Light Theme */}
+        <div className="flex-1 p-3 overflow-auto bg-[#f8f9fa]">
           {/* Inline Operator Entry Row */}
-          <div className="bg-gradient-to-r from-[#111111] to-[#0d0d0d] border border-amber-900/30 rounded-lg p-3 mb-3">
+          <div className="bg-white border border-[#e9ecef] rounded-lg p-3 mb-3 shadow-sm">
             <div className="flex items-center gap-2 flex-wrap">
               {/* Mode Toggle - Compact */}
-              <div className="flex border border-amber-900/50 rounded overflow-hidden">
+              <div className="flex border border-[#009bf2] rounded overflow-hidden">
                 <button
                   onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
-                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '3' ? 'bg-amber-500 text-black' : 'text-amber-500 hover:bg-amber-900/30'}`}
+                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '3' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'}`}
                 >
                   3ตัว
                 </button>
                 <button
                   onClick={() => { setDigitMode('2'); setCurrentInput(''); }}
-                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '2' ? 'bg-amber-500 text-black' : 'text-amber-500 hover:bg-amber-900/30'}`}
+                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'}`}
                 >
                   2ตัว
                 </button>
@@ -1388,7 +1388,7 @@ export default function LotteryTerminalPage() {
                 onChange={handleInputChange}
                 onPaste={handlePaste}
                 placeholder={digitMode === '3' ? '___' : '__'}
-                className="w-24 h-10 text-2xl font-mono text-center bg-[#0a0a0a] border-2 border-amber-500/50 focus:border-amber-400 text-amber-400 placeholder:text-gray-700 rounded"
+                className="w-24 h-10 text-2xl font-mono text-center bg-white border-2 border-[#ced4da] focus:border-[#009bf2] text-[#333333] placeholder:text-gray-400 rounded"
               />
               
               {/* Bet Types - Inline Toggle */}
@@ -1399,8 +1399,8 @@ export default function LotteryTerminalPage() {
                     onClick={() => toggleBetType(betType.id)}
                     className={`px-2 py-1.5 text-xs font-bold rounded transition-colors ${
                       selectedBetTypes.includes(betType.id)
-                        ? 'bg-amber-500 text-black'
-                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                        ? 'bg-[#009bf2] text-white'
+                        : 'bg-white text-[#009bf2] border border-[#009bf2] hover:bg-[#f0f8ff]'
                     }`}
                   >
                     {betType.shortLabel}
@@ -1409,15 +1409,15 @@ export default function LotteryTerminalPage() {
               </div>
               
               {/* Price Input */}
-              <div className="flex items-center gap-1 bg-[#0a0a0a] px-2 py-1 rounded border border-gray-700">
-                <span className="text-gray-500 text-xs">฿</span>
+              <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-[#ced4da]">
+                <span className="text-gray-600 text-xs">฿</span>
                 <Input
                   type="number"
                   min={1}
                   max={10000}
                   value={defaultPrice}
                   onChange={(e) => setDefaultPrice(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
-                  className="w-14 bg-transparent border-0 text-center text-amber-400 font-bold text-sm p-0 h-6 focus-visible:ring-0"
+                  className="w-14 bg-transparent border-0 text-center text-[#333333] font-bold text-sm p-0 h-6 focus-visible:ring-0"
                 />
               </div>
               
@@ -1427,7 +1427,7 @@ export default function LotteryTerminalPage() {
                   <button
                     key={amt}
                     onClick={() => setDefaultPrice(amt)}
-                    className={`w-7 h-7 text-[10px] font-bold rounded ${defaultPrice === amt ? 'bg-amber-500 text-black' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                    className={`w-7 h-7 text-[10px] font-bold rounded ${defaultPrice === amt ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] border border-[#009bf2] hover:bg-[#f0f8ff]'}`}
                   >
                     {amt}
                   </button>
@@ -1442,14 +1442,14 @@ export default function LotteryTerminalPage() {
                   }
                 }}
                 disabled={currentInput.length !== parseInt(digitMode) || selectedBetTypes.length === 0}
-                className="h-10 px-4 bg-green-600 hover:bg-green-500 text-white font-bold"
+                className="h-10 px-4 bg-[#009bf2] hover:bg-[#0086d4] text-white font-bold shadow-sm"
               >
                 +เพิ่ม
               </Button>
             </div>
             
             {/* Keyboard Hints - Ultra Compact */}
-            <div className="flex gap-2 mt-2 text-[9px] text-gray-600">
+            <div className="flex gap-2 mt-2 text-[9px] text-gray-500">
               <span>Tab=สลับ</span>
               <span>Enter=ส่ง</span>
               <span>F1=บน</span>
@@ -1459,20 +1459,20 @@ export default function LotteryTerminalPage() {
           </div>
           
           {/* Quick Actions - Ultra Compact Inline */}
-          <div className="flex flex-wrap gap-2 mb-3 p-2 bg-[#111111] rounded border border-gray-800">
+          <div className="flex flex-wrap gap-2 mb-3 p-2 bg-white rounded border border-[#e9ecef] shadow-sm">
             {/* Doubles */}
-            <button onClick={addDoubles} className="flex items-center gap-1.5 px-2 py-1 bg-amber-900/30 hover:bg-amber-900/50 rounded text-xs text-amber-400">
-              <Copy className="h-3 w-3" /> เบิ้ล
+            <button onClick={addDoubles} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#009bf2] hover:bg-[#0086d4] rounded text-xs text-white font-medium shadow-sm">
+              <Copy className="h-3 w-3" /> เบิ้ล/ตอง
             </button>
             
             {/* 19 Gates - Inline */}
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-purple-400 mr-1">19ประตู:</span>
+              <span className="text-[10px] text-gray-600 mr-1">19ประตู:</span>
               {[0,1,2,3,4,5,6,7,8,9].map(d => (
                 <button
                   key={d}
                   onClick={() => add19Gates(String(d))}
-                  className="w-5 h-5 text-[10px] font-bold rounded bg-purple-900/30 text-purple-400 hover:bg-purple-900/50"
+                  className="w-5 h-5 text-[10px] font-bold rounded bg-white text-[#009bf2] border border-[#009bf2] hover:bg-[#f0f8ff]"
                 >
                   {d}
                 </button>
@@ -1480,20 +1480,20 @@ export default function LotteryTerminalPage() {
             </div>
             
             {/* Win Numbers */}
-            <button onClick={() => setShowWinDialog(true)} className="flex items-center gap-1.5 px-2 py-1 bg-green-900/30 hover:bg-green-900/50 rounded text-xs text-green-400">
+            <button onClick={() => setShowWinDialog(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#009bf2] hover:bg-[#f0f8ff] rounded text-xs text-[#009bf2] font-medium">
               <Trophy className="h-3 w-3" /> วิน
             </button>
             
             {/* Reverse */}
-            <button onClick={addReverse} className="flex items-center gap-1.5 px-2 py-1 bg-blue-900/30 hover:bg-blue-900/50 rounded text-xs text-blue-400">
+            <button onClick={addReverse} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#009bf2] hover:bg-[#f0f8ff] rounded text-xs text-[#009bf2] font-medium">
               <RotateCcw className="h-3 w-3" /> กลับ
             </button>
           </div>
           
           {/* Virtual Numpad for Mobile */}
-          <Card className="bg-gradient-to-br from-[#111111] to-[#0d0d0d] border-amber-900/30 lg:hidden">
-            <CardHeader className="py-2 px-3">
-              <CardTitle className="text-xs text-gray-400 flex items-center gap-2">
+          <Card className="bg-white border-[#e9ecef] shadow-sm lg:hidden">
+            <CardHeader className="py-2 px-3 border-b border-[#e9ecef]">
+              <CardTitle className="text-xs text-gray-600 flex items-center gap-2">
                 <Keyboard className="h-3 w-3" />
                 แป้นพิมพ์
               </CardTitle>
@@ -1506,10 +1506,10 @@ export default function LotteryTerminalPage() {
                     variant="outline"
                     className={`h-16 text-2xl font-bold rounded-xl ${
                       key === 'C' 
-                        ? 'border-red-900/50 text-red-400 hover:bg-red-900/20' 
+                        ? 'border-red-400 text-red-500 hover:bg-red-50' 
                         : key === '⌫'
-                        ? 'border-amber-900/50 text-amber-400 hover:bg-amber-900/20'
-                        : 'border-gray-800 text-white hover:bg-gray-800 hover:border-amber-500/50'
+                        ? 'border-[#009bf2] text-[#009bf2] hover:bg-[#f0f8ff]'
+                        : 'border-[#ced4da] text-[#333333] hover:bg-[#f0f8ff] hover:border-[#009bf2]'
                     }`}
                     onClick={() => {
                       if (key === 'C') {
@@ -1532,18 +1532,18 @@ export default function LotteryTerminalPage() {
       
       {/* Saved Entries History Section */}
       <div className="mt-6">
-        <Card className="bg-gradient-to-br from-[#111111] to-[#0a0a0a] border-gray-800">
-          <CardHeader className="border-b border-gray-800">
+        <Card className="bg-white border-[#e9ecef] shadow-sm">
+          <CardHeader className="border-b border-[#e9ecef]">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-white flex items-center gap-2">
-                <FileText className="h-5 w-5 text-amber-400" />
+              <CardTitle className="text-[#333333] flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#009bf2]" />
                 ประวัติโพยวันนี้
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                <Badge className="bg-[#009bf2]/10 text-[#009bf2] border-[#009bf2]/30">
                   {groupedEntries.length} ลูกค้า
                 </Badge>
-                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                <Badge className="bg-[#009bf2]/10 text-[#009bf2] border-[#009bf2]/30">
                   {savedEntriesData?.entries?.length || 0} รายการ
                 </Badge>
               </div>
@@ -1551,12 +1551,12 @@ export default function LotteryTerminalPage() {
           </CardHeader>
           <CardContent className="p-0">
             {groupedEntries.length > 0 ? (
-              <div className="divide-y divide-gray-800">
+              <div className="divide-y divide-[#e9ecef]">
                 {groupedEntries.map((group, idx) => (
                   <div key={group.customer_name + idx}>
                     {/* Customer Row - Clickable */}
                     <div 
-                      className="p-4 hover:bg-white/5 transition-colors cursor-pointer"
+                      className="p-4 hover:bg-[#f8f9fa] transition-colors cursor-pointer"
                       onClick={() => setExpandedCustomer(
                         expandedCustomer === group.customer_name ? null : group.customer_name
                       )}
@@ -1566,11 +1566,11 @@ export default function LotteryTerminalPage() {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4 text-gray-500" />
-                              <span className="text-sm font-medium text-white">
+                              <span className="text-sm font-medium text-[#333333]">
                                 {group.customer_name}
                               </span>
-                              <span className="text-gray-600">|</span>
-                              <span className="text-xs text-amber-400">
+                              <span className="text-gray-400">|</span>
+                              <span className="text-xs text-[#009bf2]">
                                 {group.lottery_names.join(', ')}
                               </span>
                             </div>
@@ -1588,7 +1588,7 @@ export default function LotteryTerminalPage() {
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <p className="text-xs text-gray-500">ยอดรวม</p>
-                            <p className="text-lg font-bold text-white">
+                            <p className="text-lg font-bold text-[#333333]">
                               ฿{group.total_amount.toLocaleString()}
                             </p>
                           </div>
@@ -1605,11 +1605,11 @@ export default function LotteryTerminalPage() {
                           <div className="text-right min-w-[100px]">
                             <p className="text-xs text-gray-500">ถูกรางวัล</p>
                             {group.total_won > 0 ? (
-                              <p className="text-lg font-bold text-green-400">
+                              <p className="text-lg font-bold text-green-500">
                                 +฿{group.total_won.toLocaleString()}
                               </p>
                             ) : (
-                              <p className="text-sm text-gray-500">-</p>
+                              <p className="text-sm text-gray-400">-</p>
                             )}
                           </div>
                         </div>
@@ -1618,7 +1618,7 @@ export default function LotteryTerminalPage() {
                     
                     {/* Expanded Detail - Show all numbers */}
                     {expandedCustomer === group.customer_name && (
-                      <div className="bg-black/30 border-t border-gray-800">
+                      <div className="bg-[#f8f9fa] border-t border-[#e9ecef]">
                         <div className="p-4">
                           <p className="text-xs text-gray-500 mb-3">รายละเอียดเลขที่แทง:</p>
                           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
@@ -1646,17 +1646,17 @@ export default function LotteryTerminalPage() {
                                   key={entry.id || entryIdx}
                                   className={`p-2 rounded-lg text-center border ${
                                     isWinner 
-                                      ? 'bg-green-500/20 border-green-500/50' 
-                                      : 'bg-gray-800/50 border-gray-700'
+                                      ? 'bg-green-50 border-green-400' 
+                                      : 'bg-white border-[#ced4da]'
                                   }`}
                                 >
-                                  <p className={`text-lg font-bold ${isWinner ? 'text-green-400' : 'text-white'}`}>
+                                  <p className={`text-lg font-bold ${isWinner ? 'text-green-500' : 'text-[#333333]'}`}>
                                     {entry.number}
                                   </p>
                                   <p className="text-xs text-gray-500">
                                     {betTypeLabel[entry.bet_type] || entry.bet_type}
                                   </p>
-                                  <p className="text-xs text-amber-400">
+                                  <p className="text-xs text-[#009bf2]">
                                     ฿{Number(entry.amount).toLocaleString()}
                                   </p>
                                 </div>
@@ -1671,7 +1671,7 @@ export default function LotteryTerminalPage() {
               </div>
             ) : (
               <div className="p-8 text-center">
-                <FileText className="h-12 w-12 text-gray-700 mx-auto mb-2" />
+                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                 <p className="text-gray-500">ยั���ไม่มีโพยวั��นี้</p>
               </div>
             )}
@@ -1681,26 +1681,26 @@ export default function LotteryTerminalPage() {
       
       {/* Confirm Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="bg-gradient-to-br from-[#111111] to-[#0a0a0a] border-amber-900/50 text-white max-w-md">
+        <DialogContent className="bg-white border-[#e9ecef] text-[#333333] max-w-md shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-amber-400 flex items-center gap-2 text-xl">
+            <DialogTitle className="text-[#009bf2] flex items-center gap-2 text-xl">
               <Send className="h-5 w-5" />
               ยืนยันส่งโพย
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-3 py-4">
-            <div className="flex justify-between items-center p-4 bg-[#0a0a0a] rounded-xl border border-gray-800">
-              <span className="text-gray-400">หวย:</span>
-              <span className="font-bold text-white">{selectedLottery?.name}</span>
+            <div className="flex justify-between items-center p-4 bg-[#f8f9fa] rounded-xl border border-[#e9ecef]">
+              <span className="text-gray-500">หวย:</span>
+              <span className="font-bold text-[#333333]">{selectedLottery?.name}</span>
             </div>
-            <div className="flex justify-between items-center p-4 bg-[#0a0a0a] rounded-xl border border-gray-800">
-              <span className="text-gray-400">จำนวนรายการ:</span>
-              <span className="font-bold text-white">{totalItems} รายการ</span>
+            <div className="flex justify-between items-center p-4 bg-[#f8f9fa] rounded-xl border border-[#e9ecef]">
+              <span className="text-gray-500">จำนวนรายการ:</span>
+              <span className="font-bold text-[#333333]">{totalItems} รายการ</span>
             </div>
-            <div className="flex justify-between items-center p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 rounded-xl border border-amber-500/30">
-              <span className="text-amber-400 font-medium">ยอดรวม:</span>
-              <span className="font-bold text-2xl bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
+            <div className="flex justify-between items-center p-4 bg-[#009bf2]/10 rounded-xl border border-[#009bf2]/30">
+              <span className="text-[#009bf2] font-medium">ยอดรวม:</span>
+              <span className="font-bold text-2xl text-[#009bf2]">
                 ฿{totalAmount.toLocaleString()}
               </span>
             </div>
@@ -1710,14 +1710,14 @@ export default function LotteryTerminalPage() {
             <Button
               variant="outline"
               onClick={() => setShowConfirmDialog(false)}
-              className="border-gray-700 text-gray-400 hover:bg-gray-800 hover:text-white"
+              className="border-[#ced4da] text-gray-600 hover:bg-[#f8f9fa] hover:text-[#333333]"
             >
               ยกเลิก
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="bg-gradient-to-r from-amber-500 to-yellow-500 text-black hover:from-amber-600 hover:to-yellow-600 font-bold px-8"
+              className="bg-[#009bf2] text-white hover:bg-[#0086d4] font-bold px-8"
             >
               {isSubmitting ? (
                 <>
@@ -1737,9 +1737,9 @@ export default function LotteryTerminalPage() {
       
       {/* Prize Check Result Dialog */}
       <Dialog open={showPrizeCheck} onOpenChange={setShowPrizeCheck}>
-        <DialogContent className="bg-gradient-to-br from-[#111111] to-[#0a0a0a] border-green-900/50 text-white max-w-md">
+        <DialogContent className="bg-white border-[#e9ecef] text-[#333333] max-w-md shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-green-400 flex items-center gap-2 text-xl">
+            <DialogTitle className="text-green-500 flex items-center gap-2 text-xl">
               <Trophy className="h-5 w-5" />
               ผลการตรวจรางวัล
             </DialogTitle>
@@ -1748,44 +1748,44 @@ export default function LotteryTerminalPage() {
           <div className="py-4 space-y-4">
             {/* Result Summary */}
             <div className="flex gap-3">
-              <div className="flex-1 bg-gradient-to-br from-green-500/20 to-emerald-500/10 rounded-xl p-4 border border-green-500/30 text-center">
-                <Gift className="h-6 w-6 text-green-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-green-400">
+              <div className="flex-1 bg-green-50 rounded-xl p-4 border border-green-200 text-center">
+                <Gift className="h-6 w-6 text-green-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-green-500">
                   {prizeCheckResult?.winners.length || 0}
                 </p>
-                <p className="text-xs text-gray-400">รายการถูกรางวัล</p>
+                <p className="text-xs text-gray-500">รายการถูกรางวัล</p>
               </div>
-              <div className="flex-1 bg-gradient-to-br from-amber-500/20 to-yellow-500/10 rounded-xl p-4 border border-amber-500/30 text-center">
-                <DollarSign className="h-6 w-6 text-amber-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-amber-400">
+              <div className="flex-1 bg-[#009bf2]/10 rounded-xl p-4 border border-[#009bf2]/30 text-center">
+                <DollarSign className="h-6 w-6 text-[#009bf2] mx-auto mb-1" />
+                <p className="text-2xl font-bold text-[#009bf2]">
                   ฿{(prizeCheckResult?.totalPayout || 0).toLocaleString()}
                 </p>
-                <p className="text-xs text-gray-400">ยอดจ่ายรางวัล</p>
+                <p className="text-xs text-gray-500">ยอดจ่ายรางวัล</p>
               </div>
             </div>
             
             {/* Winners List */}
             {prizeCheckResult?.winners && prizeCheckResult.winners.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-gray-400">รายละเอียดผู้ถูกรางวัล:</p>
+                <p className="text-sm font-semibold text-gray-500">รายละเอียดผู้ถูกรางวัล:</p>
                 <ScrollArea className="h-[200px]">
                   <div className="space-y-2">
                     {prizeCheckResult.winners.map((winner, idx) => (
                       <div 
                         key={idx}
-                        className="flex items-center justify-between bg-[#0a0a0a] rounded-lg p-3 border border-green-900/30"
+                        className="flex items-center justify-between bg-[#f8f9fa] rounded-lg p-3 border border-green-200"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl font-bold font-mono text-white">
+                          <span className="text-2xl font-bold font-mono text-[#333333]">
                             {winner.number}
                           </span>
-                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                          <Badge className="bg-green-100 text-green-600 border-green-300">
                             {winner.betType}
                           </Badge>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-gray-500">แทง ฿{winner.amount}</p>
-                          <p className="text-lg font-bold text-green-400">+฿{winner.payout.toLocaleString()}</p>
+                          <p className="text-lg font-bold text-green-500">+฿{winner.payout.toLocaleString()}</p>
                         </div>
                       </div>
                     ))}
@@ -1794,7 +1794,7 @@ export default function LotteryTerminalPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <AlertCircle className="h-12 w-12 text-gray-600 mx-auto mb-2" />
+                <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                 <p className="text-gray-400">ไม่มีรายการถูกรางวัล</p>
               </div>
             )}
@@ -1804,7 +1804,7 @@ export default function LotteryTerminalPage() {
               <Button
                 variant="outline"
                 onClick={() => setShowPrizeCheck(false)}
-                className="flex-1 border-gray-700 text-gray-400 hover:bg-gray-800"
+                className="flex-1 border-[#ced4da] text-gray-600 hover:bg-[#f8f9fa]"
               >
                 ปิด
               </Button>
@@ -1817,7 +1817,7 @@ export default function LotteryTerminalPage() {
                     navigator.clipboard.writeText(text);
                     toast.success('คัดลอกแล้ว');
                   }}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white border-0"
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white border-0"
                 >
                   <Copy className="h-4 w-4 mr-2" />
                   คัดลอก
@@ -1830,19 +1830,19 @@ export default function LotteryTerminalPage() {
       
       {/* Win Numbers Dialog */}
       <Dialog open={showWinDialog} onOpenChange={setShowWinDialog}>
-        <DialogContent className="bg-gradient-to-br from-[#111111] to-[#0a0a0a] border-green-900/50 text-white max-w-sm">
+        <DialogContent className="bg-white border-[#e9ecef] text-[#333333] max-w-sm shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-green-400 flex items-center gap-2 text-xl">
+            <DialogTitle className="text-[#009bf2] flex items-center gap-2 text-xl">
               <Trophy className="h-5 w-5" />
               วินเลข
             </DialogTitle>
           </DialogHeader>
           
           <div className="py-4">
-            <p className="text-sm text-gray-400 mb-2">
+            <p className="text-sm text-gray-500 mb-2">
               เลือกตัวเลขที่ต้องการ (อย่างน้อย 2 ตัว) แล้วระบบจะสร้างคู่ทั้งหมดให้
             </p>
-            <p className="text-xs text-amber-500/70 mb-4">
+            <p className="text-xs text-[#009bf2]/70 mb-4">
               กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = สร้างเลข | Backspace = ลบตัวสุดท้าย
             </p>
             
@@ -1854,8 +1854,8 @@ export default function LotteryTerminalPage() {
                   size="lg"
                   onClick={() => toggleWinDigit(String(d))}
                   className={winSelectedDigits.includes(String(d))
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-black hover:from-green-600 hover:to-emerald-600 font-bold'
-                    : 'border-green-900/50 text-green-400 hover:bg-green-900/20'
+                    ? 'bg-[#009bf2] text-white hover:bg-[#0086d4] font-bold'
+                    : 'border-[#009bf2] text-[#009bf2] hover:bg-[#f0f8ff]'
                   }
                 >
                   {d}
@@ -1872,13 +1872,13 @@ export default function LotteryTerminalPage() {
               const totalBets = winNumbers.length * betTypes;
               const modeText = digitMode === '2' ? 'บน+ล่าง' : '3บน+โต๊ด (6กลับ)';
               return (
-                <div className="text-center p-3 bg-green-500/10 rounded-lg border border-green-500/30">
-                  <p className="text-sm text-green-400">
+                <div className="text-center p-3 bg-[#009bf2]/10 rounded-lg border border-[#009bf2]/30">
+                  <p className="text-sm text-[#009bf2]">
                     เลือก {winSelectedDigits.length} ตัว → สร้าง <span className="font-bold text-lg">{winNumbers.length}</span> เลข
                     <br />
                     <span className="font-bold text-lg">{totalBets}</span> รายการ
                     <br />
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-500">
                       ({winNumbers.length} เลข × {modeText})
                     </span>
                   </p>
@@ -1891,14 +1891,14 @@ export default function LotteryTerminalPage() {
             <Button
               variant="outline"
               onClick={() => { setShowWinDialog(false); setWinSelectedDigits([]); }}
-              className="border-gray-700 text-gray-400 hover:bg-gray-800"
+              className="border-[#ced4da] text-gray-600 hover:bg-[#f8f9fa]"
             >
               ยกเลิก
             </Button>
             <Button
               onClick={generateWinAndAdd}
               disabled={winSelectedDigits.length < 2}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 text-black hover:from-green-600 hover:to-emerald-600 font-bold"
+              className="bg-[#009bf2] text-white hover:bg-[#0086d4] font-bold"
             >
               สร้างเลข
             </Button>
