@@ -367,6 +367,10 @@ export default function LiveDrawPage() {
 
       toast.success('ยืนยันผลและบันทึกลง lottery_results สำเร็จ');
       mutate(`/api/live-draw?date=${selectedDate}`);
+      // Also mutate shared result endpoints so other pages auto-refresh
+      mutate('/api/lottery-results?limit=10');
+      mutate('/api/results?limit=20');
+      mutate(`/api/results?lottery_id=${activeSession.lottery_id}&date=${selectedDate}`);
     } catch (error) {
       toast.error('เกิดข้อผิดพลาด');
     }
