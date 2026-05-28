@@ -1272,24 +1272,19 @@ export default function LottoBettingPage() {
     setIsSubmitting(true);
     
     try {
+      // Transform betItems to the format expected by /api/customer/buy
+      const entries = betItems.map(item => ({
+        number: item.number,
+        bet_type: item.bet_type,
+        amount: (Number(item.amount_top) || 0) + (Number(item.amount_bottom) || 0) + (Number(item.amount_tod) || 0),
+      }));
+      
       const payload = {
         lottery_id: lotteryId,
-        customer_id: customer.id,
-        items: betItems.map(item => ({
-          number: item.number,
-          bet_type: item.bet_type,
-          amount_top: Number(item.amount_top) || 0,
-          amount_bottom: Number(item.amount_bottom) || 0,
-          amount_tod: Number(item.amount_tod) || 0,
-          is_reverse: item.is_reverse || false,
-          original_number: item.original_number || item.number,
-          source_type: item.source_type || 'manual',
-          source_input: item.source_input,
-        })),
-        total_amount: totals.total,
+        entries: entries,
       };
       
-      const res = await fetch('/api/bets', {
+      const res = await fetch('/api/customer/buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -1302,7 +1297,7 @@ export default function LottoBettingPage() {
         throw new Error(errorMsg);
       }
       
-      toast.success(`ส่งโพยสำเร็จ! (${data.item_count || betItems.length} รายการ, ${(data.total_amount || totals.total).toLocaleString()} บาท)`);
+      toast.success(`ส่งโพยสำเร็จ! (${data.entry_count || betItems.length} รายการ, ${(data.total_amount || totals.total).toLocaleString()} บาท)`);
       setBetItems([]);
       setShowConfirmDialog(false);
       
@@ -1596,7 +1591,7 @@ export default function LottoBettingPage() {
                     }`}
                   >
                     <div className="text-sm font-bold">เลขวิน</div>
-                    <div className="text-xs opacity-80">จับคู่ทุกตัว</div>
+                    <div className="text-xs opacity-80">จับคู��ทุกตัว</div>
                   </button>
                 </div>
               </CardContent>
@@ -1749,7 +1744,7 @@ export default function LottoBettingPage() {
                             onCheckedChange={(c) => setInclude2Bot(!!c)}
                             className="border-emerald-400 data-[state=checked]:bg-emerald-400"
                           />
-                          <span className="text-emerald-300 text-sm">2 ต���วล่าง (x95)</span>
+                          <span className="text-emerald-300 text-sm">2 ต���ว��่าง (x95)</span>
                         </label>
                       </div>
                       <p className="text-fuchsia-300/70 text-xs">
