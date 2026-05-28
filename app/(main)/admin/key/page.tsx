@@ -742,7 +742,7 @@ export default function LotteryTerminalPage() {
       // Ignore if Win Dialog is open (handled separately)
       if (showWinDialog) return;
       
-      // Ignore if typing in other inputs
+      // Ignore if typing in other inputs (except main input)
       if (e.target !== inputRef.current && (e.target as HTMLElement).tagName === 'INPUT') {
         return;
       }
@@ -765,11 +765,49 @@ export default function LotteryTerminalPage() {
         e.preventDefault();
         setShowConfirmDialog(true);
       }
+      
+      // Hotkeys for bet types (F1-F6 for quick toggle)
+      if (e.key === 'F1') {
+        e.preventDefault();
+        toggleBetType(digitMode === '2' ? '2top' : '3top');
+      }
+      if (e.key === 'F2') {
+        e.preventDefault();
+        toggleBetType(digitMode === '2' ? '2bot' : '3back');
+      }
+      if (e.key === 'F3') {
+        e.preventDefault();
+        toggleBetType(digitMode === '2' ? '2rev' : '3rev');
+      }
+      if (e.key === 'F4' && digitMode === '3') {
+        e.preventDefault();
+        toggleBetType('3tod');
+      }
+      
+      // Backspace with Ctrl to clear all
+      if (e.key === 'Backspace' && e.ctrlKey) {
+        e.preventDefault();
+        setBets([]);
+        setCurrentInput('');
+        inputRef.current?.focus();
+      }
+      
+      // + or = to increase amount
+      if ((e.key === '+' || e.key === '=') && e.ctrlKey) {
+        e.preventDefault();
+        setDefaultPrice(prev => Math.min(prev + 1, 1000));
+      }
+      
+      // - to decrease amount
+      if (e.key === '-' && e.ctrlKey) {
+        e.preventDefault();
+        setDefaultPrice(prev => Math.max(prev - 1, 1));
+      }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [bets.length, showWinDialog]);
+  }, [bets.length, showWinDialog, digitMode, toggleBetType]);
   
   // Remove bet
   const removeBet = useCallback((id: string) => {
@@ -1126,41 +1164,46 @@ export default function LotteryTerminalPage() {
       <div className="flex h-[calc(100vh-60px)]">
         {/* Left Sidebar - Cart */}
         <div className="w-72 bg-gradient-to-b from-[#111111] to-[#0a0a0a] border-r border-amber-900/30 flex flex-col">
-          <div className="p-3 border-b border-amber-900/30 bg-[#0f0f0f]">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold text-amber-400 flex items-center gap-1.5 text-sm">
-                <Hash className="h-4 w-4" />
-                รายการโพย
-              </h2>
-              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
-                {totalItems} รายการ
-              </Badge>
-            </div>
-            <div className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
-              ฿{totalAmount.toLocaleString()}
+          {/* Sticky Header with Totals */}
+          <div className="p-2 border-b border-amber-900/30 bg-[#0f0f0f] sticky top-0 z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-amber-400">฿{totalAmount.toLocaleString()}</span>
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0">
+                  {totalItems}
+                </Badge>
+              </div>
+              {bets.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllBets}
+                  className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                >
+                  ล้าง
+                </Button>
+              )}
             </div>
             
-            {/* Customer Name Input */}
-            <div className="mt-2">
-              <Input
-                type="text"
-                placeholder="ชื่อลูกค้า"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="bg-[#0a0a0a] border-amber-900/30 text-white placeholder:text-gray-600 text-sm h-8"
-              />
-            </div>
+            {/* Customer Name Input - Compact */}
+            <Input
+              type="text"
+              placeholder="ชื่อลูกค้า"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="mt-1.5 bg-[#0a0a0a] border-amber-900/30 text-white placeholder:text-gray-600 text-xs h-7"
+            />
           </div>
           
-          <ScrollArea className="flex-1 p-2">
+          <ScrollArea className="flex-1 p-1.5">
             {bets.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
-                <Keyboard className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">ยังไม่มีรายการ</p>
-                <p className="text-xs mt-1">พิมพ์เลขได้เลย</p>
+              <div className="text-center text-gray-500 py-6">
+                <Keyboard className="h-10 w-10 mx-auto mb-1.5 opacity-30" />
+                <p className="text-xs">ยังไม่มีรายการ</p>
+                <p className="text-[10px] mt-0.5 text-gray-600">พิมพ์เลขได้เลย</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {/* Group bets by digit type and bet type */}
                 {(() => {
                   // Group by digit length (2 ตัว, 3 ตัว) then by bet type combination
@@ -1221,18 +1264,22 @@ export default function LotteryTerminalPage() {
                       : `${data.topAmount || data.botAmount || data.bets[0]?.amount || 0}`;
 
                     return (
-                      <div key={key} className="bg-white rounded-lg p-3 text-black">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="text-xs text-gray-600 font-medium">{data.digitType}</p>
-                            <p className="text-xs text-gray-500">{betTypeLabel}</p>
-                            <p className="text-sm font-bold text-gray-800">{amountLabel}</p>
+                      <div key={key} className="bg-white/95 rounded px-2 py-1.5 text-black">
+                        <div className="flex justify-between items-center gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] text-gray-500 shrink-0">{data.digitType}</span>
+                            <span className="text-[10px] text-amber-600 shrink-0">{betTypeLabel}</span>
+                            <span className="text-xs font-bold text-gray-800 shrink-0">฿{amountLabel}</span>
                           </div>
+                          <span className="text-[10px] text-gray-400">{uniqueNumbers.length}x</span>
                         </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {uniqueNumbers.map((num, idx) => (
-                            <span key={idx} className="text-sm font-mono text-gray-700">{num}</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {uniqueNumbers.slice(0, 12).map((num, idx) => (
+                            <span key={idx} className="text-xs font-mono text-gray-700 bg-gray-100 px-1 rounded">{num}</span>
                           ))}
+                          {uniqueNumbers.length > 12 && (
+                            <span className="text-[10px] text-gray-400">+{uniqueNumbers.length - 12}</span>
+                          )}
                         </div>
                       </div>
                     );
@@ -1450,16 +1497,25 @@ export default function LotteryTerminalPage() {
                 </div>
               )}
               
-              {/* Keyboard Hints */}
-              <div className="flex justify-center gap-3 mt-4">
-                <span className="px-2 py-1 bg-[#1a1a1a] rounded text-xs text-gray-500 border border-gray-800">
-                  Tab = 2/3
+              {/* Keyboard Hints - More comprehensive */}
+              <div className="flex flex-wrap justify-center gap-2 mt-3">
+                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-gray-500 border border-gray-800">
+                  Tab=2/3
                 </span>
-                <span className="px-2 py-1 bg-[#1a1a1a] rounded text-xs text-gray-500 border border-gray-800">
-                  Esc = ล้าง
+                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-gray-500 border border-gray-800">
+                  Esc=ล้าง
                 </span>
-                <span className="px-2 py-1 bg-[#1a1a1a] rounded text-xs text-gray-500 border border-gray-800">
-                  Enter = ส่ง
+                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-gray-500 border border-gray-800">
+                  Enter=ส่ง
+                </span>
+                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-amber-600 border border-amber-900/50">
+                  F1=บน
+                </span>
+                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-amber-600 border border-amber-900/50">
+                  F2=ล่าง
+                </span>
+                <span className="px-2 py-0.5 bg-[#1a1a1a] rounded text-[10px] text-amber-600 border border-amber-900/50">
+                  F3=กลับ
                 </span>
               </div>
             </CardContent>
