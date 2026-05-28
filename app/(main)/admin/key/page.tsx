@@ -922,7 +922,7 @@ export default function LotteryTerminalPage() {
   // รองรับสูงสุด 10 ตัว (0-9)
   const generateWinAndAdd = useCallback(() => {
     if (winSelectedDigits.length < 2) {
-      toast.error('กรุณาเลือกอย่างน้อย 2 ตัวเ��ข');
+      toast.error('กรุณาเลือกอย่างน้อย 2 ตัวเ���ข');
       return;
     }
     if (winSelectedDigits.length > 10) {
@@ -1414,7 +1414,7 @@ export default function LotteryTerminalPage() {
                 <Button
                   onClick={() => {
                     if (currentInput.length === parseInt(digitMode) && selectedBetTypes.length > 0) {
-                      addBet(currentInput);
+                      addBets(currentInput);
                     }
                   }}
                   disabled={currentInput.length !== parseInt(digitMode) || selectedBetTypes.length === 0}
