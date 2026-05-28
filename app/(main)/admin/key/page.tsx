@@ -692,7 +692,7 @@ export default function LotteryTerminalPage() {
     }
   }, [currentInput, digitMode, addBets]);
   
-  // Handle paste - รองรับการ paste หลายเลขพร้อมกัน
+  // Handle paste - รองรับการ paste หลายเลขพร���อมกัน
   // รูปแบบที่รองรับ: "12 34 56", "12,34,56", "12\n34\n56", "123456" (แยกตาม digit mode)
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -1304,7 +1304,7 @@ export default function LotteryTerminalPage() {
               ล้างทั้งหมด
             </Button>
             <Button
-              onClick={handleSubmit}
+              onClick={() => setShowConfirmDialog(true)}
               disabled={bets.length === 0}
               className="w-full h-14 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-600 hover:via-yellow-600 hover:to-amber-700 text-black font-bold text-lg shadow-lg shadow-amber-500/20"
             >
@@ -1722,7 +1722,7 @@ export default function LotteryTerminalPage() {
             ) : (
               <div className="p-8 text-center">
                 <FileText className="h-12 w-12 text-gray-700 mx-auto mb-2" />
-                <p className="text-gray-500">ยังไม่มีโพยวันนี้</p>
+                <p className="text-gray-500">ยังไม่มีโพยวั��นี้</p>
               </div>
             )}
           </CardContent>
