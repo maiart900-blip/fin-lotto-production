@@ -149,15 +149,14 @@ CREATE TABLE IF NOT EXISTS tenants (
 );
 
 -- ============================================
--- SECTION 2: CRITICAL DATA ROW COUNTS
+-- SECTION 2: CRITICAL DATA ROW COUNTS (VERIFIED 2026-05-28 06:48:17 UTC)
 -- ============================================
--- users: 10 rows
--- entries: 18 rows
--- customers: 3 rows
--- tenants: 1 row
--- payout_rates: 48 rows
--- lotteries: 8 rows
--- lottery_rounds: 8 rows
+-- users: 4 rows
+-- entries: 60 rows
+-- customers: 14 rows
+-- tenants: 3 rows
+-- payout_rates: 224 rows
+-- lotteries: 32 rows
 
 -- ============================================
 -- SECTION 3: RESTORE PROCEDURE
@@ -188,16 +187,50 @@ CREATE TABLE IF NOT EXISTS tenants (
 -- ============================================
 
 -- Verify users count
--- SELECT COUNT(*) FROM users; -- Expected: 10
+-- SELECT COUNT(*) FROM users; -- Expected: 4
 
 -- Verify payout_rates count
--- SELECT COUNT(*) FROM payout_rates; -- Expected: 48
+-- SELECT COUNT(*) FROM payout_rates; -- Expected: 224
 
 -- Verify entries count
--- SELECT COUNT(*) FROM entries; -- Expected: 18+
+-- SELECT COUNT(*) FROM entries; -- Expected: 60
+
+-- Verify customers count
+-- SELECT COUNT(*) FROM customers; -- Expected: 14
 
 -- Verify tenants exist
--- SELECT id, name, slug FROM tenants;
+-- SELECT COUNT(*) FROM tenants; -- Expected: 3
+
+-- Verify lotteries count
+-- SELECT COUNT(*) FROM lotteries; -- Expected: 32
+
+-- ============================================
+-- SECTION 5: BACKUP STORAGE LOCATION
+-- ============================================
+-- Primary: Supabase PITR (automatic, 7-day retention)
+-- Secondary: This SQL file in repository /backups/
+-- Supabase Project ID: ifmcaztqaordcgsbmnij
+-- Supabase Dashboard: https://supabase.com/dashboard/project/ifmcaztqaordcgsbmnij
+
+-- ============================================
+-- SECTION 6: ROLLBACK PROCEDURE
+-- ============================================
+-- Option A: Supabase Point-in-Time Recovery
+--   1. Go to Supabase Dashboard > Settings > Database > Backups
+--   2. Select "Point in Time Recovery"
+--   3. Choose timestamp BEFORE the incident
+--   4. Click "Restore" to create recovery
+--
+-- Option B: Manual Data Restore
+--   1. Use SQL Editor in Supabase Dashboard
+--   2. TRUNCATE affected tables (CAUTION!)
+--   3. Run INSERT statements from data backup
+--   4. Verify row counts match expected values
+--
+-- Option C: Full Database Restore
+--   1. Contact Supabase Support
+--   2. Request full database restore from backup
+--   3. Specify target timestamp
 
 -- ============================================
 -- END OF BACKUP FILE
