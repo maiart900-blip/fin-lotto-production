@@ -88,15 +88,16 @@ export default function TenantCustomerHomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a2e3d] to-[#051d2a] flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a2e3d] to-[#051d2a] pb-20">
-      <div className="max-w-md mx-auto px-4 py-4 space-y-4">
+    <div className="space-y-6">
+      {/* Wallet Card - Full width on mobile, constrained on desktop */}
+      <div className="max-w-2xl mx-auto">
         
         {/* Wallet Balance Card - Pastel Yellow */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-100 to-yellow-200 p-5 shadow-lg">
@@ -144,76 +145,79 @@ export default function TenantCustomerHomePage() {
           </Link>
         </div>
 
-        {/* 2-Column Grid Menu */}
-        <div className="grid grid-cols-2 gap-3">
-          {menuItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="flex items-center gap-3 p-4 rounded-xl bg-[#1a3d4d]/60 border border-white/10 hover:bg-[#1a3d4d]/80 transition-all"
-            >
-              <div className={`w-10 h-10 rounded-lg ${item.bg} flex items-center justify-center`}>
-                <item.icon className={`h-5 w-5 ${item.color}`} />
-              </div>
-              <span className="text-white text-sm font-medium">{item.label}</span>
-            </Link>
-          ))}
+      </div>
+
+      {/* Menu Grid - Full width responsive */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {menuItems.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            className="flex items-center gap-3 p-4 rounded-xl bg-[#1a3d4d]/60 border border-white/10 hover:bg-[#1a3d4d]/80 transition-all"
+          >
+            <div className={`w-10 h-10 rounded-lg ${item.bg} flex items-center justify-center`}>
+              <item.icon className={`h-5 w-5 ${item.color}`} />
+            </div>
+            <span className="text-white text-sm font-medium">{item.label}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* Lotteries - Open Now */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-white flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-amber-400" />
+            หวยเปิดรับ
+          </h2>
+          <Link href={`${basePath}/bet`} className="text-emerald-400 text-sm flex items-center hover:underline">
+            ดูทั้งหมด <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
 
-        {/* Lotteries - Open Now */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-white flex items-center gap-2">
-              <Trophy className="h-4 w-4 text-amber-400" />
-              หวยเปิดรับ
-            </h2>
-            <Link href={`${basePath}/bet`} className="text-emerald-400 text-sm flex items-center hover:underline">
-              ดูทั้งหมด <ChevronRight className="h-4 w-4" />
-            </Link>
+        {lotteries.length === 0 ? (
+          <div className="bg-[#1a3d4d]/60 rounded-xl p-6 text-center border border-white/10">
+            <Clock className="h-10 w-10 mx-auto text-gray-500 mb-2" />
+            <p className="text-gray-400">ไม่มีหวยเปิดขายขณะนี้</p>
           </div>
-
-          {lotteries.length === 0 ? (
-            <div className="bg-[#1a3d4d]/60 rounded-xl p-6 text-center border border-white/10">
-              <Clock className="h-10 w-10 mx-auto text-gray-500 mb-2" />
-              <p className="text-gray-400">ไม่มีหวยเปิดขายขณะนี้</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {lotteries.slice(0, 3).map((lottery) => {
-                // Calculate close datetime
-                const today = new Date().toISOString().split('T')[0];
-                const closeDateTime = new Date(`${lottery.draw_date || today}T${lottery.close_time}`);
-                
-                return (
-                  <button
-                    key={lottery.id}
-                    onClick={() => router.push(`${basePath}/bet`)}
-                    className="w-full bg-[#1a3d4d]/60 rounded-xl p-4 flex items-center justify-between hover:bg-[#1a3d4d]/80 transition-all border border-white/10"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                        <Ticket className="h-5 w-5 text-emerald-400" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-white">{lottery.name}</p>
-                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                          <Clock className="h-3 w-3" />
-                          <span>ปิดรับ {lottery.close_time}</span>
-                          <CountdownTimer targetDate={closeDateTime} compact className="ml-1" />
-                        </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {lotteries.slice(0, 6).map((lottery) => {
+              // Calculate close datetime
+              const today = new Date().toISOString().split('T')[0];
+              const closeDateTime = new Date(`${lottery.draw_date || today}T${lottery.close_time}`);
+              
+              return (
+                <button
+                  key={lottery.id}
+                  onClick={() => router.push(`${basePath}/bet`)}
+                  className="w-full bg-[#1a3d4d]/60 rounded-xl p-4 flex items-center justify-between hover:bg-[#1a3d4d]/80 transition-all border border-white/10"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                      <Ticket className="h-5 w-5 text-emerald-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-white">{lottery.name}</p>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <Clock className="h-3 w-3" />
+                        <span>ปิด {lottery.close_time}</span>
+                        <CountdownTimer targetDate={closeDateTime} compact className="ml-1" />
                       </div>
                     </div>
-                    <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg">
-                      แทงเลย
-                    </Button>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  </div>
+                  <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg">
+                    แทง
+                  </Button>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-        {/* Promotions Banner */}
+      {/* Promotions Banner - Full width */}
+      <div className="max-w-2xl mx-auto">
         <Link 
           href={`${basePath}/promotions`}
           className="block bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-500/30 hover:border-purple-500/50 transition-all"
@@ -229,7 +233,6 @@ export default function TenantCustomerHomePage() {
             <ChevronRight className="h-5 w-5 text-gray-500" />
           </div>
         </Link>
-
       </div>
     </div>
   );
