@@ -2,7 +2,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { useBackupCode } from '@/lib/2fa-guard';
 
 // Force Node.js runtime for crypto compatibility
 export const runtime = 'nodejs';
@@ -24,6 +23,44 @@ async function verifyTOTPCode(secret: string, code: string): Promise<boolean> {
     return delta !== null;
   } catch (error) {
     console.error('[v0] TOTP verification error:', error);
+    return false;
+  }
+}
+
+// Inline backup code verification
+async function verifyAndUseBackupCode(userId: string, code: string): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    
+    // Get user's backup codes
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('two_factor_backup_codes')
+      .eq('id', userId)
+      .single();
+    
+    if (error || !user?.two_factor_backup_codes) {
+      return false;
+    }
+    
+    const backupCodes = user.two_factor_backup_codes as string[];
+    const codeIndex = backupCodes.indexOf(code);
+    
+    if (codeIndex === -1) {
+      return false;
+    }
+    
+    // Remove used backup code
+    backupCodes.splice(codeIndex, 1);
+    
+    await supabase
+      .from('users')
+      .update({ two_factor_backup_codes: backupCodes })
+      .eq('id', userId);
+    
+    return true;
+  } catch (error) {
+    console.error('[v0] Backup code verification error:', error);
     return false;
   }
 }
@@ -81,7 +118,7 @@ export async function POST(request: Request) {
     if (isBackupCode) {
       // Verify backup code
       console.log('[v0] 2FA verify: Verifying backup code');
-      isValid = await useBackupCode(pendingUserId, code);
+      isValid = await verifyAndUseBackupCode(pendingUserId, code);
     } else {
       // Verify TOTP code using the guard function
       console.log('[v0] 2FA verify: Verifying TOTP code');
