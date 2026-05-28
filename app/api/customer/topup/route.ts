@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import crypto from 'crypto';
 
 export async function GET() {
   try {
@@ -75,6 +76,31 @@ export async function POST(request: Request) {
     
     const supabase = await createClient();
     
+    // Generate slip hash for duplicate detection
+    let slipHash: string | null = null;
+    try {
+      // Generate hash from slip URL
+      const hash = crypto.createHash('sha256').update(slip_url).digest('hex').slice(0, 32);
+      slipHash = `slip_${hash}`;
+      
+      // Check for duplicate slip in slip_hashes table
+      const { data: existingSlip } = await supabase
+        .from('slip_hashes')
+        .select('id, topup_request_id')
+        .eq('hash', slipHash)
+        .maybeSingle();
+      
+      if (existingSlip) {
+        return NextResponse.json(
+          { error: 'สลิปนี้เคยใช้แจ้งเติมเงินแล้ว กรุณาใช้สลิปใหม่' },
+          { status: 400 }
+        );
+      }
+    } catch (hashErr) {
+      console.error('[v0] Slip hash generation error:', hashErr);
+      // Continue without hash - don't block the transaction
+    }
+    
     // Get customer info
     const { data: customer } = await supabase
       .from('customers')
@@ -105,11 +131,25 @@ export async function POST(request: Request) {
         amount,
         bank_name: bank_name || 'unknown',
         payment_account_id,
-        slip_image_url: slip_url, // Database column is slip_image_url
+        slip_image_url: slip_url,
+        slip_hash: slipHash,
         status: 'pending',
       })
       .select()
       .single();
+    
+    // Store slip hash for future duplicate detection
+    if (slipHash && data?.id) {
+      await supabase
+        .from('slip_hashes')
+        .insert({
+          hash: slipHash,
+          topup_request_id: data.id,
+          image_url: slip_url,
+        })
+        .select()
+        .single();
+    }
     
     if (error) {
       console.error('[v0] Customer topup POST error:', error.message);
