@@ -1,6 +1,10 @@
 // 2FA Guard - ระบบตรวจสอบ 2FA กลาง
 import { createClient } from '@/lib/supabase/server';
-import { TOTP, Secret } from 'otpauth';
+
+// Helper for dynamic OTPAuth import (avoids bundling issues in Vercel production)
+async function getOTPAuth() {
+  return await import('otpauth');
+}
 
 export interface TwoFactorStatus {
   required: boolean;        // ต้องใช้ 2FA หรือไม่ (ตาม role)
@@ -56,10 +60,11 @@ export async function check2FAStatus(
   };
 }
 
-// Generate new 2FA secret using otpauth
-export function generate2FASecret(username: string): { secret: string; otpauthUrl: string } {
-  const secret = new Secret({ size: 20 });
-  const totp = new TOTP({
+// Generate new 2FA secret using otpauth (async for dynamic import)
+export async function generate2FASecret(username: string): Promise<{ secret: string; otpauthUrl: string }> {
+  const OTPAuth = await getOTPAuth();
+  const secret = new OTPAuth.Secret({ size: 20 });
+  const totp = new OTPAuth.TOTP({
     issuer: 'FinLotto',
     label: username,
     algorithm: 'SHA1',
@@ -74,17 +79,18 @@ export function generate2FASecret(username: string): { secret: string; otpauthUr
   };
 }
 
-// Verify TOTP code using otpauth
-export function verify2FACode(secret: string, code: string): boolean {
+// Verify TOTP code using otpauth (async for dynamic import)
+export async function verify2FACode(secret: string, code: string): Promise<boolean> {
   console.log('[v0] verify2FACode called with secret length:', secret?.length, 'code:', code);
   
   try {
-    const totp = new TOTP({
+    const OTPAuth = await getOTPAuth();
+    const totp = new OTPAuth.TOTP({
       issuer: 'FinLotto',
       algorithm: 'SHA1',
       digits: 6,
       period: 30,
-      secret: Secret.fromBase32(secret),
+      secret: OTPAuth.Secret.fromBase32(secret),
     });
     
     // Generate current valid token for debugging
@@ -183,7 +189,7 @@ export async function verifyAndUpdate2FA(userId: string, code: string): Promise<
   const secret = await get2FASecret(userId);
   if (!secret) return false;
   
-  const isValid = verify2FACode(secret, code);
+  const isValid = await verify2FACode(secret, code);
   if (isValid) {
     await update2FALastVerified(userId);
   }
