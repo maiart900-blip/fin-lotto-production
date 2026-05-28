@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { NumericKeypad } from '@/components/customer/numeric-keypad';
 import { 
   Crown, 
   Phone, 
@@ -200,7 +201,7 @@ function RegisterContent() {
 
   return (
     <div 
-      className="min-h-screen bg-[#060B14] relative overflow-x-hidden"
+      className="min-h-screen bg-gradient-to-b from-[#0a2e3d] to-[#051d2a] relative overflow-x-hidden"
       style={siteSettings?.login_background_url ? {
         backgroundImage: `url(${siteSettings.login_background_url})`,
         backgroundSize: 'cover',
@@ -211,8 +212,8 @@ function RegisterContent() {
       {/* Animated Background - only show if no custom background */}
       {!siteSettings?.login_background_url && (
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
       )}
       
@@ -297,18 +298,35 @@ function RegisterContent() {
 
                     <div className="space-y-2">
                       <label className="text-xs text-white/60">เบอร์โทรศัพท์</label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
-                        <Input
-                          type="tel"
-                          placeholder="0812345678"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                          className="pl-10 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 text-lg tracking-wider"
-                        />
+                      {/* Phone Display */}
+                      <div className="flex justify-center gap-1 py-4">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className={`w-7 h-10 rounded-lg flex items-center justify-center text-lg font-mono transition-all ${
+                              phone[i] 
+                                ? 'bg-emerald-500/20 border-emerald-500 text-white' 
+                                : 'bg-white/5 border-white/20 text-white/30'
+                            } border`}
+                          >
+                            {phone[i] || '-'}
+                          </div>
+                        ))}
                       </div>
-                      <p className="text-xs text-white/40">ใช้สำหรับเข้าสู่ระบบและรับ OTP</p>
+                      <p className="text-xs text-white/40 text-center">ใช้สำหรับเข้าสู่ระบบและรับ OTP</p>
                     </div>
+
+                    {/* Numeric Keypad */}
+                    <NumericKeypad
+                      onInput={(digit) => {
+                        if (phone.length < 10) {
+                          setPhone(prev => prev + digit);
+                        }
+                      }}
+                      onDelete={() => setPhone(prev => prev.slice(0, -1))}
+                      onClear={() => setPhone('')}
+                      disabled={phone.length >= 10}
+                    />
 
                     <Button 
                       type="button"
@@ -634,7 +652,7 @@ function RegisterContent() {
                     </div>
 
                     <div>
-                      <h2 className="text-xl font-bold text-white mb-1">สมัครสำเร็จ!</h2>
+                      <h2 className="text-xl font-bold text-white mb-1">สม���ครสำเร็จ!</h2>
                       <p className="text-white/60 text-sm">ยินดีต้อนรับสู่ FIN LOTTO PREMIUM</p>
                     </div>
 
@@ -707,7 +725,7 @@ function RegisterContent() {
 export default function CustomerRegisterPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#060B14] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-[#0a2e3d] to-[#051d2a] flex items-center justify-center">
         <Loader2 className="size-8 text-emerald-500 animate-spin" />
       </div>
     }>
