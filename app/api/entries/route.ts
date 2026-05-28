@@ -341,7 +341,6 @@ export async function POST(request: Request) {
         status: 'pending',
         payout_rate: e.payoutRate || e.payout_rate || null,
         source_type: finalSourceType || e.source_type || 'manual',
-        customer_name: body.customer_name || e.customer_name || null, // Store for reference
       })))
       .select('*');
     
