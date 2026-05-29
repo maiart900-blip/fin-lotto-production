@@ -4,14 +4,19 @@ import bcrypt from 'bcryptjs';
 import * as OTPAuth from 'otpauth';
 import { requireAdmin } from '@/lib/api-auth';
 
-// ระดับสายงาน 4 ระดับ
+// 4-TIER AGENT HIERARCHY: Mother Web -> Master -> Agent -> Sub-Agent
+// ห้ามใช้ v1, v2 - ต้องใช้ชื่อระดับเต็มเท่านั้น
 const AGENT_LEVELS = {
-  member: { label: 'สมาชิก', level: 0, defaultRate: 0 },
-  agent: { label: 'เอเย่นต์', level: 1, defaultRate: 5 },
-  master_agent: { label: 'มาสเตอร์เอเย่นต์', level: 2, defaultRate: 3 },
-  senior_agent: { label: 'ซีเนียร์เอเย่นต์', level: 3, defaultRate: 2 },
-  agent_key: { label: 'Agent Key', level: 1, defaultRate: 5 },
-  key_staff: { label: 'พนักงานคีย์', level: 0, defaultRate: 0 },
+  mother_web: { label: 'Mother Web (เว็บแม่)', level: 0, defaultRate: 0, tier: 'mother_web' },
+  master: { label: 'Master', level: 1, defaultRate: 2, tier: 'master' },
+  agent: { label: 'Agent', level: 2, defaultRate: 5, tier: 'agent' },
+  sub_agent: { label: 'Sub-Agent', level: 3, defaultRate: 7, tier: 'sub_agent' },
+  // Legacy mappings (backwards compatibility)
+  senior_agent: { label: 'Master', level: 1, defaultRate: 2, tier: 'master' },
+  master_agent: { label: 'Master', level: 1, defaultRate: 2, tier: 'master' },
+  agent_key: { label: 'Agent', level: 2, defaultRate: 5, tier: 'agent' },
+  key_staff: { label: 'Sub-Agent', level: 3, defaultRate: 7, tier: 'sub_agent' },
+  member: { label: 'Member', level: 4, defaultRate: 0, tier: 'member' },
 };
 
 // GET - ดึงรายชื่อเอเย่นต์จาก agents table
@@ -263,6 +268,31 @@ export async function POST(request: Request) {
     }
     
     console.log('[v0] Agent created successfully:', { id: newAgent.id, code: newAgent.code });
+    
+    // AUTO-POPULATE: Insert agent into agent_permissions table for visibility control
+    // Every new agent automatically appears in "ตั้งค่าการมองเห็นเอเย่นต์" menu
+    const { error: permError } = await supabase
+      .from('agent_permissions')
+      .upsert(
+        defaultVisibleMenus.map(menuKey => ({
+          agent_id: newAgent.id,
+          menu_key: menuKey,
+          can_view: true,
+          can_create: menuKey.includes('entries') || menuKey.includes('customers'),
+          can_edit: false,
+          can_delete: false,
+          can_approve: false,
+          can_payout: false,
+        })),
+        { onConflict: 'agent_id,menu_key' }
+      );
+    
+    if (permError) {
+      console.error('[v0] Agent permissions auto-populate error:', permError);
+      // Non-fatal - continue even if permissions fail
+    } else {
+      console.log('[v0] Agent permissions auto-populated for', newAgent.id);
+    }
     
     return NextResponse.json({ 
       success: true, 
