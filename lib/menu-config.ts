@@ -277,7 +277,7 @@ export const superAdminItems: MenuItem[] = [
 
 // 17. ความปลอดภัย (Restricted)
 export const securityItems: MenuItem[] = [
-  { id: 'users', title: 'จัดการผู้ใช้', href: '/users', icon: UsersRound, description: 'จัดการผู้ใช้ในระบบ' },
+  { id: 'users', title: 'จัดการผู้ใช้ (ศูนย์กลาง)', href: '/users', icon: UsersRound, description: 'จัดการผู้ใช้ทุกประเภท - พนักงานและสายงานเอเย่นต์คีย์หวย' },
   { id: 'roles-permissions', title: 'สิทธิ์การใช้งาน', href: '/roles-permissions', icon: Shield, description: 'จัดการสิทธิ์' },
   { id: 'security-attendance', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock, description: 'รายงานการเข้างาน' },
   { id: 'security-payroll', title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet, description: 'สรุปเงินเดือน' },
