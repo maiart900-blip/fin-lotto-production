@@ -24,12 +24,17 @@ export async function GET(request: Request) {
   try {
     // Auth guard - require admin
     const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
+    if (authResult instanceof NextResponse) {
+      console.error('[v0] Agent GET auth failed');
+      return authResult;
+    }
 
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const level = searchParams.get('level');
     const systemType = searchParams.get('system_type');
+    
+    console.log('[v0] Fetching agents with filters:', { level, systemType });
     
     let query = supabase
       .from('agents')
@@ -69,8 +74,16 @@ export async function GET(request: Request) {
     
     if (error) {
       console.error('[v0] Agents fetch error:', error);
-      return NextResponse.json({ agents: [], summary: {} });
+      // Return error message to frontend instead of silent empty array
+      return NextResponse.json({ 
+        agents: [], 
+        summary: {},
+        error: 'Database query failed: ' + error.message,
+        _debug: { errorCode: error.code, errorDetails: error.details }
+      });
     }
+    
+    console.log('[v0] Agents fetched successfully:', { count: agents?.length || 0 });
     
     // Map to expected format for frontend
     const mappedAgents = (agents || []).map(agent => ({
@@ -108,7 +121,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ agents: mappedAgents, summary, levels: AGENT_LEVELS });
   } catch (error) {
     console.error('[v0] Agents exception:', error);
-    return NextResponse.json({ agents: [], summary: {}, levels: AGENT_LEVELS });
+    return NextResponse.json({ 
+      agents: [], 
+      summary: {}, 
+      levels: AGENT_LEVELS,
+      error: 'Server exception: ' + (error instanceof Error ? error.message : 'Unknown error')
+    });
   }
 }
 

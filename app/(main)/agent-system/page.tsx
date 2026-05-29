@@ -20,7 +20,24 @@ import {
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  const data = await res.json();
+  
+  // Log for debugging
+  console.log('[v0] Agent fetch response:', { 
+    status: res.status, 
+    agentsCount: data?.agents?.length,
+    error: data?.error,
+    _debug: data?._debug
+  });
+  
+  if (!res.ok) {
+    throw new Error(data?.error || 'Failed to fetch agents');
+  }
+  
+  return data;
+};
 
 interface Agent {
   id: string;
@@ -418,7 +435,7 @@ export default function AgentSystemPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <GitBranch className="size-6 text-[#D4AF37]" />
-            สายงานเอเย่นต์
+            สายงาน��อเย่นต์
           </h1>
           <p className="text-muted-foreground">จัดการเอเย่นต์ทั้งระบบออโต้และคีย์หวย</p>
         </div>
@@ -606,7 +623,7 @@ export default function AgentSystemPage() {
                 size="sm"
                 onClick={() => setExpandedNodes(new Set(filteredAgents.map(a => a.id)))}
               >
-                ขยายทั้งหมด
+                ขยาย��ั้งหมด
               </Button>
             )}
           </div>
