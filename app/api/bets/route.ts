@@ -4,8 +4,19 @@ import { cookies } from 'next/headers';
 import { createAuditLog, getClientIP, getUserAgent } from '@/lib/audit-log';
 import { requireAuth } from '@/lib/api-auth';
 import { deepStripSensitiveFields } from '@/lib/api-serializers';
+import { 
+  applyRateLimit, 
+  adminBetSchema, 
+  validateRequestBody,
+  verifyResourceOwnership,
+  logSecurityEvent 
+} from '@/lib/security/api-security';
 
 export async function GET(request: NextRequest) {
+  // SECURITY: Rate limit read operations
+  const rateLimitResponse = await applyRateLimit('api');
+  if (rateLimitResponse) return rateLimitResponse;
+  
   // Auth guard - require authentication
   const authResult = await requireAuth();
   if (authResult instanceof NextResponse) return authResult;
@@ -45,6 +56,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Rate limit financial write operations (30 per minute)
+  const rateLimitResponse = await applyRateLimit('api_write', 'bet_create');
+  if (rateLimitResponse) {
+    await logSecurityEvent('rate_limit', { 
+      endpoint: '/api/bets',
+      reason: 'Bet creation rate limited'
+    });
+    return rateLimitResponse;
+  }
+  
   // Auth guard - require authentication for placing bets
   const authResult = await requireAuth();
   if (authResult instanceof NextResponse) return authResult;
@@ -64,8 +85,27 @@ export async function POST(request: NextRequest) {
   }
   
   try {
-    const body = await request.json();
-    const { lottery_id, items, customer_name, tenant_id, target_customer_id, source_type, agent_id } = body;
+    // SECURITY: Validate input with Zod schema (Anti-SQL Injection)
+    const validation = await validateRequestBody(request, adminBetSchema);
+    if (!validation.success) {
+      await logSecurityEvent('validation_failure', {
+        endpoint: '/api/bets',
+        user_id: user?.id,
+        reason: 'Invalid bet request format'
+      });
+      return validation.response;
+    }
+    
+    const { 
+      lottery_id, 
+      items, 
+      customer_name, 
+      tenant_id, 
+      target_customer_id, 
+      source_type, 
+      agent_id,
+      idempotency_key 
+    } = validation.data;
     
     // ใช้ target_customer_id ถ้าแอดมินคีย์ให้ลูกค้า หรือใช้ effectiveCustomerId ปกติ
     const actualCustomerId = target_customer_id || effectiveCustomerId;
@@ -75,21 +115,21 @@ export async function POST(request: NextRequest) {
     
     console.log('[v0] Creating bet:', { lottery_id, actualCustomerId, betSourceType, agent_id, adminId: effectiveAdminId });
     
-    if (!lottery_id || !items || items.length === 0) {
-      return NextResponse.json({ error: 'Missing lottery_id or items' }, { status: 400 });
+    // items and lottery_id already validated by Zod schema above
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: 'Missing items' }, { status: 400 });
     }
 
-    // Generate idempotency key for duplicate request protection
-    const idempotencyKey = body.idempotency_key;
-    if (idempotencyKey) {
+    // Check for duplicate request using idempotency_key
+    if (idempotency_key) {
       const { data: existingBet } = await supabase
         .from('bets')
         .select('id')
-        .eq('idempotency_key', idempotencyKey)
+        .eq('idempotency_key', idempotency_key)
         .single();
       
       if (existingBet) {
-        console.log('[v0] Duplicate bet request detected:', idempotencyKey);
+        console.log('[v0] Duplicate bet request detected:', idempotency_key);
         return NextResponse.json({ 
           success: true, 
           bet_id: existingBet.id,
@@ -180,7 +220,7 @@ export async function POST(request: NextRequest) {
         is_checked: false,
         total_win_amount: 0,
         source_type: betSourceType, // 'manual_key' or 'auto'
-        idempotency_key: idempotencyKey || null, // For duplicate request protection
+        idempotency_key: idempotency_key || null, // For duplicate request protection
         keyed_by: effectiveAdminId || null, // Admin who keyed the bet (if any)
       })
       .select()
