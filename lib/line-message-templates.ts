@@ -12,6 +12,71 @@
  */
 
 // ========================
+// DEFAULT MESSAGE TEMPLATE
+// ========================
+
+export const DEFAULT_RESULT_TEMPLATE = `📢 ผลหวย {lottery_name}
+ประจำวันที่ {draw_date}
+
+🎯 3 ตัวบน: {prize_first}
+🎯 2 ตัวล่าง: {prize_last2}
+
+ขอให้เฮง ๆ ทุกท่านค่ะ 🍀`;
+
+/**
+ * Substitute template variables with actual values
+ * Supports: {lottery_name}, {draw_date}, {prize_first}, {prize_last2}, {prize_last3}, etc.
+ */
+export function substituteTemplateVariables(
+  template: string,
+  data: {
+    lottery_name?: string;
+    draw_date?: string;
+    prize_first?: string;
+    prize_last2?: string;
+    prize_last3?: string;
+    top3?: string;
+    bottom2?: string;
+    top2?: string;
+    run_top?: string;
+    run_bottom?: string;
+    [key: string]: string | undefined;
+  }
+): string {
+  let result = template;
+  
+  // Map common field names to template variables
+  const mappings: Record<string, string | undefined> = {
+    lottery_name: data.lottery_name,
+    draw_date: data.draw_date,
+    prize_first: data.prize_first || data.top3,
+    prize_last2: data.prize_last2 || data.bottom2,
+    prize_last3: data.prize_last3,
+    top3: data.top3 || data.prize_first,
+    bottom2: data.bottom2 || data.prize_last2,
+    top2: data.top2,
+    run_top: data.run_top,
+    run_bottom: data.run_bottom,
+  };
+  
+  // Replace all template variables
+  for (const [key, value] of Object.entries(mappings)) {
+    if (value !== undefined) {
+      result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+    }
+  }
+  
+  // Also replace any custom variables from data
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && typeof value === 'string') {
+      result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+    }
+  }
+  
+  return result;
+}
+
+// ========================
 // CONSTANTS & BRANDING
 // ========================
 
