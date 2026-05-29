@@ -892,10 +892,19 @@ export default function LotteryTerminalPage() {
   }, [defaultPrice]);
   
   // Add reverse (กลับเลข) for all current bets
+  // For 2-digit: simple reverse (12 -> 21)
+  // For 3-digit: full 6-way permutation (123 -> 123, 132, 213, 231, 312, 321)
+  // Handles duplicates correctly: 112 -> 3 unique (112, 121, 211), 111 -> 1 unique
   const addReverse = useCallback(() => {
     const currentBets = [...bets];
     let added = 0;
-    currentBets.forEach(bet => {
+    
+    // Separate 2-digit and 3-digit bets
+    const twoBets = currentBets.filter(b => b.number.length === 2);
+    const threeBets = currentBets.filter(b => b.number.length === 3);
+    
+    // For 2-digit: simple reverse
+    twoBets.forEach(bet => {
       const reversed = reverseNumber(bet.number);
       if (reversed !== bet.number) {
         const exists = bets.some(b => b.number === reversed && b.betType === bet.betType);
@@ -911,10 +920,46 @@ export default function LotteryTerminalPage() {
         }
       }
     });
+    
+    // For 3-digit: 6-way permutation (using getPermutations)
+    // Get unique 3-digit numbers from bets
+    const unique3DigitNumbers = [...new Set(threeBets.map(b => b.number))];
+    
+    unique3DigitNumbers.forEach(originalNumber => {
+      // Get ALL unique permutations
+      const allPermutations = getPermutations(originalNumber);
+      // Get original bet for this number (to copy betType and amount)
+      const originalBet = threeBets.find(b => b.number === originalNumber);
+      if (!originalBet) return;
+      
+      // Add each permutation that doesn't already exist
+      allPermutations.forEach(permNum => {
+        // Skip if this exact number+betType already exists
+        const exists = bets.some(b => b.number === permNum && b.betType === originalBet.betType);
+        if (!exists) {
+          const newBet: BetItem = {
+            id: generateId(),
+            number: permNum,
+            betType: originalBet.betType,
+            amount: originalBet.amount,
+          };
+          setBets(prev => {
+            // Double check to avoid race conditions
+            if (prev.some(b => b.number === permNum && b.betType === originalBet.betType)) {
+              return prev;
+            }
+            return [...prev, newBet];
+          });
+          added++;
+        }
+      });
+    });
+    
     if (added > 0) {
-      toast.success(`เพิ่มเลขกลับ ${added} รายการ`);
+      const modeText = threeBets.length > 0 ? '6 กลับ' : 'กลับเลข';
+      toast.success(`เพิ่ม${modeText} ${added} รายการ`);
     } else {
-      toast.info('ไม่มีเลขกลับที่เพิ่มได้');
+      toast.info('ไม่มีเลขกลับที่เพิ่มได้ (อาจมีครบแล้ว)');
     }
   }, [bets]);
   
@@ -1293,7 +1338,7 @@ export default function LotteryTerminalPage() {
                   digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'
                 }`}
               >
-                2ตัว/3ตัว
+                2ตัว/3ต��ว
               </button>
               <button
                 onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
@@ -1610,7 +1655,7 @@ export default function LotteryTerminalPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-[#333333] flex items-center gap-2">
                 <FileText className="h-5 w-5 text-[#009bf2]" />
-                ประวัติโพยวันนี้
+                ประวัติโพยวั��นี้
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Badge className="bg-[#009bf2]/10 text-[#009bf2] border-[#009bf2]/30">
@@ -1916,7 +1961,7 @@ export default function LotteryTerminalPage() {
               เลือกตัวเลขที่ต้องการ (อย่างน้อย 2 ตัว) แล้วระบบจะสร้างคู่ทั้งหมดให้
             </p>
             <p className="text-xs text-[#009bf2]/70 mb-4">
-              กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = สร้างเลข | Backspace = ล��ตัวสุดท้าย
+              กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = ส��้างเลข | Backspace = ล��ตัวสุดท้าย
             </p>
             
             <div className="grid grid-cols-5 gap-3 mb-4">
