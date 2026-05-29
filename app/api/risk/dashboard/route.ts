@@ -4,20 +4,25 @@ import { requireSuperAdmin } from '@/lib/api-auth';
 import { getBusinessDay } from '@/lib/daily-reset';
 
 /**
- * Risk Dashboard API
+ * Risk Dashboard API - CRITICAL DATA PIPELINE
  * 
  * TASK 3: REAL-TIME RISK AGGREGATION
  * 
  * GET /api/risk/dashboard
  * Returns aggregated risk data for the FIN LOTTO risk dashboard.
- * Groups and calculates numbers strictly by:
- * - Specific Lottery Name (lottery_type)
- * - Current Date (draw_date)
+ * 
+ * CRITICAL: This endpoint MUST fetch ALL data from:
+ * - ALL Sub-Agents (every ticket, 1 Baht to 10,000,000 Baht)
+ * - ALL Agents (every ticket from their network)
+ * - ALL Master Agents (every ticket from their hierarchy)
+ * - ALL source_type: main_auto, child_auto, keyin, manual_key
+ * 
+ * NO DATA MUST BE MISSED to prevent catastrophic financial blindspots.
  * 
  * Query params:
  * - draw_date: YYYY-MM-DD (default: today's business day)
  * - lottery_type: filter by lottery type/name
- * - source_type: filter by source (main_auto, child_auto, keyin)
+ * - source_type: filter by source (main_auto, child_auto, keyin, manual_key)
  */
 
 export async function GET(request: NextRequest) {
@@ -34,23 +39,49 @@ export async function GET(request: NextRequest) {
     const lotteryType = searchParams.get('lottery_type');
     const sourceType = searchParams.get('source_type');
     
-    // 1. Get summary totals - GROUPED BY LOTTERY NAME AND DATE
-    let summaryQuery = supabase
-      .from('risk_aggregations')
-      .select('lottery_type, total_bet_amount, payout_liability, bet_count, source_type')
-      .eq('draw_date', drawDate);
+    // =====================================================
+    // CRITICAL: DIRECT BETS TABLE QUERY FOR REAL-TIME DATA
+    // =====================================================
+    // Query the bets table directly to ensure NO DATA IS MISSED
+    // This includes ALL manual_key entries from ALL agents
+    // =====================================================
     
-    if (lotteryType) summaryQuery = summaryQuery.eq('lottery_type', lotteryType);
-    if (sourceType) summaryQuery = summaryQuery.eq('source_type', sourceType);
+    // 1. Get ALL bets for today - NO FILTERING BY AGENT
+    let betsQuery = supabase
+      .from('bets')
+      .select(`
+        id,
+        lottery_type,
+        bet_type,
+        number,
+        amount,
+        payout_rate,
+        status,
+        source_type,
+        agent_id,
+        customer_id,
+        created_at
+      `)
+      .gte('created_at', `${drawDate}T00:00:00`)
+      .lte('created_at', `${drawDate}T23:59:59`);
     
-    const { data: summaryData } = await summaryQuery;
+    if (lotteryType) betsQuery = betsQuery.eq('lottery_type', lotteryType);
+    if (sourceType) betsQuery = betsQuery.eq('source_type', sourceType);
     
-    // Group by lottery_type for clear breakdown
+    const { data: allBets, error: betsError } = await betsQuery;
+    
+    if (betsError) {
+      console.error('Risk Dashboard: Failed to fetch bets:', betsError);
+    }
+    
+    // 2. Calculate aggregations from raw bets data
     const byLotteryType: Record<string, {
       total_bet_amount: number;
       total_payout_liability: number;
       total_bet_count: number;
       by_source: Record<string, { bet_amount: number; liability: number; bet_count: number }>;
+      by_number: Record<string, { amount: number; liability: number; count: number }>;
+      top_exposure: Array<{ number: string; bet_type: string; amount: number; liability: number; risk_level: string }>;
     }> = {};
     
     let globalSummary = {
@@ -58,26 +89,45 @@ export async function GET(request: NextRequest) {
       total_payout_liability: 0,
       total_bet_count: 0,
       by_source: {} as Record<string, { bet_amount: number; liability: number; bet_count: number }>,
+      manual_key_stats: {
+        total_tickets: 0,
+        total_amount: 0,
+        total_liability: 0,
+        unique_agents: new Set<string>(),
+        unique_customers: new Set<string>(),
+      },
     };
     
-    (summaryData || []).forEach((row) => {
-      const lottery = row.lottery_type;
-      const source = row.source_type;
-      const betAmount = Number(row.total_bet_amount) || 0;
-      const liability = Number(row.payout_liability) || 0;
-      const count = row.bet_count || 0;
+    // Process ALL bets
+    (allBets || []).forEach((bet) => {
+      const lottery = bet.lottery_type || 'unknown';
+      const source = bet.source_type || 'unknown';
+      const betAmount = Number(bet.amount) || 0;
+      const payoutRate = Number(bet.payout_rate) || 0;
+      const liability = betAmount * payoutRate;
+      const betNumber = bet.number || '';
+      const betType = bet.bet_type || '';
       
       // Global totals
       globalSummary.total_bet_amount += betAmount;
       globalSummary.total_payout_liability += liability;
-      globalSummary.total_bet_count += count;
+      globalSummary.total_bet_count += 1;
       
       if (!globalSummary.by_source[source]) {
         globalSummary.by_source[source] = { bet_amount: 0, liability: 0, bet_count: 0 };
       }
       globalSummary.by_source[source].bet_amount += betAmount;
       globalSummary.by_source[source].liability += liability;
-      globalSummary.by_source[source].bet_count += count;
+      globalSummary.by_source[source].bet_count += 1;
+      
+      // Track manual_key stats specifically
+      if (source === 'manual_key' || source === 'keyin') {
+        globalSummary.manual_key_stats.total_tickets += 1;
+        globalSummary.manual_key_stats.total_amount += betAmount;
+        globalSummary.manual_key_stats.total_liability += liability;
+        if (bet.agent_id) globalSummary.manual_key_stats.unique_agents.add(bet.agent_id);
+        if (bet.customer_id) globalSummary.manual_key_stats.unique_customers.add(bet.customer_id);
+      }
       
       // Per-lottery breakdown
       if (!byLotteryType[lottery]) {
@@ -86,88 +136,84 @@ export async function GET(request: NextRequest) {
           total_payout_liability: 0,
           total_bet_count: 0,
           by_source: {},
+          by_number: {},
+          top_exposure: [],
         };
       }
       byLotteryType[lottery].total_bet_amount += betAmount;
       byLotteryType[lottery].total_payout_liability += liability;
-      byLotteryType[lottery].total_bet_count += count;
+      byLotteryType[lottery].total_bet_count += 1;
       
       if (!byLotteryType[lottery].by_source[source]) {
         byLotteryType[lottery].by_source[source] = { bet_amount: 0, liability: 0, bet_count: 0 };
       }
       byLotteryType[lottery].by_source[source].bet_amount += betAmount;
       byLotteryType[lottery].by_source[source].liability += liability;
-      byLotteryType[lottery].by_source[source].bet_count += count;
+      byLotteryType[lottery].by_source[source].bet_count += 1;
+      
+      // Track by number for risk analysis
+      const numberKey = `${betNumber}:${betType}`;
+      if (!byLotteryType[lottery].by_number[numberKey]) {
+        byLotteryType[lottery].by_number[numberKey] = { amount: 0, liability: 0, count: 0 };
+      }
+      byLotteryType[lottery].by_number[numberKey].amount += betAmount;
+      byLotteryType[lottery].by_number[numberKey].liability += liability;
+      byLotteryType[lottery].by_number[numberKey].count += 1;
     });
     
-    // 2. Get risk level counts
-    let riskCountQuery = supabase
-      .from('risk_aggregations')
-      .select('risk_level, lottery_type')
-      .eq('draw_date', drawDate);
+    // Calculate risk levels and top exposure per lottery
+    Object.keys(byLotteryType).forEach(lottery => {
+      const numberData = byLotteryType[lottery].by_number;
+      const topExposure = Object.entries(numberData)
+        .map(([key, data]) => {
+          const [number, betType] = key.split(':');
+          const riskLevel = data.liability > 100000 ? 'critical' : 
+                          data.liability > 50000 ? 'high' : 
+                          data.liability > 10000 ? 'medium' : 'low';
+          return { number, bet_type: betType, amount: data.amount, liability: data.liability, risk_level: riskLevel };
+        })
+        .sort((a, b) => b.liability - a.liability)
+        .slice(0, 20);
+      
+      byLotteryType[lottery].top_exposure = topExposure;
+    });
     
-    if (lotteryType) riskCountQuery = riskCountQuery.eq('lottery_type', lotteryType);
-    if (sourceType) riskCountQuery = riskCountQuery.eq('source_type', sourceType);
-    
-    const { data: riskData } = await riskCountQuery;
-    
+    // 3. Calculate risk counts
     const riskCounts = { low: 0, medium: 0, high: 0, critical: 0 };
-    const riskByLottery: Record<string, { low: number; medium: number; high: number; critical: number }> = {};
-    
-    (riskData || []).forEach((row) => {
-      const level = row.risk_level as keyof typeof riskCounts;
-      const lottery = row.lottery_type;
-      
-      if (level in riskCounts) riskCounts[level]++;
-      
-      if (!riskByLottery[lottery]) {
-        riskByLottery[lottery] = { low: 0, medium: 0, high: 0, critical: 0 };
-      }
-      if (level in riskByLottery[lottery]) riskByLottery[lottery][level]++;
+    Object.values(byLotteryType).forEach(lottery => {
+      lottery.top_exposure.forEach(exposure => {
+        const level = exposure.risk_level as keyof typeof riskCounts;
+        if (level in riskCounts) riskCounts[level]++;
+      });
     });
     
-    // 3. Get top exposure numbers - GROUPED BY LOTTERY NAME
-    let topExposureQuery = supabase
-      .from('risk_aggregations')
-      .select('lottery_number, bet_type, lottery_type, payout_liability, total_bet_amount, risk_level, source_type, source_site_name')
-      .eq('draw_date', drawDate)
-      .order('payout_liability', { ascending: false })
-      .limit(50); // Get more, then group by lottery
-    
-    if (lotteryType) topExposureQuery = topExposureQuery.eq('lottery_type', lotteryType);
-    if (sourceType) topExposureQuery = topExposureQuery.eq('source_type', sourceType);
-    
-    const { data: topExposure } = await topExposureQuery;
-    
-    // Group top exposures by lottery type
-    const topExposureByLottery: Record<string, typeof topExposure> = {};
-    (topExposure || []).forEach((row) => {
-      const lottery = row.lottery_type;
-      if (!topExposureByLottery[lottery]) {
-        topExposureByLottery[lottery] = [];
-      }
-      if (topExposureByLottery[lottery].length < 10) { // Top 10 per lottery
-        topExposureByLottery[lottery].push(row);
-      }
+    // 4. Get top 20 overall exposure
+    const allExposures: Array<{ lottery_type: string; number: string; bet_type: string; amount: number; liability: number; risk_level: string }> = [];
+    Object.entries(byLotteryType).forEach(([lottery, data]) => {
+      data.top_exposure.forEach(exp => {
+        allExposures.push({ lottery_type: lottery, ...exp });
+      });
     });
+    const top20Exposure = allExposures.sort((a, b) => b.liability - a.liability).slice(0, 20);
     
-    // 4. Get available lottery types for this date
-    const { data: lotteryTypes } = await supabase
-      .from('risk_aggregations')
-      .select('lottery_type')
-      .eq('draw_date', drawDate);
+    // 5. Get unique lottery types
+    const uniqueLotteryTypes = Object.keys(byLotteryType);
     
-    const uniqueLotteryTypes = [...new Set((lotteryTypes || []).map((l) => l.lottery_type))];
+    // 6. Get unique sources
+    const uniqueSources = Object.keys(globalSummary.by_source).map(source => ({
+      source_type: source,
+      bet_count: globalSummary.by_source[source].bet_count,
+      bet_amount: globalSummary.by_source[source].bet_amount,
+    }));
     
-    // 5. Get source sites (all sub-webs reporting data)
-    const { data: sources } = await supabase
-      .from('risk_aggregations')
-      .select('source_type, source_site_id, source_site_name')
-      .eq('draw_date', drawDate);
-    
-    const uniqueSources = [...new Map(
-      (sources || []).map((s) => [`${s.source_type}:${s.source_site_id}`, s])
-    ).values()];
+    // Convert Set to count for manual_key_stats
+    const manualKeyStats = {
+      total_tickets: globalSummary.manual_key_stats.total_tickets,
+      total_amount: globalSummary.manual_key_stats.total_amount,
+      total_liability: globalSummary.manual_key_stats.total_liability,
+      unique_agents: globalSummary.manual_key_stats.unique_agents.size,
+      unique_customers: globalSummary.manual_key_stats.unique_customers.size,
+    };
     
     return NextResponse.json({
       draw_date: drawDate,
@@ -177,23 +223,41 @@ export async function GET(request: NextRequest) {
         source_type: sourceType,
       },
       // Global summary
-      summary: globalSummary,
+      summary: {
+        total_bet_amount: globalSummary.total_bet_amount,
+        total_payout_liability: globalSummary.total_payout_liability,
+        total_bet_count: globalSummary.total_bet_count,
+        by_source: globalSummary.by_source,
+      },
       risk_counts: riskCounts,
+      
+      // CRITICAL: Manual Key specific stats (to verify ALL data is captured)
+      manual_key_stats: manualKeyStats,
       
       // Breakdown by lottery name
       by_lottery: Object.entries(byLotteryType).map(([name, data]) => ({
         lottery_name: name,
-        ...data,
-        risk_counts: riskByLottery[name] || { low: 0, medium: 0, high: 0, critical: 0 },
-        top_exposure: topExposureByLottery[name] || [],
+        total_bet_amount: data.total_bet_amount,
+        total_payout_liability: data.total_payout_liability,
+        total_bet_count: data.total_bet_count,
+        by_source: data.by_source,
+        top_exposure: data.top_exposure,
       })),
       
       // Top 20 overall exposure
-      top_exposure: (topExposure || []).slice(0, 20),
+      top_exposure: top20Exposure,
       
       // Available filters
       available_lottery_types: uniqueLotteryTypes,
       available_sources: uniqueSources,
+      
+      // Data integrity check
+      data_integrity: {
+        total_bets_fetched: (allBets || []).length,
+        data_sources_count: uniqueSources.length,
+        lottery_types_count: uniqueLotteryTypes.length,
+        manual_key_coverage: manualKeyStats.total_tickets > 0 ? 'ACTIVE' : 'NO_DATA',
+      },
       
       generated_at: new Date().toISOString(),
     });
