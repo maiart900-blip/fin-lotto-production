@@ -354,7 +354,7 @@ const comparisonReportItems = [
 // 19.3 ศูนย์แอดมิน (สำหรับ member/พนักงาน)
   const memberAdminItems = [
   { title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
-  { title: 'การเงิน', href: '/member/finance', icon: Wallet },
+  { title: 'การเ��ิน', href: '/member/finance', icon: Wallet },
   { title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
   ];
 
@@ -362,6 +362,7 @@ const comparisonReportItems = [
 const staffManagementItems = [
   { title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
   { title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck },
+  { title: 'Staff Performance', href: '/staff-performance', icon: TrendingUp },
   { title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
   { title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings },
   { title: 'รายงานโอที', href: '/payroll/ot-report', icon: Clock },
