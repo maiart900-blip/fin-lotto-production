@@ -78,6 +78,19 @@ interface TeamMember {
   created_at: string;
 }
 
+// Sub-Agent Profit/Loss Summary Interface (Manual Key Only)
+interface SubAgentProfitLoss {
+  id: string;
+  name: string;                    // ซับเอเย่นต์
+  credits_used: number;            // เครดิตที่ใช้
+  customer_winnings: number;       // ยอดลูกค้าถูก
+  customer_losses: number;         // ยอดลูกค้าเสีย
+  company_share: number;           // ส่งบริษัท
+  agent_profit: number;            // เอเย่นต์ได้รับ
+  total_tickets: number;           // จำนวนโพย
+  share_percent: number;           // เปอร์เซ็นต์ส่งบริษัท
+}
+
 interface AgentStats {
   totalMembers: number;
   activeMembers: number;
@@ -110,6 +123,15 @@ export default function AgentDashboardPage() {
     user?.id ? `/api/agent/turnover-chart?agent_id=${user.id}&range=${dateRange}` : null,
     fetcher
   );
+
+  // Fetch Sub-Agent Profit/Loss Summary (Manual Key Only - Today)
+  const { data: subAgentData, isLoading: isLoadingSubAgents } = useSWR(
+    user?.id ? `/api/agent/sub-agent-profit-loss?agent_id=${user.id}&source_type=manual_key` : null,
+    fetcher,
+    { refreshInterval: 30000 }
+  );
+
+  const subAgentProfitLoss: SubAgentProfitLoss[] = subAgentData?.subAgents || [];
 
   const stats: AgentStats = teamData?.stats || {
     totalMembers: 0,
@@ -227,7 +249,7 @@ export default function AgentDashboardPage() {
               </Badge>
             </div>
             <p className="text-2xl font-bold text-white">{stats.totalMembers}</p>
-            <p className="text-sm text-slate-400">ลูกทีมทั้งหมด</p>
+            <p className="text-sm text-slate-400">ลูกทีมทั้งห��ด</p>
             <p className="text-xs text-emerald-400 mt-1">
               {stats.activeMembers} ใช้งานอยู่
             </p>
@@ -473,6 +495,122 @@ export default function AgentDashboardPage() {
                     </TableCell>
                   </TableRow>
                 ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Sub-Agent Profit/Loss Summary Table (Manual Key Only - Today) */}
+      <Card className="bg-black/40 backdrop-blur-xl border-purple-500/30 shadow-[0_0_30px_rgba(147,51,234,0.1)]">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2">
+                <TrendingUp className="size-5 text-purple-400" />
+                ตารางสรุปกำไรขาดทุนของซับ (วันนี้)
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                สรุปยอดจากระบบคีย์หวยมือ (Manual Key) ประจำวันนี้เท่านั้น
+              </CardDescription>
+            </div>
+            <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+              Manual Key Only
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-slate-800">
+                <TableHead className="text-slate-400">ซับเอเย่นต์</TableHead>
+                <TableHead className="text-slate-400 text-right">เครดิตที่ใช้</TableHead>
+                <TableHead className="text-slate-400 text-right">ยอดลูกค้าถูก</TableHead>
+                <TableHead className="text-slate-400 text-right">ยอดลูกค้าเสีย</TableHead>
+                <TableHead className="text-slate-400 text-right">ส่งบริษัท (%)</TableHead>
+                <TableHead className="text-slate-400 text-right">เอเย่นต์ได้รับ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoadingSubAgents ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                    <RefreshCw className="size-5 animate-spin mx-auto mb-2" />
+                    กำลังโหลดข้อมูล...
+                  </TableCell>
+                </TableRow>
+              ) : subAgentProfitLoss.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                    ยังไม่มีข้อมูลซับเอเย่นต์วันนี้
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <>
+                  {subAgentProfitLoss.map((subAgent) => (
+                    <TableRow key={subAgent.id} className="border-slate-800 hover:bg-white/5">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="size-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+                            <Users className="size-4 text-purple-400" />
+                          </div>
+                          <div>
+                            <p className="text-white font-medium">{subAgent.name}</p>
+                            <p className="text-xs text-slate-500">{subAgent.total_tickets} โพย</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right text-white font-mono">
+                        {subAgent.credits_used.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right text-emerald-400 font-mono">
+                        {subAgent.customer_winnings.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right text-red-400 font-mono">
+                        {subAgent.customer_losses.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="text-amber-400 font-mono">{subAgent.company_share.toLocaleString()}</span>
+                          <span className="text-xs text-slate-500">({subAgent.share_percent}%)</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className={`font-mono font-bold ${subAgent.agent_profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {subAgent.agent_profit >= 0 ? '+' : ''}{subAgent.agent_profit.toLocaleString()}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Summary Row */}
+                  <TableRow className="border-t-2 border-purple-500/30 bg-purple-500/10">
+                    <TableCell className="font-bold text-white">
+                      รวมทั้งหมด
+                    </TableCell>
+                    <TableCell className="text-right text-white font-mono font-bold">
+                      {subAgentProfitLoss.reduce((sum, s) => sum + s.credits_used, 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-emerald-400 font-mono font-bold">
+                      {subAgentProfitLoss.reduce((sum, s) => sum + s.customer_winnings, 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-red-400 font-mono font-bold">
+                      {subAgentProfitLoss.reduce((sum, s) => sum + s.customer_losses, 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-amber-400 font-mono font-bold">
+                      {subAgentProfitLoss.reduce((sum, s) => sum + s.company_share, 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {(() => {
+                        const totalProfit = subAgentProfitLoss.reduce((sum, s) => sum + s.agent_profit, 0);
+                        return (
+                          <span className={`font-mono font-bold ${totalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {totalProfit >= 0 ? '+' : ''}{totalProfit.toLocaleString()}
+                          </span>
+                        );
+                      })()}
+                    </TableCell>
+                  </TableRow>
+                </>
               )}
             </TableBody>
           </Table>
