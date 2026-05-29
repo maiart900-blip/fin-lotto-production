@@ -1,7 +1,13 @@
 // 2FA Verify API - ยืนยันรหัส TOTP หรือ Backup Code
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { 
+  applyRateLimit, 
+  twoFAVerifySchema, 
+  validateRequestBody,
+  logSecurityEvent 
+} from '@/lib/security/api-security';
 
 // Force Node.js runtime for crypto compatibility
 export const runtime = 'nodejs';
@@ -65,8 +71,30 @@ async function verifyAndUseBackupCode(userId: string, code: string): Promise<boo
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Rate limit - strict limit for 2FA attempts (5 per minute)
+    const rateLimitResponse = await applyRateLimit('login', 'twofa_verify');
+    if (rateLimitResponse) {
+      await logSecurityEvent('rate_limit', { 
+        endpoint: '/api/auth/2fa/verify',
+        reason: '2FA verification rate limited'
+      });
+      return rateLimitResponse;
+    }
+    
+    // SECURITY: Validate input with Zod schema
+    const validation = await validateRequestBody(request, twoFAVerifySchema);
+    if (!validation.success) {
+      await logSecurityEvent('validation_failure', {
+        endpoint: '/api/auth/2fa/verify',
+        reason: 'Invalid 2FA code format'
+      });
+      return validation.response;
+    }
+    
+    const { code, isBackupCode } = validation.data;
+    
     console.log('[v0] 2FA verify: Starting verification');
     
     const supabase = await createClient();
@@ -79,13 +107,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No pending 2FA verification' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const { code, isBackupCode } = body;
     console.log('[v0] 2FA verify: code length =', code?.length, 'isBackupCode =', isBackupCode);
 
-    if (!code) {
-      return NextResponse.json({ error: 'กรุณากรอกรหัส OTP' }, { status: 400 });
-    }
+    // Code and isBackupCode already validated and extracted above
 
     // Get user data first
     console.log('[v0] 2FA verify: Fetching user data');

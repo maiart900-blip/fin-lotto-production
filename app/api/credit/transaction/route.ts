@@ -1,10 +1,34 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { requireAdmin, requireAuth } from '@/lib/api-auth';
+import { 
+  applyRateLimit, 
+  uuidSchema,
+  verifyResourceOwnership,
+  logSecurityEvent 
+} from '@/lib/security/api-security';
 
 /**
  * Credit Transaction API with Transaction Lock
  * Prevents double-spending and negative credits using atomic operations
+ * 
+ * SECURITY HARDENED:
+ * - Rate limiting (financial tier - 10/min)
+ * - Admin authentication required for write operations
+ * - Zod input validation
+ * - IDOR protection via resource ownership checks
  */
+
+// Validation schemas
+const transactionRequestSchema = z.object({
+  userId: uuidSchema,
+  amount: z.number().positive().max(100000000, 'Amount too large'),
+  type: z.enum(['debit', 'credit']),
+  description: z.string().min(1).max(500).transform(s => s.replace(/[<>]/g, '').trim()),
+  referenceId: uuidSchema.optional(),
+  referenceType: z.enum(['bet', 'transfer', 'payout', 'adjustment']).optional(),
+});
 
 interface TransactionRequest {
   userId: string;
@@ -39,19 +63,42 @@ async function withLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: TransactionRequest = await request.json();
-    const { userId, amount, type, description, referenceId, referenceType } = body;
-
-    if (!userId || amount === undefined || !type || !description) {
+    // SECURITY: Rate limit financial operations (10 per minute)
+    const rateLimitResponse = await applyRateLimit('financial', 'credit_transaction');
+    if (rateLimitResponse) {
+      await logSecurityEvent('rate_limit', { 
+        endpoint: '/api/credit/transaction',
+        reason: 'Credit transaction rate limited'
+      });
+      return rateLimitResponse;
+    }
+    
+    // SECURITY: Require admin authentication for credit adjustments
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+    const { user: adminUser } = authResult;
+    
+    // SECURITY: Validate input with Zod schema
+    const parseResult = transactionRequestSchema.safeParse(await request.json());
+    if (!parseResult.success) {
+      await logSecurityEvent('validation_failure', {
+        endpoint: '/api/credit/transaction',
+        admin_id: adminUser.id,
+        reason: 'Invalid transaction request',
+        errors: parseResult.error.errors,
+      });
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Validation failed', details: parseResult.error.errors },
         { status: 400 }
       );
     }
+    
+    const { userId, amount, type, description, referenceId, referenceType } = parseResult.data;
 
-    if (amount <= 0) {
+    // userId and amount already validated by Zod schema
+    if (!type || !description) {
       return NextResponse.json(
-        { success: false, error: 'Amount must be positive' },
+        { success: false, error: 'Missing required fields' },
         { status: 400 }
       );
     }
@@ -148,9 +195,18 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: Fetch transaction history
+// GET: Fetch transaction history (requires authentication)
 export async function GET(request: NextRequest) {
   try {
+    // SECURITY: Rate limit read operations
+    const rateLimitResponse = await applyRateLimit('api');
+    if (rateLimitResponse) return rateLimitResponse;
+    
+    // SECURITY: Require authentication
+    const authResult = await requireAuth();
+    if (authResult instanceof NextResponse) return authResult;
+    const { user: authUser } = authResult;
+    
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -159,6 +215,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'userId is required' },
         { status: 400 }
+      );
+    }
+    
+    // SECURITY: IDOR protection - users can only view their own transactions
+    // unless they are admin/super_admin
+    if (userId !== authUser.id && authUser.role !== 'admin' && authUser.role !== 'super_admin') {
+      await logSecurityEvent('idor_attempt', {
+        endpoint: '/api/credit/transaction',
+        user_id: authUser.id,
+        requested_user_id: userId,
+        reason: 'Attempted to view other user transactions'
+      });
+      return NextResponse.json(
+        { success: false, error: 'Access denied' },
+        { status: 403 }
       );
     }
 
