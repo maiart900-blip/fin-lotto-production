@@ -45,6 +45,19 @@ import {
   type MenuItem,
 } from '@/lib/menu-config';
 import { fetcher } from '@/lib/fetcher';
+import { 
+  AGENT_TIER_CONFIG, 
+  getTierConfig,
+  type AgentTier 
+} from '@/lib/agent-permissions.client';
+
+// Helper to get tier from level
+function getTierFromLevel(level: number): AgentTier {
+  if (level === 0) return 'mother_web';
+  if (level === 1) return 'master';
+  if (level === 2) return 'agent';
+  return 'sub_agent';
+}
 
 interface Agent {
   id: string;
@@ -60,6 +73,9 @@ interface Agent {
   can_view_reports: boolean;
   enable_auto?: boolean;
   enable_manual_key?: boolean;
+  // Tier-based fields
+  agent_tier?: AgentTier;
+  role?: string;
 }
 
 // Helper to parse visible_menus (can be string or array, may have corrupted data)
@@ -94,12 +110,17 @@ export default function AgentVisibilityPage() {
   const [canViewReports, setCanViewReports] = useState(true);
   const [saving, setSaving] = useState(false);
   const [filterSystem, setFilterSystem] = useState<string>('all');
+  const [filterTier, setFilterTier] = useState<string>('all');
   const [searchMenu, setSearchMenu] = useState('');
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
-  const filteredAgents = agents.filter(a => 
-    filterSystem === 'all' || a.system_type === filterSystem
-  );
+  // Filter agents by system type AND tier
+  const filteredAgents = agents.filter(a => {
+    const systemMatch = filterSystem === 'all' || a.system_type === filterSystem;
+    const agentTier = a.agent_tier || getTierFromLevel(a.level || 2);
+    const tierMatch = filterTier === 'all' || agentTier === filterTier;
+    return systemMatch && tierMatch;
+  });
 
   // Get agent-relevant sections (exclude agent-only sections since we're configuring for agents)
   const agentMenuSections = useMemo(() => {
@@ -330,13 +351,41 @@ export default function AgentVisibilityPage() {
       </Card>
 
       <div className="grid md:grid-cols-3 gap-6">
-        {/* ��ายชื่อเอเย่น */}
+        {/* รายชื่อเอเย่น */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5" />
               เลือกเอเย่น
             </CardTitle>
+            {/* Tier Filter */}
+            <Select value={filterTier} onValueChange={setFilterTier}>
+              <SelectTrigger className="mb-2">
+                <SelectValue placeholder="ทุกระดับ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกระดับ</SelectItem>
+                <SelectItem value="master">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-600" />
+                    Master
+                  </span>
+                </SelectItem>
+                <SelectItem value="agent">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-600" />
+                    Agent
+                  </span>
+                </SelectItem>
+                <SelectItem value="sub_agent">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-600" />
+                    Sub-Agent
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {/* System Type Filter */}
             <Select value={filterSystem} onValueChange={setFilterSystem}>
               <SelectTrigger>
                 <SelectValue placeholder="ระบบทั้งหมด" />
@@ -354,7 +403,10 @@ export default function AgentVisibilityPage() {
                 {filteredAgents.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">ไม่มีเอเย่น</p>
                 ) : (
-                  filteredAgents.map(agent => (
+                  filteredAgents.map(agent => {
+                    const agentTier = agent.agent_tier || getTierFromLevel(agent.level || 2);
+                    const tierConfig = AGENT_TIER_CONFIG[agentTier];
+                    return (
                     <div
                       key={agent.id}
                       onClick={() => handleSelectAgent(agent.id)}
@@ -364,13 +416,18 @@ export default function AgentVisibilityPage() {
                           : 'hover:bg-muted/50'
                       }`}
                     >
-                      <div className="font-medium">
+                      <div className="font-medium flex items-center gap-2">
                         {agent.name || agent.code}
                         {agent.name && agent.code && agent.name !== agent.code && (
-                          <span className="text-xs text-muted-foreground ml-2">({agent.code})</span>
+                          <span className="text-xs text-muted-foreground">({agent.code})</span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {/* Tier Badge - Always show first */}
+                        <Badge className={`text-xs text-white ${tierConfig.bgColor}`}>
+                          {tierConfig.label}
+                        </Badge>
+                        {/* System Type Badges */}
                         {agent.enable_manual_key && (
                           <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                             คีย์
@@ -381,14 +438,6 @@ export default function AgentVisibilityPage() {
                             ออโต้
                           </Badge>
                         )}
-                        {!agent.enable_manual_key && !agent.enable_auto && (
-                          <Badge variant="outline" className="text-xs">
-                            {agent.system_type === 'auto' ? 'ออโต้' : agent.system_type === 'hybrid' ? 'ผสม' : 'คีย์'}
-                          </Badge>
-                        )}
-                        <Badge variant="secondary" className="text-xs">
-                          Lv.{agent.level || 1}
-                        </Badge>
                         <Badge 
                           variant={agent.status === 'active' ? 'default' : 'destructive'}
                           className="text-xs"
@@ -397,7 +446,7 @@ export default function AgentVisibilityPage() {
                         </Badge>
                       </div>
                     </div>
-                  ))
+                  );})
                 )}
               </div>
             </ScrollArea>
