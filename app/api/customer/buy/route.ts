@@ -2,9 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { createAuditLog, getClientIP, getUserAgent } from '@/lib/audit-log';
+import { 
+  applyRateLimit, 
+  customerBuySchema, 
+  validateRequestBody,
+  verifyCustomerAccess,
+  logSecurityEvent 
+} from '@/lib/security/api-security';
 
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Rate limit financial operations (10 per minute)
+    const rateLimitResponse = await applyRateLimit('financial', 'customer_buy');
+    if (rateLimitResponse) {
+      await logSecurityEvent('rate_limit', { 
+        endpoint: '/api/customer/buy',
+        reason: 'Buy operation rate limited'
+      });
+      return rateLimitResponse;
+    }
+    
     const supabase = await createClient();
     const cookieStore = await cookies();
     
@@ -18,13 +35,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { lottery_id, entries, items } = body;
+    // SECURITY: Validate input with Zod schema (Anti-SQL Injection)
+    const validation = await validateRequestBody(request, customerBuySchema);
+    if (!validation.success) {
+      await logSecurityEvent('validation_failure', {
+        endpoint: '/api/customer/buy',
+        customer_id,
+        reason: 'Invalid buy request format'
+      });
+      return validation.response;
+    }
+    
+    const { lottery_id, entries, items } = validation.data;
     
     // Support both 'entries' and 'items' keys for backwards compatibility
     const entryItems = entries || items;
 
-    if (!lottery_id || !entryItems || entryItems.length === 0) {
+    // entryItems is already validated by Zod schema above
+    if (!entryItems || entryItems.length === 0) {
       return NextResponse.json(
         { error: 'ข้อมูลไม่ครบถ้วน' },
         { status: 400 }
