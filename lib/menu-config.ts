@@ -224,6 +224,7 @@ export const reportItems: MenuItem[] = [
 
 // 12. จัดการพนักงาน
 export const staffManagementItems: MenuItem[] = [
+  { id: 'staff-performance', title: 'ผลงานพนักงาน', href: '/staff-performance', icon: Target, description: 'ดูผลงานและค่าคอมมิชชั่นพนักงาน' },
   { id: 'admin-attendance-report', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock, description: 'รายงานการเข้างาน' },
   { id: 'admin-performance', title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck, description: 'ตรวจสอบผลการทำงาน' },
   { id: 'payroll', title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet, description: 'สรุปเงินเดือนพนักงาน' },
