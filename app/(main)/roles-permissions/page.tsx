@@ -1,17 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import useSWR from 'swr';
+import { useState, useMemo } from 'react';
+import useSWR, { mutate as globalMutate } from 'swr';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -19,6 +15,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { 
   RefreshCw, 
   Settings, 
@@ -40,203 +44,381 @@ import {
   Plus,
   Edit,
   Trash2,
+  MinusSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   ALL_MENU_SECTIONS, 
   STANDALONE_ITEMS,
-  getDefaultPermissions,
-  isMenuRestricted,
   type MenuSection,
 } from '@/lib/menu-config';
 import { fetcher } from '@/lib/fetcher';
 import { useAuth } from '@/hooks/use-auth';
-import { 
-  AGENT_TIER_CONFIG, 
-  getTierConfig,
-  type AgentTier 
-} from '@/lib/agent-permissions.client';
 
 // =====================================================
-// CONSOLIDATED PERMISSIONS PAGE - SINGLE SOURCE OF TRUTH
+// CONSOLIDATED PERMISSIONS PAGE - TIER-BASED GLOBAL CONFIG
 // =====================================================
-// This page manages ALL permission types:
-// 1. Role-based permissions (Super Admin, Admin, Staff)
-// 2. 4-Tier Agent Hierarchy (Master, Agent, Sub-Agent)
-// 3. Staff/Member visibility settings
+// This page configures permissions for ENTIRE TIERS at once:
+// 1. พนักงาน/แอดมิน (Internal Staff)
+// 2. Master Agent (Level 1 - Purple)
+// 3. Agent (Level 2 - Blue)
+// 4. Sub-Agent (Level 3 - Green)
 //
-// STRICT DATA ISOLATION:
-// - Each tier mirrors Mother Web menu structure
-// - Tiers CANNOT see actual Mother Web data
-// - Manual Key agents are completely separate from Auto
+// Each menu item has 4 granular permissions:
+// - ดู (View)
+// - สร้าง (Create)
+// - แก้ไข (Edit)
+// - ลบ (Delete)
+//
+// NO individual agent selection - configure by tier globally
 // =====================================================
 
-interface Permission {
-  id: string;
-  role: string;
-  permission_key: string;
+type PermissionType = 'view' | 'create' | 'edit' | 'delete';
+type TierType = 'internal' | 'master' | 'agent' | 'sub_agent';
+
+interface TierPermission {
+  menu_id: string;
   can_view: boolean;
   can_create: boolean;
   can_edit: boolean;
   can_delete: boolean;
 }
 
-interface Agent {
-  id: string;
-  code: string;
-  name: string;
-  username?: string;
-  display_name?: string;
-  system_type: string;
-  level: number;
-  status: string;
-  visible_menus: string[] | string;
-  can_create_sub_agent: boolean;
-  can_view_reports: boolean;
-  agent_tier?: AgentTier;
-  role?: string;
-}
-
-// Helper to get tier from level
-function getTierFromLevel(level: number): AgentTier {
-  if (level === 0) return 'mother_web';
-  if (level === 1) return 'master';
-  if (level === 2) return 'agent';
-  return 'sub_agent';
-}
-
-// Helper to parse visible_menus
-function parseVisibleMenus(menus: string[] | string | undefined): string[] {
-  if (!menus) return [];
-  if (typeof menus === 'string') {
-    try {
-      const parsed = JSON.parse(menus);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch { return []; }
-  }
-  if (Array.isArray(menus)) {
-    return menus.filter(m => typeof m === 'string' && m.length > 1);
-  }
-  return [];
-}
-
-const ROLES = ['super_admin', 'admin', 'key_staff', 'staff'];
-const PERMISSIONS = [
-  'dashboard', 'entries', 'customers', 'lotteries', 'results',
-  'topup', 'withdraw', 'credits', 'partners', 'reports',
-  'settings', 'users', 'backup',
-];
-
-const ROLE_LABELS: Record<string, string> = {
-  super_admin: 'Super Admin (Mother Web)',
-  admin: 'Admin (แอดมิน)',
-  key_staff: 'พนักงานคีย์หวย',
-  staff: 'พนักงานทั่วไป',
+// Manual Key specific menus to inject
+const MANUAL_KEY_MENUS_BY_TIER: Record<string, Array<{ id: string; title: string; description: string }>> = {
+  master: [
+    { id: 'master-key-dashboard', title: 'แดชบอร์ดมาสเตอร์คีย์', description: 'ดูภาพรวมระบบคีย์หวยสำหรับ Master' },
+    { id: 'master-risk-report', title: 'รายงานความเสี่ยงรวมส่งบริษัท', description: 'รายงานความเสี่ยงที่ต้องส่งให้บริษัท' },
+    { id: 'master-agent-status', title: 'ตารางสถานะเอเย่นต์ เขียว/แดง', description: 'ดูสถานะกำไร/ขาดทุนของเอเย่นต์ทั้งหมด' },
+    { id: 'master-agent-performance', title: 'รายงานผลงานเอเย่นต์', description: 'ดูผลงานรายเอเย่นต์' },
+  ],
+  agent: [
+    { id: 'agent-dashboard', title: 'แดชบอร์ดเอเย่นต์', description: 'หน้าหลักสำหรับเอเย่นต์' },
+    { id: 'agent-sub-agent-profit', title: 'ตารางสรุปกำไรขาดทุนของซับ', description: 'ดูกำไร/ขาดทุนของซับเอเย่นต์' },
+    { id: 'agent-key-entry', title: 'คีย์โพยให้ลูกค้า', description: 'คีย์หวยให้ลูกค้าในเครือข่าย' },
+    { id: 'agent-customer-manage', title: 'จัดการลูกค้า', description: 'เพิ่ม/แก้ไขลูกค้าในเครือข่าย' },
+  ],
+  sub_agent: [
+    { id: 'sub-agent-key-daily', title: 'หน้าจอคีย์เลขหวยรายวัน', description: 'คีย์โพยหวยประจำวัน' },
+    { id: 'sub-agent-key-history', title: 'ประวัติการคีย์โพยวันนี้', description: 'ดูประวัติโพยที่คีย์วันนี้' },
+    { id: 'sub-agent-customer-list', title: 'รายชื่อลูกค้า', description: 'ดูรายชื่อลูกค้าของตัวเอง' },
+    { id: 'sub-agent-results', title: 'ดูผลหวย', description: 'ดูผลหวยและรางวัล' },
+  ],
 };
 
-const PERMISSION_LABELS: Record<string, string> = {
-  dashboard: 'แดชบอร์ด',
-  entries: 'โพยหวย',
-  customers: 'ลูกค้า',
-  lotteries: 'หวย',
-  results: 'ผลหวย',
-  topup: 'เติมเงิน',
-  withdraw: 'ถอนเงิน',
-  credits: 'เครดิต',
-  partners: 'หุ้นส่วน',
-  reports: 'รายงาน',
-  settings: 'ตั้งค่า',
-  users: 'ผู้ใช้',
-  backup: 'สำรองข้อมูล',
+// Tier configurations
+const TIER_CONFIG: Record<TierType, { label: string; color: string; icon: typeof Shield; description: string }> = {
+  internal: {
+    label: 'พนักงาน/แอดมิน',
+    color: 'amber',
+    icon: Shield,
+    description: 'สิทธิ์สำหรับพนักงานภายในและแอดมิน',
+  },
+  master: {
+    label: 'Master Agent',
+    color: 'purple',
+    icon: Crown,
+    description: 'สิทธิ์สำหรับ Master Agent (Level 1) - คีย์หวยมือเท่านั้น',
+  },
+  agent: {
+    label: 'Agent',
+    color: 'blue',
+    icon: Users,
+    description: 'สิทธิ์สำหรับ Agent (Level 2) - คีย์หวยมือเท่านั้น',
+  },
+  sub_agent: {
+    label: 'Sub-Agent',
+    color: 'green',
+    icon: Keyboard,
+    description: 'สิทธิ์สำหรับ Sub-Agent (Level 3) - คีย์หวยมือเท่านั้น',
+  },
 };
 
-export default function ConsolidatedPermissionsPage() {
-  const { canAccess, isSuperAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('internal');
+// Restricted sections that cannot be enabled for agents
+const RESTRICTED_SECTION_IDS = ['super-admin', 'security', 'multi-tenant'];
+const RESTRICTED_MENU_IDS = ['users', 'roles-permissions', 'backup', 'audit-logs', '2fa', 'health-check', 'security-dashboard'];
+
+// Auto system menus to hide from manual-key tiers
+const AUTO_SYSTEM_MENU_IDS = ['auto-system', 'auto-entries', 'auto-customers', 'auto-settings'];
+
+export default function TierPermissionsPage() {
+  const { canAccess } = useAuth();
+  const [activeTab, setActiveTab] = useState<TierType>('internal');
   const [isSaving, setIsSaving] = useState(false);
-  
-  // Role permissions state
-  const [rolePermissions, setRolePermissions] = useState<Record<string, Record<string, Permission>>>({});
-  const { data: roleData, mutate: mutateRoles } = useSWR('/api/role-permissions', fetcher);
-  
-  // Agent visibility state
-  const { data: agentData, mutate: mutateAgents, isLoading: isLoadingAgents } = useSWR(
-    '/api/agents?include_visibility=true', 
-    fetcher
-  );
-  const agents: Agent[] = agentData?.agents || [];
-  
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-  const [visibleMenus, setVisibleMenus] = useState<string[]>([]);
-  const [canCreateSubAgent, setCanCreateSubAgent] = useState(false);
-  const [canViewReports, setCanViewReports] = useState(true);
-  const [filterTier, setFilterTier] = useState<string>('all');
-  const [filterSystem, setFilterSystem] = useState<string>('all');
-  const [searchMenu, setSearchMenu] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  
+  // Fetch tier permissions
+  const { data: permissionsData, isLoading } = useSWR('/api/tier-permissions', fetcher);
+  
+  // State for permissions per tier
+  const [tierPermissions, setTierPermissions] = useState<Record<TierType, Record<string, TierPermission>>>({
+    internal: {},
+    master: {},
+    agent: {},
+    sub_agent: {},
+  });
 
-  // Initialize role permissions
-  useEffect(() => {
-    if (roleData?.permissions) {
-      const permMap: Record<string, Record<string, Permission>> = {};
-      ROLES.forEach(role => {
-        permMap[role] = {};
-        PERMISSIONS.forEach(perm => {
-          const existing = roleData.permissions.find(
-            (p: Permission) => p.role === role && p.permission_key === perm
-          );
-          permMap[role][perm] = existing || {
-            role,
-            permission_key: perm,
-            can_view: false,
-            can_create: false,
-            can_edit: false,
-            can_delete: false,
+  // Initialize permissions from API data
+  useMemo(() => {
+    if (permissionsData?.permissions) {
+      const newPerms: Record<TierType, Record<string, TierPermission>> = {
+        internal: {},
+        master: {},
+        agent: {},
+        sub_agent: {},
+      };
+      
+      permissionsData.permissions.forEach((p: TierPermission & { tier: TierType }) => {
+        if (!newPerms[p.tier]) newPerms[p.tier] = {};
+        newPerms[p.tier][p.menu_id] = {
+          menu_id: p.menu_id,
+          can_view: p.can_view,
+          can_create: p.can_create,
+          can_edit: p.can_edit,
+          can_delete: p.can_delete,
+        };
+      });
+      
+      setTierPermissions(newPerms);
+    }
+  }, [permissionsData]);
+
+  // Build complete menu list for each tier
+  const getMenusForTier = (tier: TierType) => {
+    const menus: Array<{ section: MenuSection | null; items: Array<{ id: string; title: string; description?: string; restricted?: boolean }> }> = [];
+    
+    // Filter out auto system menus for manual-key tiers
+    const isManualKeyTier = tier === 'master' || tier === 'agent' || tier === 'sub_agent';
+    
+    // Add standalone items
+    const standaloneItems = STANDALONE_ITEMS.filter(item => {
+      if (isManualKeyTier && AUTO_SYSTEM_MENU_IDS.includes(item.id)) return false;
+      return true;
+    }).map(item => ({
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      restricted: RESTRICTED_MENU_IDS.includes(item.id),
+    }));
+    
+    if (standaloneItems.length > 0) {
+      menus.push({ section: null, items: standaloneItems });
+    }
+    
+    // Add menu sections
+    ALL_MENU_SECTIONS.forEach(section => {
+      // Skip restricted sections for non-internal tiers
+      if (tier !== 'internal' && RESTRICTED_SECTION_IDS.includes(section.id)) return;
+      
+      // Filter out auto system section for manual-key tiers
+      if (isManualKeyTier && section.id === 'auto-system') return;
+      
+      const items = section.items
+        .filter(item => {
+          if (isManualKeyTier && AUTO_SYSTEM_MENU_IDS.includes(item.id)) return false;
+          return true;
+        })
+        .map(item => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          restricted: RESTRICTED_MENU_IDS.includes(item.id) || section.restricted,
+        }));
+      
+      if (items.length > 0) {
+        menus.push({ 
+          section: { ...section, restricted: section.restricted || RESTRICTED_SECTION_IDS.includes(section.id) }, 
+          items 
+        });
+      }
+    });
+    
+    // Add tier-specific manual key menus
+    if (MANUAL_KEY_MENUS_BY_TIER[tier]) {
+      menus.push({
+        section: { 
+          id: `${tier}-manual-key-specific`, 
+          title: 'เมนูเฉพาะระดับ (Manual Key)', 
+          icon: Keyboard, 
+          items: [],
+          restricted: false,
+        },
+        items: MANUAL_KEY_MENUS_BY_TIER[tier].map(m => ({
+          id: m.id,
+          title: m.title,
+          description: m.description,
+          restricted: false,
+        })),
+      });
+    }
+    
+    return menus;
+  };
+
+  // Count menus
+  const countMenus = (tier: TierType) => {
+    const menus = getMenusForTier(tier);
+    let total = 0;
+    let enabled = 0;
+    
+    menus.forEach(({ items }) => {
+      items.forEach(item => {
+        total++;
+        if (tierPermissions[tier]?.[item.id]?.can_view) enabled++;
+      });
+    });
+    
+    return { total, enabled };
+  };
+
+  // Filter menus by search
+  const filterMenusBySearch = (menus: ReturnType<typeof getMenusForTier>) => {
+    if (!searchQuery.trim()) return menus;
+    
+    const query = searchQuery.toLowerCase();
+    return menus.map(group => ({
+      ...group,
+      items: group.items.filter(item => 
+        item.title.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query)
+      ),
+    })).filter(group => group.items.length > 0);
+  };
+
+  // Toggle permission
+  const togglePermission = (tier: TierType, menuId: string, permType: PermissionType, value: boolean) => {
+    setTierPermissions(prev => {
+      const current = prev[tier]?.[menuId] || {
+        menu_id: menuId,
+        can_view: false,
+        can_create: false,
+        can_edit: false,
+        can_delete: false,
+      };
+      
+      // If enabling create/edit/delete, also enable view
+      let newPerm = { ...current };
+      if (permType === 'view') {
+        newPerm.can_view = value;
+        // If disabling view, disable all others
+        if (!value) {
+          newPerm.can_create = false;
+          newPerm.can_edit = false;
+          newPerm.can_delete = false;
+        }
+      } else {
+        newPerm[`can_${permType}`] = value;
+        // If enabling other perms, ensure view is enabled
+        if (value) {
+          newPerm.can_view = true;
+        }
+      }
+      
+      return {
+        ...prev,
+        [tier]: {
+          ...prev[tier],
+          [menuId]: newPerm,
+        },
+      };
+    });
+  };
+
+  // Toggle all permissions for a menu
+  const toggleAllForMenu = (tier: TierType, menuId: string, enable: boolean) => {
+    setTierPermissions(prev => ({
+      ...prev,
+      [tier]: {
+        ...prev[tier],
+        [menuId]: {
+          menu_id: menuId,
+          can_view: enable,
+          can_create: enable,
+          can_edit: enable,
+          can_delete: enable,
+        },
+      },
+    }));
+  };
+
+  // Toggle entire section
+  const toggleSection = (tier: TierType, sectionItems: Array<{ id: string; restricted?: boolean }>, enable: boolean) => {
+    setTierPermissions(prev => {
+      const newPerms = { ...prev[tier] };
+      sectionItems.forEach(item => {
+        if (item.restricted) return; // Skip restricted items
+        newPerms[item.id] = {
+          menu_id: item.id,
+          can_view: enable,
+          can_create: enable,
+          can_edit: enable,
+          can_delete: enable,
+        };
+      });
+      return { ...prev, [tier]: newPerms };
+    });
+  };
+
+  // Select all menus for tier
+  const selectAllForTier = (tier: TierType) => {
+    const menus = getMenusForTier(tier);
+    setTierPermissions(prev => {
+      const newPerms: Record<string, TierPermission> = {};
+      menus.forEach(({ items }) => {
+        items.forEach(item => {
+          if (item.restricted) return;
+          newPerms[item.id] = {
+            menu_id: item.id,
+            can_view: true,
+            can_create: true,
+            can_edit: true,
+            can_delete: true,
           };
         });
       });
-      setRolePermissions(permMap);
-    }
-  }, [roleData]);
-
-  // Filter agents by tier and system
-  const filteredAgents = agents.filter(a => {
-    const systemMatch = filterSystem === 'all' || a.system_type === filterSystem;
-    const agentTier = a.agent_tier || getTierFromLevel(a.level || 2);
-    const tierMatch = filterTier === 'all' || agentTier === filterTier;
-    return systemMatch && tierMatch;
-  });
-
-  // Menu sections for agents
-  const agentMenuSections = useMemo(() => {
-    return ALL_MENU_SECTIONS.filter(section => !section.agentOnly);
-  }, []);
-
-  // Filter menu sections by search
-  const filteredSections = useMemo(() => {
-    if (!searchMenu.trim()) return agentMenuSections;
-    const search = searchMenu.toLowerCase();
-    return agentMenuSections.map(section => {
-      const filteredItems = section.items.filter(item => 
-        item.title.toLowerCase().includes(search) ||
-        item.description?.toLowerCase().includes(search)
-      );
-      if (filteredItems.length > 0 || section.title.toLowerCase().includes(search)) {
-        return { ...section, items: filteredItems.length > 0 ? filteredItems : section.items };
-      }
-      return null;
-    }).filter(Boolean) as MenuSection[];
-  }, [searchMenu, agentMenuSections]);
-
-  // Count visible menus
-  const visibleCount = visibleMenus.length;
-  const totalCount = useMemo(() => {
-    let count = STANDALONE_ITEMS.length;
-    agentMenuSections.forEach(section => {
-      count += 1 + section.items.length;
+      return { ...prev, [tier]: newPerms };
     });
-    return count;
-  }, [agentMenuSections]);
+    toast.info('เลือกทุกเมนูแล้ว');
+  };
+
+  // Deselect all menus for tier
+  const deselectAllForTier = (tier: TierType) => {
+    setTierPermissions(prev => ({ ...prev, [tier]: {} }));
+    toast.info('ยกเลิกทุกเมนูแล้ว');
+  };
+
+  // Save permissions
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const allPermissions: Array<TierPermission & { tier: TierType }> = [];
+      
+      (Object.keys(tierPermissions) as TierType[]).forEach(tier => {
+        Object.values(tierPermissions[tier]).forEach(perm => {
+          allPermissions.push({ ...perm, tier });
+        });
+      });
+      
+      const res = await fetch('/api/tier-permissions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions: allPermissions }),
+      });
+      
+      if (res.ok) {
+        toast.success('บันทึกสิทธิ์สำเร็จ');
+        globalMutate('/api/tier-permissions');
+      } else {
+        const error = await res.json();
+        toast.error(error.error || 'เกิดข้อผิดพลาด');
+      }
+    } catch {
+      toast.error('เกิดข้อผิดพลาดในการบันทึก');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Permission denied
   if (!canAccess('super_admin')) {
@@ -253,179 +435,8 @@ export default function ConsolidatedPermissionsPage() {
     );
   }
 
-  // Handle role permission change
-  const handleRolePermissionChange = (
-    role: string, 
-    permKey: string, 
-    field: 'can_view' | 'can_create' | 'can_edit' | 'can_delete',
-    value: boolean
-  ) => {
-    setRolePermissions(prev => ({
-      ...prev,
-      [role]: {
-        ...prev[role],
-        [permKey]: {
-          ...prev[role][permKey],
-          [field]: value,
-        },
-      },
-    }));
-  };
-
-  // Save role permissions
-  const handleSaveRolePermissions = async () => {
-    setIsSaving(true);
-    try {
-      const allPerms = Object.values(rolePermissions).flatMap(rolePerms => 
-        Object.values(rolePerms)
-      );
-      
-      const res = await fetch('/api/role-permissions', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ permissions: allPerms }),
-      });
-      
-      if (res.ok) {
-        toast.success('บันทึกสิทธิ์สำเร็จ');
-        mutateRoles();
-      } else {
-        toast.error('เกิดข้อผิดพลาด');
-      }
-    } catch {
-      toast.error('เกิดข้อผิดพลาด');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Handle agent selection
-  const handleSelectAgent = async (agentId: string) => {
-    const agent = agents.find(a => a.id === agentId);
-    if (agent) {
-      setSelectedAgent(agentId);
-      try {
-        const res = await fetch(`/api/menu-permissions?target_id=${agentId}&target_type=agent`, {
-          credentials: 'include',
-        });
-        const data = await res.json();
-        
-        if (data.permissions && data.permissions.length > 0) {
-          setVisibleMenus(data.permissions);
-        } else {
-          const parsedMenus = parseVisibleMenus(agent.visible_menus);
-          setVisibleMenus(parsedMenus.length > 0 ? parsedMenus : getDefaultPermissions('agent'));
-        }
-        
-        setCanCreateSubAgent(data.canCreateSubAgent || agent.can_create_sub_agent || false);
-        setCanViewReports(data.canViewReports ?? agent.can_view_reports ?? true);
-      } catch {
-        const parsedMenus = parseVisibleMenus(agent.visible_menus);
-        setVisibleMenus(parsedMenus.length > 0 ? parsedMenus : getDefaultPermissions('agent'));
-        setCanCreateSubAgent(agent.can_create_sub_agent || false);
-        setCanViewReports(agent.can_view_reports !== false);
-      }
-    }
-  };
-
-  // Toggle menu visibility
-  const toggleMenu = (menuId: string) => {
-    if (isMenuRestricted(menuId)) {
-      toast.error('เมนูนี้เป็นเมนู Restricted ไม่สามารถเปิดได้');
-      return;
-    }
-    setVisibleMenus(prev => 
-      prev.includes(menuId) 
-        ? prev.filter(m => m !== menuId)
-        : [...prev, menuId]
-    );
-  };
-
-  // Toggle section
-  const toggleSection = (section: MenuSection) => {
-    if (section.restricted) {
-      toast.error('หมวดนี้เป็นหมวด Restricted ไม่สามารถเปิดได้');
-      return;
-    }
-    const sectionIds = [section.id, ...section.items.map(item => item.id)];
-    const allSelected = sectionIds.every(id => visibleMenus.includes(id));
-    
-    if (allSelected) {
-      setVisibleMenus(prev => prev.filter(id => !sectionIds.includes(id)));
-    } else {
-      const nonRestrictedIds = sectionIds.filter(id => !isMenuRestricted(id));
-      setVisibleMenus(prev => [...new Set([...prev, ...nonRestrictedIds])]);
-    }
-  };
-
-  const isSectionSelected = (section: MenuSection) => {
-    const sectionIds = [section.id, ...section.items.map(item => item.id)];
-    return sectionIds.every(id => visibleMenus.includes(id));
-  };
-
-  const isSectionPartial = (section: MenuSection) => {
-    const sectionIds = [section.id, ...section.items.map(item => item.id)];
-    const selected = sectionIds.filter(id => visibleMenus.includes(id));
-    return selected.length > 0 && selected.length < sectionIds.length;
-  };
-
-  const selectAllMenus = () => {
-    const allIds: string[] = [];
-    STANDALONE_ITEMS.forEach(item => allIds.push(item.id));
-    agentMenuSections.forEach(section => {
-      if (!section.restricted) {
-        allIds.push(section.id);
-        section.items.forEach(item => {
-          if (!isMenuRestricted(item.id)) allIds.push(item.id);
-        });
-      }
-    });
-    setVisibleMenus(allIds);
-  };
-
-  const deselectAllMenus = () => setVisibleMenus([]);
-
-  const resetToDefault = () => {
-    setVisibleMenus(getDefaultPermissions('agent'));
-    toast.info('รีเซ็ตเป็นค่าเริ่มต้นแล้ว');
-  };
-
-  // Save agent visibility
-  const handleSaveAgentVisibility = async () => {
-    if (!selectedAgent) return;
-    
-    setIsSaving(true);
-    try {
-      const res = await fetch('/api/menu-permissions', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          target_id: selectedAgent,
-          target_type: 'agent',
-          visible_menus: visibleMenus,
-          can_create_sub_agent: canCreateSubAgent,
-          can_view_reports: canViewReports,
-        }),
-      });
-
-      if (res.ok) {
-        toast.success('บันทึกสิทธิ์สำเร็จ');
-        mutateAgents();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || 'เกิดข้อผิดพลาด');
-      }
-    } catch {
-      toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const toggleSectionOpen = (sectionId: string) => {
-    setOpenSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
-  };
+  const currentMenus = filterMenusBySearch(getMenusForTier(activeTab));
+  const { total, enabled } = countMenus(activeTab);
 
   return (
     <div className="p-6 space-y-6">
@@ -434,22 +445,29 @@ export default function ConsolidatedPermissionsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Shield className="h-6 w-6 text-amber-500" />
-            สิทธิ์การใช้งาน (ศูนย์กลาง)
+            ตั้งค่าเมนูและสิทธิ์ (ศูนย์กลาง)
           </h1>
-          <p className="text-gray-400 mt-1">จัดการสิทธิ์และการมองเห็นของทุกระดับ - รวมทุกหน้าไว้ที่นี่</p>
+          <p className="text-gray-400 mt-1">ตั้งค่าสิทธิ์แบบรวมศูนย์ตามระดับ - ไม่ต้องตั้งค่าทีละคน</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            mutateRoles();
-            mutateAgents();
-          }}
-          className="border-slate-600"
-        >
-          <RefreshCw className="h-4 w-4 mr-1" />
-          รีเฟรช
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => globalMutate('/api/tier-permissions')}
+            className="border-slate-600"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            รีเฟรช
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+          </Button>
+        </div>
       </div>
 
       {/* 4-Tier Hierarchy Info */}
@@ -465,7 +483,7 @@ export default function ConsolidatedPermissionsPage() {
           <ChevronRight className="inline h-4 w-4 mx-1" />
           <Badge className="bg-green-600 text-white">Sub-Agent</Badge>
           <span className="text-xs block mt-1">
-            Downlines รับโครงสร้างเมนูจาก Mother Web แต่ไม่สามารถเข้าถึงข้อมูลเว็บแม่ได้
+            ตั้งค่าสิทธิ์ตามระดับ - ทุกคนในระดับเดียวกันจะได้รับสิทธิ์เหมือนกัน
           </span>
         </AlertDescription>
       </Alert>
@@ -474,424 +492,261 @@ export default function ConsolidatedPermissionsPage() {
       <Alert className="bg-purple-500/10 border-purple-500/30">
         <Lock className="h-4 w-4 text-purple-400" />
         <AlertDescription className="text-purple-200">
-          <strong>Data Isolation:</strong> สายงานเอเย่นต์ (Manual Key) แยกจากระบบออโต้โดยสมบูรณ์ 
-          - ทุก Tier จะเห็นเฉพาะข้อมูลในเครือข่ายของตัวเองเท่านั้น
+          <strong>Data Isolation - คีย์หวยมือเท่านั้น:</strong> Master/Agent/Sub-Agent แยกจากระบบออโต้โดยสมบูรณ์
+          <Badge className="bg-purple-600 text-white ml-2">Manual Key Only</Badge>
         </AlertDescription>
       </Alert>
 
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-slate-800">
-          <TabsTrigger value="internal" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            พนักงาน/แอดมิน
-          </TabsTrigger>
-          <TabsTrigger value="master" className="flex items-center gap-2">
-            <Crown className="h-4 w-4 text-purple-400" />
-            Master
-          </TabsTrigger>
-          <TabsTrigger value="agent" className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-blue-400" />
-            Agent
-          </TabsTrigger>
-          <TabsTrigger value="sub_agent" className="flex items-center gap-2">
-            <Keyboard className="h-4 w-4 text-green-400" />
-            Sub-Agent
-          </TabsTrigger>
+      {/* Main Tier Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TierType)}>
+        <TabsList className="bg-slate-800 w-full justify-start">
+          {(Object.keys(TIER_CONFIG) as TierType[]).map(tier => {
+            const config = TIER_CONFIG[tier];
+            const Icon = config.icon;
+            const counts = countMenus(tier);
+            return (
+              <TabsTrigger 
+                key={tier} 
+                value={tier} 
+                className={`flex items-center gap-2 data-[state=active]:bg-${config.color}-500/20`}
+              >
+                <Icon className={`h-4 w-4 text-${config.color}-400`} />
+                {config.label}
+                <Badge variant="outline" className="ml-1 text-xs">
+                  {counts.enabled}/{counts.total}
+                </Badge>
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
-        {/* Internal Staff Tab */}
-        <TabsContent value="internal">
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleSaveRolePermissions} 
-                disabled={isSaving}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
-              </Button>
-            </div>
-
-            {ROLES.map(role => (
-              <Card key={role} className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Shield className={`h-5 w-5 ${
-                      role === 'super_admin' ? 'text-red-500' : 
-                      role === 'admin' ? 'text-blue-500' : 
-                      role === 'key_staff' ? 'text-amber-500' : 
-                      'text-gray-500'
-                    }`} />
-                    {ROLE_LABELS[role]}
-                    {role === 'super_admin' && (
-                      <Badge className="ml-2 bg-red-500/20 text-red-400 border border-red-500">Full Access</Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {role === 'super_admin' ? (
-                    <p className="text-gray-400">Super Admin มีสิทธิ์เข้าถึงทุกฟังก์ชั่น</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-left text-sm text-gray-400 border-b border-slate-700">
-                            <th className="py-2 px-3 font-semibold">เมนู</th>
-                            <th className="py-2 px-3 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Eye className="h-4 w-4" />
-                                <span>ดู</span>
-                              </div>
-                            </th>
-                            <th className="py-2 px-3 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Plus className="h-4 w-4" />
-                                <span>สร้าง</span>
-                              </div>
-                            </th>
-                            <th className="py-2 px-3 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Edit className="h-4 w-4" />
-                                <span>แก้ไข</span>
-                              </div>
-                            </th>
-                            <th className="py-2 px-3 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Trash2 className="h-4 w-4" />
-                                <span>ลบ</span>
-                              </div>
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {PERMISSIONS.map(perm => (
-                            <tr key={perm} className="border-b border-slate-700 hover:bg-slate-700/50">
-                              <td className="py-2 px-3 text-white font-medium">{PERMISSION_LABELS[perm]}</td>
-                              {(['can_view', 'can_create', 'can_edit', 'can_delete'] as const).map(field => (
-                                <td key={field} className="py-2 px-3 text-center">
-                                  <Checkbox
-                                    checked={rolePermissions[role]?.[perm]?.[field] || false}
-                                    onCheckedChange={(checked) => 
-                                      handleRolePermissionChange(role, perm, field, !!checked)
-                                    }
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+        {/* Tab Content for Each Tier */}
+        {(Object.keys(TIER_CONFIG) as TierType[]).map(tier => {
+          const config = TIER_CONFIG[tier];
+          const menus = filterMenusBySearch(getMenusForTier(tier));
+          
+          return (
+            <TabsContent key={tier} value={tier} className="space-y-4">
+              {/* Tier Header Card */}
+              <Card className={`bg-${config.color}-500/10 border-${config.color}-500/30`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        {tier !== 'internal' && <Keyboard className="h-5 w-5 text-purple-400" />}
+                        {config.label}
+                        {tier !== 'internal' && (
+                          <Badge className="bg-purple-600 text-white ml-2">Manual Key Only</Badge>
+                        )}
+                      </CardTitle>
+                      <CardDescription className="text-gray-400 mt-1">
+                        {config.description}
+                      </CardDescription>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Master, Agent, Sub-Agent Tabs - Similar structure */}
-        {['master', 'agent', 'sub_agent'].map(tier => (
-          <TabsContent key={tier} value={tier}>
-            <Card className={`bg-slate-800 border-${
-              tier === 'master' ? 'purple' : tier === 'agent' ? 'blue' : 'green'
-            }-500/30`}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  {tier === 'master' ? <Crown className="h-5 w-5 text-purple-400" /> :
-                   tier === 'agent' ? <Users className="h-5 w-5 text-blue-400" /> :
-                   <Keyboard className="h-5 w-5 text-green-400" />}
-                  ตั้งค่าการมองเห็น {tier === 'master' ? 'Master Agent' : tier === 'agent' ? 'Agent' : 'Sub-Agent'}
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  กำหนดเมนูที่ {tier === 'master' ? 'Master' : tier === 'agent' ? 'Agent' : 'Sub-Agent'} สามารถเห็นและใช้งานได้
-                  {tier !== 'master' && ' - จะเห็นเฉพาะโครงสร้างที่ระดับบนเปิดให้เท่านั้น'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-3 gap-6">
-                  {/* Agent List */}
-                  <div className="md:col-span-1">
-                    <Card className="bg-slate-900 border-slate-700">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm flex items-center gap-2 text-white">
-                          <Users className="h-4 w-4" />
-                          เลือก {tier === 'master' ? 'Master' : tier === 'agent' ? 'Agent' : 'Sub-Agent'}
-                        </CardTitle>
-                        <Select value={filterSystem} onValueChange={setFilterSystem}>
-                          <SelectTrigger className="bg-slate-800 border-slate-600">
-                            <SelectValue placeholder="ระบบทั้งหมด" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">ทั้งหมด</SelectItem>
-                            <SelectItem value="manual_key">คีย์หวย</SelectItem>
-                            <SelectItem value="auto">ออโต้</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </CardHeader>
-                      <CardContent>
-                        <ScrollArea className="h-[400px]">
-                          <div className="space-y-2">
-                            {agents
-                              .filter(a => {
-                                const agentTier = a.agent_tier || getTierFromLevel(a.level || 2);
-                                const systemMatch = filterSystem === 'all' || a.system_type === filterSystem;
-                                return agentTier === tier && systemMatch;
-                              })
-                              .map(agent => {
-                                const tierConfig = AGENT_TIER_CONFIG[tier as AgentTier];
-                                return (
-                                  <div
-                                    key={agent.id}
-                                    onClick={() => handleSelectAgent(agent.id)}
-                                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                                      selectedAgent === agent.id 
-                                        ? `border-${tier === 'master' ? 'purple' : tier === 'agent' ? 'blue' : 'green'}-500 bg-${tier === 'master' ? 'purple' : tier === 'agent' ? 'blue' : 'green'}-500/10` 
-                                        : 'border-slate-700 hover:bg-slate-700/50'
-                                    }`}
-                                  >
-                                    <div className="font-medium text-white">
-                                      {agent.name || agent.code}
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                      <Badge className={`text-xs text-white ${tierConfig?.bgColor || 'bg-gray-600'}`}>
-                                        {tierConfig?.label || tier}
-                                      </Badge>
-                                      {agent.system_type === 'manual_key' && (
-                                        <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-400 border-purple-500/30">
-                                          Manual Key
-                                        </Badge>
-                                      )}
-                                      <Badge 
-                                        variant={agent.status === 'active' ? 'default' : 'destructive'}
-                                        className="text-xs"
-                                      >
-                                        {agent.status === 'active' ? 'ใช้งาน' : 'ปิด'}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            {agents.filter(a => (a.agent_tier || getTierFromLevel(a.level || 2)) === tier).length === 0 && (
-                              <p className="text-sm text-gray-500 text-center py-4">
-                                ไม่มี {tier === 'master' ? 'Master' : tier === 'agent' ? 'Agent' : 'Sub-Agent'}
-                              </p>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </CardContent>
-                    </Card>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-white">
+                        เปิด {enabled} / {total} เมนู
+                      </div>
+                    </div>
                   </div>
+                </CardHeader>
+              </Card>
 
-                  {/* Menu Settings */}
-                  <div className="md:col-span-2">
-                    <Card className="bg-slate-900 border-slate-700">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm flex items-center justify-between text-white">
-                          <span className="flex items-center gap-2">
-                            <Settings className="h-4 w-4" />
-                            ตั้งค่าเมนูและสิทธิ์
-                          </span>
-                          {selectedAgent && (
-                            <Badge variant="secondary">
-                              เปิด {visibleCount} / {totalCount} เมนู
-                            </Badge>
-                          )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {!selectedAgent ? (
-                          <div className="text-center py-12 text-gray-500">
-                            <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>กรุณาเลือกจากรายการด้านซ้าย</p>
-                          </div>
-                        ) : (
-                          <>
-                            {/* Special Permissions */}
-                            <div className="space-y-4 p-4 bg-slate-800 rounded-lg">
-                              <h4 className="font-medium text-white">สิทธิ์พิเศษ</h4>
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <Label className="text-white">สร้างเอเย่นย่อยได้</Label>
-                                  <p className="text-xs text-gray-400">อนุญาตให้สร้างเอเย่นระดับล่าง</p>
-                                </div>
-                                <Switch 
-                                  checked={canCreateSubAgent} 
-                                  onCheckedChange={setCanCreateSubAgent} 
-                                />
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <Label className="text-white">ดูรายงานได้</Label>
-                                  <p className="text-xs text-gray-400">เห็นรายงานยอดขายและกำไร</p>
-                                </div>
-                                <Switch 
-                                  checked={canViewReports} 
-                                  onCheckedChange={setCanViewReports} 
-                                />
-                              </div>
+              {/* Search and Bulk Actions */}
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="ค้นหาเมนู..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-slate-800 border-slate-700"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => selectAllForTier(tier)}
+                  className="border-green-500/50 text-green-400 hover:bg-green-500/20"
+                >
+                  <CheckSquare className="h-4 w-4 mr-1" />
+                  เลือกทั้งหมด
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => deselectAllForTier(tier)}
+                  className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+                >
+                  <Square className="h-4 w-4 mr-1" />
+                  ยกเลิกทั้งหมด
+                </Button>
+              </div>
+
+              {/* Menu Sections */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[600px]">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-slate-800 z-10">
+                        <TableRow className="border-slate-700">
+                          <TableHead className="text-gray-400 w-[40%]">เมนู</TableHead>
+                          <TableHead className="text-gray-400 text-center w-[15%]">
+                            <div className="flex items-center justify-center gap-1">
+                              <Eye className="h-4 w-4" />
+                              <span>ดู</span>
                             </div>
-
-                            <Separator className="bg-slate-700" />
-
-                            {/* Search and Controls */}
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <div className="relative flex-1 min-w-[200px]">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <Input
-                                  placeholder="ค้นหาเมนู..."
-                                  value={searchMenu}
-                                  onChange={(e) => setSearchMenu(e.target.value)}
-                                  className="pl-9 bg-slate-800 border-slate-600 text-white"
-                                />
-                              </div>
-                              <Button variant="outline" size="sm" onClick={selectAllMenus} className="border-slate-600">
-                                <CheckSquare className="mr-1 h-3 w-3" /> เปิดทั้งหมด
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={deselectAllMenus} className="border-slate-600">
-                                <Square className="mr-1 h-3 w-3" /> ปิดทั้งหมด
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={resetToDefault} className="border-slate-600">
-                                <RotateCcw className="mr-1 h-3 w-3" /> รีเซ็ต
-                              </Button>
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-center w-[15%]">
+                            <div className="flex items-center justify-center gap-1">
+                              <Plus className="h-4 w-4" />
+                              <span>สร้าง</span>
                             </div>
-
-                            {/* Menu Tree */}
-                            <ScrollArea className="h-[300px] border border-slate-700 rounded-lg p-2">
-                              <div className="space-y-1">
-                                {/* Standalone Items */}
-                                <div className="space-y-1 mb-4">
-                                  <p className="text-xs font-medium text-gray-400 px-2 py-1">เมนูหลัก</p>
-                                  {STANDALONE_ITEMS.map(item => {
-                                    const Icon = item.icon;
-                                    return (
-                                      <div
-                                        key={item.id}
-                                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                                          visibleMenus.includes(item.id)
-                                            ? 'bg-primary/10'
-                                            : 'hover:bg-slate-700/50'
-                                        }`}
-                                        onClick={() => toggleMenu(item.id)}
-                                      >
-                                        <Checkbox checked={visibleMenus.includes(item.id)} />
-                                        <Icon className="h-4 w-4 text-gray-400" />
-                                        <span className="text-sm font-medium text-white">{item.title}</span>
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-center w-[15%]">
+                            <div className="flex items-center justify-center gap-1">
+                              <Edit className="h-4 w-4" />
+                              <span>แก้ไข</span>
+                            </div>
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-center w-[15%]">
+                            <div className="flex items-center justify-center gap-1">
+                              <Trash2 className="h-4 w-4" />
+                              <span>ลบ</span>
+                            </div>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {menus.map((group, groupIndex) => (
+                          <Collapsible
+                            key={group.section?.id || `standalone-${groupIndex}`}
+                            open={openSections[group.section?.id || 'standalone'] !== false}
+                            onOpenChange={() => {
+                              const key = group.section?.id || 'standalone';
+                              setOpenSections(prev => ({ ...prev, [key]: prev[key] === false }));
+                            }}
+                            asChild
+                          >
+                            <>
+                              {/* Section Header */}
+                              {group.section && (
+                                <TableRow className="border-slate-700 bg-slate-700/50 hover:bg-slate-700">
+                                  <TableCell colSpan={5}>
+                                    <CollapsibleTrigger asChild>
+                                      <div className="flex items-center justify-between cursor-pointer py-1">
+                                        <div className="flex items-center gap-2">
+                                          {openSections[group.section.id] === false ? (
+                                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                                          ) : (
+                                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                                          )}
+                                          <span className="font-semibold text-white">{group.section.title}</span>
+                                          <Badge variant="outline" className="text-xs">
+                                            {group.items.length} เมนู
+                                          </Badge>
+                                          {group.section.restricted && (
+                                            <Badge className="bg-red-500/20 text-red-400">
+                                              <Lock className="h-3 w-3 mr-1" />
+                                              Restricted
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        {!group.section.restricted && (
+                                          <div className="flex gap-2">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleSection(tier, group.items, true);
+                                              }}
+                                              className="text-green-400 hover:text-green-300 h-7 px-2"
+                                            >
+                                              <CheckSquare className="h-3 w-3 mr-1" />
+                                              เปิดทั้งหมวด
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleSection(tier, group.items, false);
+                                              }}
+                                              className="text-red-400 hover:text-red-300 h-7 px-2"
+                                            >
+                                              <MinusSquare className="h-3 w-3 mr-1" />
+                                              ปิดทั้งหมวด
+                                            </Button>
+                                          </div>
+                                        )}
                                       </div>
+                                    </CollapsibleTrigger>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                              
+                              {/* Menu Items */}
+                              <CollapsibleContent asChild>
+                                <>
+                                  {group.items.map(item => {
+                                    const perms = tierPermissions[tier]?.[item.id] || {
+                                      can_view: false,
+                                      can_create: false,
+                                      can_edit: false,
+                                      can_delete: false,
+                                    };
+                                    
+                                    return (
+                                      <TableRow 
+                                        key={item.id} 
+                                        className={`border-slate-700 ${item.restricted ? 'opacity-50' : 'hover:bg-slate-700/30'}`}
+                                      >
+                                        <TableCell>
+                                          <div className="flex items-center gap-2 pl-6">
+                                            <div>
+                                              <span className="text-white">{item.title}</span>
+                                              {item.description && (
+                                                <p className="text-xs text-gray-500">{item.description}</p>
+                                              )}
+                                            </div>
+                                            {item.restricted && (
+                                              <Badge className="bg-red-500/20 text-red-400 text-xs">
+                                                <Lock className="h-3 w-3 mr-1" />
+                                                Restricted
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </TableCell>
+                                        {(['view', 'create', 'edit', 'delete'] as PermissionType[]).map(permType => (
+                                          <TableCell key={permType} className="text-center">
+                                            <Checkbox
+                                              checked={perms[`can_${permType}`]}
+                                              onCheckedChange={(checked) => 
+                                                togglePermission(tier, item.id, permType, !!checked)
+                                              }
+                                              disabled={item.restricted}
+                                              className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                                            />
+                                          </TableCell>
+                                        ))}
+                                      </TableRow>
                                     );
                                   })}
-                                </div>
-
-                                <Separator className="bg-slate-700" />
-
-                                {/* Menu Sections */}
-                                {filteredSections.map(section => {
-                                  const SectionIcon = section.icon;
-                                  const isOpen = openSections[section.id] ?? true;
-                                  const isSelected = isSectionSelected(section);
-                                  const isPartial = isSectionPartial(section);
-                                  const isRestricted = section.restricted;
-
-                                  return (
-                                    <Collapsible
-                                      key={section.id}
-                                      open={isOpen}
-                                      onOpenChange={() => toggleSectionOpen(section.id)}
-                                    >
-                                      <div className={`rounded-lg ${isRestricted ? 'opacity-50' : ''}`}>
-                                        <div className="flex items-center gap-2 p-2">
-                                          <CollapsibleTrigger asChild>
-                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                              {isOpen ? <ChevronDown className="h-4 w-4 text-white" /> : <ChevronRight className="h-4 w-4 text-white" />}
-                                            </Button>
-                                          </CollapsibleTrigger>
-                                          <Checkbox
-                                            checked={isSelected}
-                                            onCheckedChange={() => toggleSection(section)}
-                                            disabled={isRestricted}
-                                          />
-                                          <SectionIcon className="h-4 w-4 text-gray-400" />
-                                          <span className="text-sm font-medium text-white flex-1">{section.title}</span>
-                                          {isRestricted && <Lock className="h-3 w-3 text-red-400" />}
-                                        </div>
-                                        <CollapsibleContent>
-                                          <div className="ml-8 space-y-1">
-                                            {section.items.map(item => {
-                                              const ItemIcon = item.icon;
-                                              const isItemRestricted = isMenuRestricted(item.id);
-                                              return (
-                                                <div
-                                                  key={item.id}
-                                                  className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-                                                    isItemRestricted ? 'opacity-50' : ''
-                                                  } ${
-                                                    visibleMenus.includes(item.id)
-                                                      ? 'bg-primary/10'
-                                                      : 'hover:bg-slate-700/50'
-                                                  }`}
-                                                  onClick={() => !isItemRestricted && toggleMenu(item.id)}
-                                                >
-                                                  <Checkbox 
-                                                    checked={visibleMenus.includes(item.id)} 
-                                                    disabled={isItemRestricted}
-                                                  />
-                                                  <ItemIcon className="h-4 w-4 text-gray-400" />
-                                                  <span className="text-sm text-white">{item.title}</span>
-                                                  {isItemRestricted && <Lock className="h-3 w-3 text-red-400" />}
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        </CollapsibleContent>
-                                      </div>
-                                    </Collapsible>
-                                  );
-                                })}
-                              </div>
-                            </ScrollArea>
-
-                            {/* Save Button */}
-                            <div className="flex justify-end">
-                              <Button 
-                                onClick={handleSaveAgentVisibility} 
-                                disabled={isSaving}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <Save className="h-4 w-4 mr-2" />
-                                {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
+                                </>
+                              </CollapsibleContent>
+                            </>
+                          </Collapsible>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })}
       </Tabs>
-
-      {/* Info Card */}
-      <Card className="bg-blue-500/10 border-blue-500/30">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Users className="h-5 w-5 text-blue-400 mt-0.5" />
-            <div>
-              <p className="font-semibold text-blue-400">คำอธิบาย</p>
-              <ul className="text-sm text-gray-400 mt-2 space-y-1">
-                <li><strong>Mother Web:</strong> สิทธิ์สูงสุด ควบคุมการมองเห็นของทุกระดับ</li>
-                <li><strong>Master:</strong> ดูแลและควบคุม Agent ภายใต้สังกัด</li>
-                <li><strong>Agent:</strong> ดูแลและควบคุม Sub-Agent ภายใต้สังกัด</li>
-                <li><strong>Sub-Agent:</strong> รับลูกค้าและคีย์หวย</li>
-                <li className="text-purple-400"><strong>Manual Key:</strong> ข้อมูลแยกจากระบบ Auto โดยสมบูรณ์</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
