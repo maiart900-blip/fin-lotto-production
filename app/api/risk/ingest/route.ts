@@ -1,11 +1,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSiteApiKey } from '@/lib/site-api-auth';
+import { getBusinessDay } from '@/lib/daily-reset';
 
 /**
  * Risk Aggregation Ingest API
  * 
- * Endpoint for child auto sites to push aggregated risk data to FIN LOTTO.
+ * TASK 3: REAL-TIME RISK AGGREGATION
+ * 
+ * Endpoint for child auto sites (sub-webs) to push aggregated risk data to FIN LOTTO.
+ * Links all active betting slips from all sub-webs into the central "Risk Control" table.
+ * 
+ * Data is grouped and calculated strictly by:
+ * - Specific Lottery Name (lottery_type)
+ * - Current Date (draw_date) using business day logic (01:00 AM reset)
  * 
  * POST /api/risk/ingest
  * Authorization: Bearer flk_[site_id]_[key]
