@@ -238,21 +238,14 @@ export default function LotteryTerminalPage() {
     fetcher
   );
   
-  // Safely process lotteries - handle null/undefined/empty object
+  // Safely process lotteries - handle null/undefined
   const lotteries: Lottery[] = useMemo(() => {
-    // Extra safety: ensure lotteriesData is a proper array before mapping
-    if (!lotteriesData) {
-      return [];
-    }
-    
-    // Handle case where lotteriesData might be an object instead of array
-    const dataArray = Array.isArray(lotteriesData) ? lotteriesData : [];
-    if (dataArray.length === 0) {
+    if (!lotteriesData || !Array.isArray(lotteriesData)) {
       return [];
     }
     
     // Map all lotteries first (before filtering by time)
-    const mapped = dataArray.map((l: any) => ({
+    const mapped = lotteriesData.map((l: any) => ({
       id: l.id,
       name: l.name,
       closeTime: l.close_time?.slice(0, 5) || '23:59',
@@ -1300,7 +1293,7 @@ export default function LotteryTerminalPage() {
                   digitMode === '2' ? 'bg-[#009bf2] text-white' : 'bg-white text-[#009bf2] hover:bg-[#f0f8ff]'
                 }`}
               >
-                2ตัว/3ต��ว
+                2ตัว/3ตัว
               </button>
               <button
                 onClick={() => { setDigitMode('3'); setCurrentInput(''); }}
@@ -1617,7 +1610,7 @@ export default function LotteryTerminalPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-[#333333] flex items-center gap-2">
                 <FileText className="h-5 w-5 text-[#009bf2]" />
-                ประวัติโพยวั��นี้
+                ประวัติโพยวันนี้
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Badge className="bg-[#009bf2]/10 text-[#009bf2] border-[#009bf2]/30">
@@ -1923,7 +1916,7 @@ export default function LotteryTerminalPage() {
               เลือกตัวเลขที่ต้องการ (อย่างน้อย 2 ตัว) แล้วระบบจะสร้างคู่ทั้งหมดให้
             </p>
             <p className="text-xs text-[#009bf2]/70 mb-4">
-              กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = ส��้างเลข | Backspace = ล��ตัวสุดท้าย
+              กดเลข 0-9 บนแป้นพิมพ์ได้เลย | Enter = สร้างเลข | Backspace = ล��ตัวสุดท้าย
             </p>
             
             <div className="grid grid-cols-5 gap-3 mb-4">

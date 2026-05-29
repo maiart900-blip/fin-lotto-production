@@ -1,7 +1,6 @@
 'use client';
 
-// Enterprise-Grade Sidebar Navigation - FIN LOTTO R+ Production
-// 8 Category Architecture - Billion Baht Ready
+// Sidebar navigation component - FIN LOTTO R+ v3 Production
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -11,10 +10,13 @@ import {
   LayoutDashboard,
   PenLine,
   List,
+  Calculator,
   Users,
+  User,
   Settings,
   Crown,
   LogOut,
+  ShieldCheck,
   UsersRound,
   Handshake,
   Gift,
@@ -23,35 +25,61 @@ import {
   Trophy,
   Wallet,
   BarChart3,
+  Tv,
+  Infinity,
   PieChart,
   CreditCard,
   QrCode,
   Network,
   Building2,
+  MonitorSmartphone,
+  Smartphone,
   Landmark,
   AlertTriangle,
   ArrowDownToLine,
   History,
+  Ban,
   Database,
+  Bell,
   Shield,
   Link2,
   TrendingUp,
   FileText,
   Sparkles,
+  Palette,
+  FileDown,
   ShieldAlert,
+  ClipboardCheck,
   Target,
   Bot,
   ChevronDown,
+  Headphones,
+  Image,
   Megaphone,
+  UserPlus,
   Eye,
+  Lock,
+  Key,
   Activity,
+  HardDrive,
+  CheckCircle,
+  Clock,
+  UserX,
   Receipt,
+  ArrowUpDown,
+  Upload,
+  ArrowUpRight,
+  Keyboard,
+  Zap,
   GitBranch,
-  FileBarChart,
-  Globe,
-  Smartphone,
   Scale,
+  FileBarChart,
+  Coins,
+  Send,
+  Terminal,
   Percent,
+  Globe,
+  Radio,
 } from 'lucide-react';
 
 import {
@@ -76,6 +104,12 @@ import {
 } from '@/components/ui/collapsible';
 import { useState } from 'react';
 import { fetcher } from '@/lib/fetcher';
+import {
+  PLATFORM_ONLY_MENUS,
+  MANUAL_KEY_MENUS,
+  AUTO_SYSTEM_MENUS,
+  AGENT_DEFAULT_MENUS,
+} from '@/lib/agent-permissions.client';
 
 interface PendingCounts {
   topupPending: number;
@@ -86,113 +120,161 @@ interface PendingCounts {
   totalPending: number;
 }
 
-// =====================================================
-// ENTERPRISE 8-CATEGORY MENU STRUCTURE
-// =====================================================
+// 0. ลงเวลา (สำหรับแอดมิน)
+const attendanceItem = {
+  title: 'ลงเวลางาน',
+  href: '/attendance',
+  icon: Clock,
+};
 
-// 1. MAIN DASHBOARD - Single Source of Truth
+// 1. Dashboard (ไม่มี submenu) - หน้า Dashboard คือ / (main page)
 const dashboardItem = {
   title: 'Dashboard',
   href: '/',
   icon: LayoutDashboard,
 };
 
-// 2. SUPER ADMIN & MULTI-TENANT
-const superAdminItems = [
-  { title: 'จัดการเว็บลูก (Tenant)', href: '/sub-sites', icon: Globe },
-  { title: 'Tenant Manager', href: '/tenant-manager', icon: Building2 },
-  { title: 'จัดการผู้ใช้ & สิทธิ์', href: '/users', icon: UsersRound },
-  { title: 'Roles & Permissions', href: '/roles-permissions', icon: Shield },
-  { title: 'Security Dashboard', href: '/security-dashboard', icon: ShieldAlert },
-  { title: '2FA Settings', href: '/security/2fa', icon: Smartphone },
-  { title: 'Audit Logs', href: '/audit-logs', icon: History },
-  { title: 'System Settings', href: '/settings/system', icon: Settings },
-  { title: 'Backup & Recovery', href: '/backup', icon: Database },
-  { title: 'Health Check', href: '/health-check', icon: Activity },
+// 2. ศูนย์ปฏิบัติการแอดมิน
+const operationItems = [
+  { title: 'คำขอเติมเงิน', href: '/topup-requests', icon: CreditCard, badgeKey: 'topupPending' as const },
+  { title: 'คำขอถอนเงิน', href: '/withdraw-requests', icon: ArrowDownToLine, badgeKey: 'withdrawPending' as const },
+  { title: 'จ่ายรางวัลลูกค้าคีย์', href: '/prize-payout', icon: Trophy },
+  { title: 'ปรับยอดเครดิต', href: '/credits', icon: Wallet },
+  { title: 'แจ้งปัญหาฝากเงิน', href: '/deposit-issues', icon: AlertTriangle, badgeKey: 'depositIssuesPending' as const },
+  { title: 'รายการรอตรวจสอบ', href: '/pending-review', icon: ClipboardCheck },
 ];
 
-// 3. FINANCIAL HUB (Unified Cash Flow)
-const financialHubItems = [
-  { title: 'คำขอฝากเงิน', href: '/topup-requests', icon: CreditCard, badgeKey: 'topupPending' as const },
-  { title: 'คำขอถอนเงิน', href: '/withdraw-requests', icon: ArrowDownToLine, badgeKey: 'withdrawPending' as const },
-  { title: 'แจ้งปัญหาฝากเงิน', href: '/deposit-issues', icon: AlertTriangle, badgeKey: 'depositIssuesPending' as const },
-  { title: 'ปรับยอดเครดิต', href: '/credits', icon: Wallet },
-  { title: 'Payment Gateway', href: '/payment-gateway', icon: CreditCard },
+// 3. ลูกค้าแทงหวย (Customers - ไม่ใช่พนักงาน)
+const memberItems = [
+  { title: 'รายชื่อลูกค้าแทงหวย', href: '/customers', icon: Users },
+  { title: 'ประวัติลูกค้า', href: '/customer-history', icon: History },
+  { title: 'ธนาคารลูกค้า', href: '/customer-banks', icon: Landmark },
+  { title: 'สรุปลูกค้า', href: '/member-summary', icon: UsersRound },
+];
+
+// 4. ธุรกรรมการเงิน (แยกจากการเดิมพัน)
+const financeItems = [
+  { title: 'จัดการ Payment Gateway', href: '/payment-gateway', icon: CreditCard },
+  { title: 'จัดการกระเป๋าเงิน', href: '/wallet-manager', icon: Wallet },
   { title: 'ตั้งค่าธนาคาร', href: '/bank-settings', icon: Landmark },
   { title: 'บัญชีรับเงิน', href: '/payment-accounts', icon: QrCode },
   { title: 'บัญชีถอนเงิน', href: '/withdraw-accounts', icon: ArrowDownToLine },
   { title: 'SCB แม่มณี', href: '/scb-maemanee', icon: Landmark },
-  { title: 'Transaction History', href: '/finance/transactions', icon: Receipt },
+  { title: 'ธุรกรรมการเงิน', href: '/finance/transactions', icon: Receipt },
+  { title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart },
 ];
 
-// 4. AGENT & AFFILIATE NETWORK (Unified Agent Management)
-const agentNetworkItems = [
-  { title: 'Agent Hierarchy', href: '/agent-system', icon: GitBranch },
-  { title: 'โครงสร้างสายงาน', href: '/manual-downline', icon: Network },
-  { title: 'Commission & PT Settings', href: '/manual-downline/commission', icon: Percent },
-  { title: 'จัดการเครดิตเอเย่นต์', href: '/manual-downline/credit', icon: CreditCard },
-  { title: 'Agent Members', href: '/agent-system/members', icon: Users },
-  { title: 'Settlement Reports', href: '/agent-system/settlement', icon: Receipt },
-  { title: 'รายงานแพ้ชนะเอเย่นต์', href: '/manual-downline/report', icon: BarChart3 },
+// 4.5 ประวัติการเดิมพัน (แยกจากการเงิน)
+const bettingHistoryItems = [
+  { title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: Ticket },
+  { title: 'รายงานการเดิมพัน', href: '/betting/reports', icon: FileBarChart },
 ];
 
-// 5. GAMING & LOTTO HUB (Consolidated Betting)
-const gamingHubItems = [
+// 5. หวย (รวมทุกอย่างที่เกี่ยวกับการคีย์หวยไว้ที่นี่)
+const lotteryItems = [
   { title: 'คีย์หวย', href: '/admin/key', icon: PenLine },
-  { title: 'Betting Entries', href: '/entries', icon: List },
+  { title: 'รายการทั้งหมด', href: '/entries', icon: List },
   { title: 'จัดการหวย', href: '/lotteries', icon: Ticket },
-  { title: 'ตั้งค่าเรท / เลขอั้น', href: '/manual-key/rates', icon: DollarSign },
-  { title: 'เรท/อั้นกลาง (Master)', href: '/master-rates', icon: Scale },
-  { title: 'ผลหวย / Draw Results', href: '/results', icon: Trophy },
-  { title: 'จ่ายรางวัล / Payout', href: '/prize-payout', icon: Trophy },
-  { title: 'Risk Control', href: '/risk-control', icon: Shield },
+  { title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
-// 6. CUSTOMER MANAGEMENT
-const customerItems = [
-  { title: 'Member Directory', href: '/customers', icon: Users },
-  { title: 'ประวัติลูกค้า', href: '/customer-history', icon: History },
-  { title: 'ธนาคารลูกค้า', href: '/customer-banks', icon: Landmark },
-  { title: 'Credit Adjustments', href: '/credits', icon: Wallet },
-  { title: 'Betting History', href: '/betting/history', icon: Ticket },
-  { title: 'Transaction History', href: '/finance/transactions', icon: Receipt },
-  { title: 'สรุปลูกค้า', href: '/member-summary', icon: UsersRound },
-];
-
-// 7. MARKETING & PROMOTIONS
-const marketingItems = [
-  { title: 'โปรโมชั่น', href: '/promotions', icon: Sparkles },
-  { title: 'Affiliate Links', href: '/affiliate', icon: Link2 },
-  { title: 'QR Code Generator', href: '/marketing-center/qr-generator', icon: QrCode },
-  { title: 'ยูสนำแทง', href: '/lead-users', icon: Crown },
+// 6. โปรโมชั่น
+const promoItems = [
+  { title: 'จัดการโปรโมชั่น', href: '/promotions', icon: Sparkles },
   { title: 'แนะนำลูกค้า', href: '/referrals', icon: Gift },
-  { title: 'Marketing Center', href: '/marketing-center', icon: Link2 },
-  { title: 'Bot ประกาศผล', href: '/result-announcement', icon: Bot },
+  { title: 'ลิงก์แนะนำเพื่อน', href: '/affiliate', icon: Link2 },
+  { title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
 ];
 
-// 8. ADVANCED ANALYTICS & REPORTS
-const analyticsItems = [
-  { title: 'P&L Summary', href: '/profit-loss', icon: PieChart },
-  { title: 'Risk Dashboard', href: '/network/risk-dashboard', icon: TrendingUp },
-  { title: 'Omni-Channel Report', href: '/reports/omni-channel', icon: Globe },
+// 7. การตลาด
+const marketingItems = [
+  { title: 'ยูสนำแทง', href: '/lead-users', icon: Crown },
+  { title: 'ลิงก์สมาชิก', href: '/member-links', icon: Link2 },
+  { title: 'การแจ้งเตือน', href: '/notifications', icon: Bell },
+  { title: 'คู่มือ/กติกา', href: '/content-pages', icon: FileText },
+];
+
+// 7.1 ศูนย์การตลาด (Marketing Center)
+const marketingCenterItems = [
+  { title: 'ยูสนำแทง', href: '/lead-users', icon: Crown },
+  { title: 'ลิงก์ทั้งหมด', href: '/marketing-center', icon: Link2 },
+  { title: 'แดชบอร์ดเอเย่นต์', href: '/marketing-center/agent', icon: UsersRound },
+  { title: 'หน้าหลักสมาชิก', href: '/marketing-center/member', icon: Users },
+  { title: 'หน้าข้อมูลพาร์ทเนอร์', href: '/marketing-center/partner', icon: Handshake },
+  { title: 'สร้าง QR Code', href: '/marketing-center/qr-generator', icon: QrCode },
+  { title: 'ลิงก์สมาชิก', href: '/member-links', icon: Link2 },
+];
+
+// 7.5. เอเย่น / Partner (รวมเมนูที่ซ้ำซ้อนให้กระชับ)
+const agentPartnerItems = [
+  { title: 'รายชื่อเอเย่น', href: '/agents', icon: UsersRound },
+  { title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
+  { title: 'สมาชิกใต้สาย', href: '/agent-members', icon: Users },
+  { title: 'คอมมิชชั่น', href: '/agent-commissions', icon: DollarSign },
+  { title: 'รายงาน', href: '/agent-reports', icon: BarChart3 },
+  { title: 'โยกย้ายลูกค้า', href: '/agent-transfer', icon: ArrowUpDown },
+];
+
+// 8. รายงาน
+const reportItems = [
+  { title: 'Omni-Channel', href: '/reports/omni-channel', icon: Globe },
+  { title: 'รายงานย้อนหลัง', href: '/reports/daily-closing', icon: History },
+  { title: 'KPI Dashboard', href: '/kpi-dashboard', icon: Target },
   { title: 'วิเคราะห์ยอดเลข', href: '/analysis', icon: BarChart3 },
-  { title: 'Enterprise Summary', href: '/enterprise-summary', icon: Crown },
-  { title: 'Financial Reports', href: '/finance-reports', icon: FileBarChart },
-  { title: 'Betting Reports', href: '/betting/reports', icon: FileBarChart },
-  { title: 'All Reports', href: '/reports', icon: FileText },
+  { title: 'กำไร/ขาดทุน', href: '/profit-loss', icon: PieChart },
+  { title: 'รายงาน', href: '/reports', icon: FileDown },
 ];
 
-// =====================================================
-// AGENT-SPECIFIC MENUS (For Agent Role Only)
-// =====================================================
+// 9. ตั้งค่าเว็บ
+const webSettingsItems = [
+  { title: 'ตั้งค่าธีม', href: '/web-theme', icon: Palette },
+  { title: 'จัดการรูปภาพ', href: '/manage-images', icon: Image },
+  { title: 'ตั้งค่าหน้าเว็บ', href: '/desktop-settings', icon: MonitorSmartphone },
+  { title: 'ตั้งค่าทั่วไป', href: '/settings', icon: Settings },
+];
+
+// 10. ความปลอดภัย (Super Admin)
+const securityItems = [
+  { title: 'จัดการผู้ใช้', href: '/users', icon: UsersRound },
+  { title: 'สิทธิ์การใช้งาน', href: '/roles-permissions', icon: Shield },
+  { title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
+  { title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
+  { title: 'Security Dashboard', href: '/security-dashboard', icon: ShieldAlert },
+  { title: 'ยืนยันตัวตน 2 ชั้น (2FA)', href: '/security/2fa', icon: Smartphone },
+  { title: 'ประวัติการใช้งาน', href: '/audit-logs', icon: History },
+  { title: 'สำรองข้อมูล', href: '/backup', icon: Database },
+  { title: 'Health Check', href: '/health-check', icon: Activity },
+];
+
+// 11. เครือข่าย (Super Admin)
+const networkItems = [
+  { title: 'เครดิตแม่', href: '/master-credit', icon: Infinity },
+  { title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
+  { title: 'หุ้นส่วน', href: '/partners', icon: Handshake },
+];
+
+// 12. ระบบคีย์หวย (Manual Key)
+const manualKeyItems = [
+  { title: 'ภาพรวมคีย์หวย', href: '/manual-key', icon: Keyboard },
+  { title: 'คีย์โพย', href: '/admin/key', icon: PenLine },
+  { title: 'รายการคีย์หวย', href: '/manual-key/entries', icon: List },
+  { title: 'ลูกค้าคีย์หวย', href: '/manual-key/customers', icon: Users },
+  { title: 'ตั้งค่าเรท', href: '/manual-key/rates', icon: DollarSign },
+];
+
+// 12.1 Agent Terminal (รวมเข้าไปใน หวย แล้ว - ใช้ /entry)
+// ลบออกเพื่อลดความซ้ำซ้อน - ให้เอเย่นต์ใช้ หวย > คีย์หวย แทน
+
+// === AGENT DASHBOARD MENUS (แยกจาก Admin) ===
+// เมนูสำหรับ Agent โดยเฉพาะ - ไม่เห็นข้อมูลเว็บแม่
 const agentDashboardItem = {
-  title: 'Agent Dashboard',
+  title: 'Dashboard เอเย่นต์',
   href: '/agent-dashboard',
   icon: LayoutDashboard,
 };
 
-const agentFinanceItems = [
-  { title: 'ศูนย์การเงิน', href: '/member/slip-upload', icon: Wallet },
+const agentOperationItems = [
+  { title: 'ศูนย์การเงิน', href: '/member/slip-upload', icon: Upload },
   { title: 'สรุปรายได้', href: '/member/summary', icon: DollarSign },
   { title: 'ประวัติธุรกรรม', href: '/member/finance', icon: Receipt },
 ];
@@ -210,9 +292,116 @@ const agentBettingItems = [
   { title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
-// =====================================================
-// MENU SECTION DEFINITIONS
-// =====================================================
+// 12.2 สายงานเอเย่นต์ Manual (Manual Downline Management)
+const manualDownlineItems = [
+  { title: 'โครงสร้างสายงาน', href: '/manual-downline', icon: GitBranch },
+  { title: 'จัดการเครดิต', href: '/manual-downline/credit', icon: CreditCard },
+  { title: 'ตั้งค่า PT/คอม', href: '/manual-downline/commission', icon: Percent },
+  { title: 'รายชื่อลูกค้า', href: '/manual-downline/members', icon: Users },
+  { title: 'รายงานแพ้ชนะ', href: '/manual-downline/report', icon: BarChart3 },
+];
+
+// 13. ระบบออโต้ (Auto)
+const autoSystemItems = [
+  { title: 'ภาพรวมออโต้', href: '/auto-system', icon: Zap },
+  { title: 'รายการออโต้', href: '/auto-system/entries', icon: List },
+  { title: 'ลูกค้าออโต้', href: '/auto-system/customers', icon: Users },
+  { title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings },
+];
+
+// 14. สายงานเอเย่นต์ (รวม ออโต้ และ คีย์หวย)
+const agentSystemItems = [
+  { title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
+  { title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
+  { title: 'คอมมิชชั่น', href: '/agent-system/commission', icon: DollarSign },
+  { title: 'ตั้งค่าธนาคาร', href: '/agent-system/bank-settings', icon: Building2 },
+  { title: 'ตั้งค่าเว็บลูก', href: '/agent-system/site-settings', icon: Settings },
+  { title: 'ส่งยอดเข้าเว็บกลาง', href: '/agent-system/settlement', icon: Send },
+  { title: 'รายงาน', href: '/agent-system/report', icon: BarChart3 },
+];
+
+// 16. การตลาดคีย์หวย
+const manualKeyMarketingItems = [
+  { title: 'ภาพรวม', href: '/manual-key-marketing', icon: Target },
+  { title: 'แคมเปญ', href: '/manual-key-marketing/campaigns', icon: Megaphone },
+  { title: 'ลิงก์สมัคร', href: '/manual-key-marketing/links', icon: Link2 },
+  { title: 'รายงาน', href: '/manual-key-marketing/report', icon: BarChart3 },
+];
+
+// 17. การตลาดออโต้
+const autoMarketingItems = [
+  { title: 'ภาพรวม', href: '/auto-marketing', icon: Target },
+  { title: 'แคมเปญ', href: '/auto-marketing/campaigns', icon: Megaphone },
+  { title: 'ลิงก์สมัคร', href: '/auto-marketing/links', icon: Link2 },
+  { title: 'รายงาน', href: '/auto-marketing/report', icon: BarChart3 },
+];
+
+// 18. หุ้นลม / Credit Line
+const creditLineItems = [
+  { title: 'ภาพรวม Credit Line', href: '/credit-line', icon: Scale },
+  { title: 'จัดการหุ้นลม', href: '/credit-line/manage', icon: Coins },
+  { title: 'ประวัติ', href: '/credit-line/history', icon: History },
+  { title: 'ตั้งค่า', href: '/credit-line/settings', icon: Settings },
+];
+
+// 19. รายงานเปรียบเทียบ
+const comparisonReportItems = [
+  { title: 'เปรียบเทียบ คีย์หวย vs ออโต้', href: '/comparison-report', icon: FileBarChart },
+  { title: 'รายงานรายวัน', href: '/comparison-report/daily', icon: BarChart3 },
+  { title: 'รายงานรายเดือน', href: '/comparison-report/monthly', icon: PieChart },
+];
+
+// 19.3 ศูนย์แอดมิน (สำหรับ member/พนักงาน)
+  const memberAdminItems = [
+  { title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
+  { title: 'การเงิน', href: '/member/finance', icon: Wallet },
+  { title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
+  ];
+
+// 19.5 จัดการพนักงาน/แอดมิน (เว็บแม่และเอเย่นต์ดูได้)
+const staffManagementItems = [
+  { title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
+  { title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck },
+  { title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
+  { title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings },
+  { title: 'รายงานโอที', href: '/payroll/ot-report', icon: Clock },
+  { title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3 },
+];
+
+// 20. Super Admin - เจ้าของระบบ (เว็บแม่เท่านั้น)
+const superAdminItems = [
+  { title: 'จัดการสายงาน', href: '/super-admin/downline', icon: Crown },
+  { title: 'ตั้งค่าการมองเห็นเอเย่น', href: '/agent-visibility', icon: Eye },
+  { title: 'ตั้งค่าการมองเห็นแมมเบอร์', href: '/member-visibility', icon: Users },
+  { title: 'ควบคุมความเสี่ยง', href: '/risk-management', icon: TrendingUp },
+  { title: 'Master Control', href: '/master-control', icon: Shield },
+  { title: 'ตั้งค่าระบบ', href: '/settings/system', icon: Settings },
+];
+
+// 20.1 ถ่ายทอดสด (Admin เห็นได้)
+const liveStreamItems = [
+  { title: 'ถ่ายทอดสด', href: '/live-draw', icon: Tv },
+  { title: 'Global Live Stream', href: '/live-stream', icon: Radio },
+  { title: 'บอทประกาศผล', href: '/result-announcement', icon: Bot },
+];
+
+// 21. Multi-Tenant / White Label Management (Super Admin Only)
+const multiTenantItems = [
+  { title: 'Dashboard ยอดรวม', href: '/multi-tenant/dashboard', icon: BarChart3 },
+  { title: 'รายการส่งยอด', href: '/multi-tenant/settlements', icon: Receipt },
+  { title: 'Enterprise Summary', href: '/enterprise-summary', icon: Crown },
+  { title: 'จัดการเว็บลูก', href: '/sub-sites', icon: Globe },
+  { title: 'VIP Dashboard', href: '/vip-dashboard', icon: Crown },
+  { title: 'Billion Dashboard', href: '/billion-dashboard', icon: TrendingUp },
+  { title: 'Tenant Manager', href: '/tenant-manager', icon: Globe },
+  { title: 'Site Manager', href: '/site-manager', icon: Globe },
+  { title: 'Branding/Theme', href: '/site-manager/branding', icon: Palette },
+  { title: 'เรท/อั้นกลาง', href: '/master-rates', icon: DollarSign },
+  { title: 'Financial Hub', href: '/financial-hub', icon: Wallet },
+  { title: 'Risk Control', href: '/risk-control', icon: Shield },
+  { title: 'API Docs', href: '/api-docs', icon: FileText },
+];
+
 interface MenuSection {
   title: string;
   icon: React.ElementType;
@@ -225,31 +414,56 @@ interface MenuSection {
   defaultOpen?: boolean;
   adminOnly?: boolean;
   superAdminOnly?: boolean;
-  masterOnly?: boolean;
+  masterOnly?: boolean; // เฉพาะเว็บแม่เท่านั้น
   agentOnly?: boolean;
+  agentVisible?: boolean; // ถ้า true = agent เห็นได้ (เว็บแม่อนุญาต)
+  memberVisible?: boolean; // ถ้า true = member เห็นได้
+  staffVisible?: boolean; // ถ้า true = staff (พนักงาน) เห็นได้
 }
 
-// ADMIN MENU SECTIONS (8 Categories)
-const adminMenuSections: MenuSection[] = [
-  { title: 'Super Admin & Tenant', icon: Crown, items: superAdminItems, defaultOpen: false, superAdminOnly: true },
-  { title: 'Financial Hub', icon: Wallet, items: financialHubItems, defaultOpen: true, adminOnly: true },
-  { title: 'Agent Network', icon: Network, items: agentNetworkItems, defaultOpen: false, adminOnly: true },
-  { title: 'Gaming & Lotto', icon: Ticket, items: gamingHubItems, defaultOpen: false, adminOnly: true },
-  { title: 'Customers', icon: Users, items: customerItems, defaultOpen: false, adminOnly: true },
-  { title: 'Marketing', icon: Megaphone, items: marketingItems, defaultOpen: false, adminOnly: true },
-  { title: 'Analytics & Reports', icon: BarChart3, items: analyticsItems, defaultOpen: false, adminOnly: true },
-];
-
-// AGENT MENU SECTIONS
-const agentMenuSections: MenuSection[] = [
-  { title: 'ศูนย์การเงิน', icon: Wallet, items: agentFinanceItems, defaultOpen: true, agentOnly: true },
+// STABLE VERSION - จัดระเบียบแล้ว (ลบเมนูซ้ำซ้อน)
+// แยก Dashboard ตาม Role:
+// - super_admin, admin: เห็นทุกเมนู
+// - agent: เห็นเฉพาะเมนู agentVisible (ข้อมูลลูกค้าใต้สาย, คอมมิชชั่นตัวเอง)
+// - member: เห็นเฉพาะเมนูสำหรับทำงาน (ศูนย์ปฏิบัติการ, หวย)
+const menuSections: MenuSection[] = [
+  // === ADMIN MENUS (เฉพาะ Admin/Super Admin) ===
+  { title: 'ศูนย์ปฏิบัติการ', icon: Headphones, items: operationItems, defaultOpen: true, adminOnly: true, staffVisible: true, memberVisible: true },
+  { title: 'ศูนย์แอดมิน', icon: User, items: memberAdminItems, defaultOpen: false, adminOnly: true },
+  { title: 'ลูกค้าแทงหวย', icon: Users, items: memberItems, defaultOpen: false, adminOnly: true, staffVisible: true },
+  { title: 'ธุรกรรมการเงิน', icon: Wallet, items: financeItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
+  { title: 'ประวัติการเดิมพัน', icon: Ticket, items: bettingHistoryItems, defaultOpen: false, adminOnly: true, staffVisible: true },
+  { title: 'หวย', icon: Ticket, items: lotteryItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
+  { title: 'ระบบออโต้', icon: Zap, items: autoSystemItems, defaultOpen: false, adminOnly: true },
+  { title: 'ระบบคีย์หวย', icon: Keyboard, items: manualKeyItems, defaultOpen: false, adminOnly: true },
+  { title: 'สายงานเอเย่นต์', icon: GitBranch, items: agentSystemItems, defaultOpen: false, adminOnly: true },
+  { title: 'โปรโมชั่น', icon: Sparkles, items: promoItems, defaultOpen: false, adminOnly: true },
+  { title: 'ศูนย์การตลาด', icon: Megaphone, items: marketingCenterItems, defaultOpen: false, adminOnly: true },
+  { title: 'รายงาน', icon: BarChart3, items: reportItems, defaultOpen: false, adminOnly: true, staffVisible: true },
+  { title: 'จัดการพนักงาน', icon: UsersRound, items: staffManagementItems, defaultOpen: false, adminOnly: true },
+  { title: 'ตั้งค่าเว็บ', icon: Settings, items: webSettingsItems, defaultOpen: false, adminOnly: true },
+  { title: 'ไลฟ์สด', icon: Tv, items: liveStreamItems, defaultOpen: false, adminOnly: true },
+  { title: 'Multi-Tenant', icon: Globe, items: multiTenantItems, defaultOpen: false, superAdminOnly: true, masterOnly: true },
+  { title: 'Super Admin', icon: Crown, items: superAdminItems, defaultOpen: false, superAdminOnly: true },
+  { title: 'ความปลอดภัย', icon: Shield, items: securityItems, defaultOpen: false, superAdminOnly: true },
+  
+  // === AGENT MENUS (เฉพาะ Agent) ===
+  { title: 'ศูนย์การเงิน', icon: Wallet, items: agentOperationItems, defaultOpen: true, agentOnly: true },
   { title: 'ลูกค้าใต้สาย', icon: Users, items: agentDownlineItems, defaultOpen: false, agentOnly: true },
   { title: 'คีย์หวย', icon: Ticket, items: agentBettingItems, defaultOpen: false, agentOnly: true },
 ];
 
+// HIDDEN MENUS (ยังไม่พร้อม - จะเปิดเมื่อพัฒนาเสร็จ):
+// - ระบบคีย์หวย (manualKeyItems)
+// - สายงานคีย์หวย (manualKeyAgentItems)
+// - การตลาดคีย์หวย (manualKeyMarketingItems)
+// - การตลาดออโต้ (autoMarketingItems)
+// - หุ้นลม / Credit Line (creditLineItems)
+// - รายงานเปรียบเทียบ (comparisonReportItems)
+
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, logout, isSuperAdmin, isAdmin, isMasterBranch } = useAuth();
+  const { user, logout, canAccess, canSeeMenu, isSuperAdmin, isAdmin, isMasterBranch } = useAuth();
   
   // Fetch pending counts with auto-refresh every 5 seconds
   const { data: pendingCounts } = useSWR<PendingCounts>(
@@ -261,7 +475,7 @@ export function AppSidebar() {
   // Track open sections
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
-    [...adminMenuSections, ...agentMenuSections].forEach(section => {
+    menuSections.forEach(section => {
       initial[section.title] = section.defaultOpen || false;
     });
     return initial;
@@ -276,101 +490,240 @@ export function AppSidebar() {
     toast.success('ออกจากระบบสำเร็จ');
   };
 
-  // Role checks
+  // Check if user is agent (includes agent_key and partner)
   const isAgent = user?.role === 'agent' || user?.role === 'agent_key' || user?.role === 'partner';
+  const isMember = user?.role === 'member';
+  const isStaff = user?.role === 'staff';
   
-  // Determine which menu sections to show
-  const menuSections = isAgent ? agentMenuSections : adminMenuSections;
-  const dashboardLink = isAgent ? agentDashboardItem : dashboardItem;
+  // Get user's visible menus from session (loaded at login)
+  // For agents, this comes from agents.visible_menus column or agent_permissions table
+  const userVisibleMenus = user?.visible_menus || [];
+  const userHiddenMenus = user?.hidden_menus || [];
+  const hasMenuRestrictions = userVisibleMenus.length > 0;
+  
+  // Agent-specific feature flags
+  const agentEnableManualKey = (user as any)?.enable_manual_key !== false; // Default true
+  const agentEnableAuto = (user as any)?.enable_auto === true;
+  const agentSystemType = (user as any)?.system_type || 'manual_key';
 
-  // Filter sections based on role
-  const filteredSections = menuSections.filter(section => {
+  // Helper to check if menu is platform-only (should be blocked for agents)
+  const isPlatformOnlyMenu = (href: string): boolean => {
+    const normalizedHref = href.startsWith('/') ? href : '/' + href;
+    const menuKey = href.startsWith('/') ? href.slice(1) : href;
+    return PLATFORM_ONLY_MENUS.some(m => 
+      normalizedHref === m || 
+      normalizedHref.startsWith(m + '/') || 
+      menuKey === m ||
+      menuKey.startsWith(m + '/')
+    );
+  };
+
+  // Helper to check if a menu item is visible based on user's visible_menus
+  // Handles both href format ("/dashboard") and key format ("dashboard")
+  const isMenuVisible = (href: string): boolean => {
+    // Normalize href to key format (remove leading slash)
+    const menuKey = href.startsWith('/') ? href.slice(1) : href;
+    
+    // For agents: block platform-only menus regardless of visible_menus
+    if (isAgent && isPlatformOnlyMenu(href)) {
+      return false;
+    }
+    
+    // Check if menu is in hidden list
+    if (userHiddenMenus.includes(href) || userHiddenMenus.includes(menuKey)) {
+      return false;
+    }
+    
+    // For agents: check manual key menus
+    if (isAgent) {
+      const isManualKeyMenu = MANUAL_KEY_MENUS.some(m => 
+        href === m || menuKey === m.replace(/^\//, '') || href.startsWith(m + '/')
+      );
+      if (isManualKeyMenu && !agentEnableManualKey) {
+        return false;
+      }
+      
+      // Check auto system menus
+      const isAutoMenu = AUTO_SYSTEM_MENUS.some(m => 
+        href === m || menuKey === m.replace(/^\//, '') || href.startsWith(m + '/')
+      );
+      if (isAutoMenu && !agentEnableAuto) {
+        return false;
+      }
+    }
+    
+    // If no menu restrictions, allow (for admins)
+    if (!hasMenuRestrictions) return true;
+    
+    // Check if menu is in visible_menus list (match both formats)
+    return userVisibleMenus.includes(href) || userVisibleMenus.includes(menuKey);
+  };
+
+  // Filter sections based on user role and branch type
+  const visibleSections = menuSections.filter(section => {
+    // Master only sections - hide from sub-sites (web ลูก)
+    if (section.masterOnly && !isMasterBranch && !isSuperAdmin) return false;
+    
+    // Super Admin only sections
     if (section.superAdminOnly && !isSuperAdmin) return false;
-    if (section.masterOnly && !isMasterBranch) return false;
-    if (section.adminOnly && !isAdmin) return false;
-    if (section.agentOnly && !isAgent) return false;
+    
+    // === AGENT: Filter based on permissions and feature flags ===
+    if (isAgent) {
+      // Block sections with platform-only items
+      const allItemsPlatformOnly = section.items.every(item => isPlatformOnlyMenu(item.href));
+      if (allItemsPlatformOnly) return false;
+      
+      // Check agentOnly sections first (these are always visible for agents)
+      if (section.agentOnly === true) {
+        // But still filter items based on system_type
+        const hasValidItems = section.items.some(item => isMenuVisible(item.href));
+        return hasValidItems;
+      }
+      
+      // For non-agentOnly sections, check if any item is allowed
+      const hasAllowedItems = section.items.some(item => isMenuVisible(item.href));
+      return hasAllowedItems;
+    }
+    
+    // === MEMBER: เห็นเฉพาะ memberVisible sections ===
+    if (isMember) {
+      return section.memberVisible === true;
+    }
+    
+    // === STAFF (พนักงาน): เห็นเฉพาะ staffVisible sections ===
+    if (isStaff) {
+      return section.staffVisible === true;
+    }
+    
+    // === ADMIN / SUPER ADMIN: เห็นทุกเมนูยกเว้น agentOnly ===
+    // (agentOnly เป็นเมนูเฉพาะ Agent ไม่ต้องแสดงใน Admin Dashboard)
+    if (section.agentOnly && !isAgent) {
+      return false;
+    }
+    
+    // Admin only sections
+    if (section.adminOnly) {
+      return isAdmin || isSuperAdmin;
+    }
+    
     return true;
-  });
+  }).map(section => {
+    // Filter items within each section based on permissions
+    // For agents: always filter; for others: only if restrictions exist
+    if (isAgent || (hasMenuRestrictions && !isSuperAdmin && !isAdmin)) {
+      const filteredItems = section.items.filter(item => isMenuVisible(item.href));
+      return { ...section, items: filteredItems };
+    }
+    return section;
+  }).filter(section => section.items.length > 0); // Remove empty sections
 
   return (
-    <Sidebar className="border-r border-amber-900/30 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      <SidebarHeader className="border-b border-amber-900/30 p-4">
+    <Sidebar className="bg-black">
+      <SidebarHeader className="border-b border-[rgba(212,175,55,0.2)] p-4 bg-black">
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/20">
-            <Crown className="size-6 text-slate-900" />
+          <div className="relative flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#D4AF37] via-[#F5D061] to-[#B8860B] shadow-[0_0_20px_rgba(212,175,55,0.5)]">
+            <Crown className="size-5 text-black drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]" />
+            <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-[#22C55E] border-2 border-black animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-white tracking-tight">FIN LOTTO R+</h1>
-            <p className="text-[10px] font-medium text-amber-500 tracking-widest uppercase">
-              {isSuperAdmin ? 'ENTERPRISE ADMIN' : isAgent ? 'AGENT PORTAL' : 'PREMIUM ADMIN'}
-            </p>
+          <div className="flex flex-col">
+            <span className="text-lg font-bold bg-gradient-to-r from-[#F5D061] via-[#D4AF37] to-[#B8860B] bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">
+              FIN LOTTO R+
+            </span>
+            <span className="text-[10px] tracking-widest text-[#D4AF37]/80 font-medium">
+              PREMIUM ADMIN
+            </span>
           </div>
         </Link>
       </SidebarHeader>
-
-      <SidebarContent className="px-2 py-4">
-        {/* Dashboard Link */}
-        <SidebarGroup>
+      
+      <SidebarContent className="px-2 bg-black">
+        {/* 1. Dashboard - แยกตาม role */}
+        <SidebarGroup className="py-1">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === dashboardLink.href}
-                className="group transition-all duration-200 hover:bg-amber-500/10"
+                isActive={pathname === (isAgent ? agentDashboardItem.href : dashboardItem.href)}
+                tooltip={isAgent ? agentDashboardItem.title : dashboardItem.title}
+                className="h-10 hover:bg-[rgba(212,175,55,0.1)] data-[active=true]:bg-[rgba(212,175,55,0.15)] data-[active=true]:border-l-2 data-[active=true]:border-[#D4AF37]"
               >
-                <Link href={dashboardLink.href} className="flex items-center gap-3">
-                  <dashboardLink.icon className={`size-5 ${pathname === dashboardLink.href ? 'text-amber-400' : 'text-slate-400 group-hover:text-amber-400'}`} />
-                  <span className={pathname === dashboardLink.href ? 'text-white font-medium' : 'text-slate-300 group-hover:text-white'}>
-                    {dashboardLink.title}
+                <Link href={isAgent ? agentDashboardItem.href : dashboardItem.href}>
+                  {isAgent ? (
+                    <agentDashboardItem.icon className="size-4 text-[#D4AF37] drop-shadow-[0_0_4px_rgba(212,175,55,0.5)]" />
+                  ) : (
+                    <dashboardItem.icon className="size-4 text-[#D4AF37] drop-shadow-[0_0_4px_rgba(212,175,55,0.5)]" />
+                  )}
+                  <span className="font-medium text-[#E5E5E5]">
+                    {isAgent ? agentDashboardItem.title : dashboardItem.title}
                   </span>
+                  {!isAgent && pendingCounts && pendingCounts.totalPending > 0 && (
+                    <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1 text-xs shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                      {pendingCounts.totalPending > 99 ? '99+' : pendingCounts.totalPending}
+                    </Badge>
+                  )}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {/* ลงเวลางาน - สำหรับแอดมินทุกคน */}
+            {(isAdmin || isSuperAdmin) && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === attendanceItem.href}
+                  tooltip={attendanceItem.title}
+                  className="h-10 hover:bg-[rgba(212,175,55,0.1)] data-[active=true]:bg-[rgba(212,175,55,0.15)] data-[active=true]:border-l-2 data-[active=true]:border-[#D4AF37]"
+                >
+                  <Link href={attendanceItem.href}>
+                    <attendanceItem.icon className="size-4 text-green-500 drop-shadow-[0_0_4px_rgba(34,197,94,0.5)]" />
+                    <span className="font-medium text-[#E5E5E5]">{attendanceItem.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Menu Sections */}
-        {filteredSections.map((section) => (
-          <SidebarGroup key={section.title}>
-            <Collapsible
-              open={openSections[section.title]}
-              onOpenChange={() => toggleSection(section.title)}
-            >
+        {/* Collapsible Sections */}
+        {visibleSections.map((section) => (
+          <Collapsible
+            key={section.title}
+            open={openSections[section.title]}
+            onOpenChange={() => toggleSection(section.title)}
+          >
+            <SidebarGroup className="py-0">
               <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-amber-500/5 rounded-lg px-2 py-2 transition-colors flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <section.icon className="size-4 text-amber-500/80" />
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      {section.title}
-                    </span>
-                  </div>
-                  <ChevronDown className={`size-4 text-slate-500 transition-transform duration-200 ${openSections[section.title] ? 'rotate-180' : ''}`} />
+                <SidebarGroupLabel className="cursor-pointer hover:bg-[rgba(212,175,55,0.08)] rounded-md px-2 py-2 flex items-center justify-between group transition-colors">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-[#D4AF37]/80 uppercase tracking-wider">
+                    <section.icon className="size-3.5 text-[#D4AF37] drop-shadow-[0_0_3px_rgba(212,175,55,0.4)]" />
+                    {section.title}
+                  </span>
+                  <ChevronDown className={`size-3.5 text-[#D4AF37]/60 transition-transform duration-200 ${openSections[section.title] ? 'rotate-180' : ''}`} />
                 </SidebarGroupLabel>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {section.items.map((item) => {
-                      const isActive = pathname === item.href;
-                      const badgeCount = item.badgeKey ? pendingCounts?.[item.badgeKey] : undefined;
-                      
+                      const badgeCount = item.badgeKey && pendingCounts ? pendingCounts[item.badgeKey] : 0;
                       return (
                         <SidebarMenuItem key={item.href}>
                           <SidebarMenuButton
                             asChild
-                            isActive={isActive}
-                            className="group transition-all duration-200 hover:bg-amber-500/10"
+                            isActive={pathname === item.href}
+                            tooltip={item.title}
+                            className="h-9 hover:bg-[rgba(212,175,55,0.08)] data-[active=true]:bg-black data-[active=true]:border data-[active=true]:border-[#D4AF37]/50 data-[active=true]:shadow-[0_0_10px_rgba(212,175,55,0.2)] data-[active=true]:rounded-md"
                           >
-                            <Link href={item.href} className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <item.icon className={`size-4 ${isActive ? 'text-amber-400' : 'text-slate-500 group-hover:text-amber-400'}`} />
-                                <span className={`text-sm ${isActive ? 'text-white font-medium' : 'text-slate-400 group-hover:text-white'}`}>
-                                  {item.title}
-                                </span>
-                              </div>
-                              {badgeCount && badgeCount > 0 && (
-                                <Badge className="bg-red-500/20 text-red-400 border-red-500/40 text-[10px] px-1.5 py-0.5">
-                                  {badgeCount}
+                            <Link 
+                              href={item.href} 
+                              className="flex items-center justify-between w-full"
+                            >
+                              <span className="flex items-center gap-2">
+                                <item.icon className="size-4 text-[#D4AF37] drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
+                                <span className="text-[#F5F5F5] font-medium">{item.title}</span>
+                              </span>
+                              {badgeCount > 0 && (
+                                <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1 text-xs animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                                  {badgeCount > 99 ? '99+' : badgeCount}
                                 </Badge>
                               )}
                             </Link>
@@ -381,33 +734,53 @@ export function AppSidebar() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
+            </SidebarGroup>
+          </Collapsible>
         ))}
       </SidebarContent>
-
-      <SidebarFooter className="border-t border-amber-900/30 p-4">
+      
+      <SidebarFooter className="border-t border-[rgba(212,175,55,0.2)] p-4 space-y-3 bg-black">
+        {/* Current User */}
         {user && (
-          <div className="mb-3 rounded-lg bg-slate-800/50 p-3 border border-slate-700/50">
-            <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600">
-                <Crown className="size-4 text-slate-900" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user.username}</p>
-                <p className="text-xs text-amber-500 capitalize">{user.role?.replace('_', ' ')}</p>
-              </div>
+          <div className="flex items-center gap-3 p-2 rounded-lg bg-[rgba(212,175,55,0.05)] border border-[rgba(212,175,55,0.2)]">
+            <div className={`size-8 rounded-full flex items-center justify-center ${
+              isSuperAdmin 
+                ? 'bg-gradient-to-br from-[#D4AF37] via-[#F5D061] to-[#B8860B] shadow-[0_0_12px_rgba(212,175,55,0.6)]' 
+                : isAdmin 
+                  ? 'bg-gradient-to-br from-[#D4AF37] to-[#B8860B] shadow-[0_0_8px_rgba(212,175,55,0.4)]' 
+                  : 'bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] border border-[rgba(212,175,55,0.3)]'
+            }`}>
+              {isSuperAdmin ? (
+                <Crown className="size-4 text-black drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]" />
+              ) : isAdmin ? (
+                <ShieldCheck className="size-4 text-black" />
+              ) : (
+                <Users className="size-4 text-[#D4AF37]" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate text-[#E5E5E5]">{user.displayName}</p>
+              <p className="text-xs text-[#D4AF37] drop-shadow-[0_0_4px_rgba(212,175,55,0.3)]">
+                {isSuperAdmin ? 'Super Admin' : isAdmin ? 'ผู้ดูแลระบบ' : isAgent ? 'เอเย่นต์' : isMember ? 'แมมเบอร์' : isStaff ? 'พนักงาน' : 'ผู้ใช้'}
+              </p>
             </div>
           </div>
         )}
+        
+        {/* Logout Button */}
         <Button
-          variant="ghost"
-          className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+          variant="outline"
+          className="w-full justify-start border-[rgba(212,175,55,0.2)] text-[#888888] hover:text-[#EF4444] hover:border-[rgba(239,68,68,0.5)] hover:bg-[rgba(239,68,68,0.1)] bg-transparent"
           onClick={handleLogout}
         >
-          <LogOut className="mr-2 size-4" />
+          <LogOut className="size-4 mr-2" />
           ออกจากระบบ
         </Button>
+        
+        <div className="text-xs text-center space-y-1">
+          <p className="font-bold bg-gradient-to-r from-[#F5D061] via-[#D4AF37] to-[#B8860B] bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]">FIN LOTTO R+</p>
+          <p className="text-[#555555]">Premium Admin v2.0</p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
