@@ -2,10 +2,16 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/api-auth';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 /**
  * Tenants API - SUPER ADMIN ONLY
  * Manages multi-tenant sites (Sub-Sites)
+ * 
+ * TASK 1: SUB-WEB CREATION API
+ * - Securely generates new tenant accounts (Username/Password)
+ * - Maps custom domains to multi-tenant architecture
+ * - Auto-creates tenant admin user with secure credentials
  */
 
 // GET - List all tenants with stats (supports pagination for 100,000+ tenants)
@@ -112,7 +118,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new tenant (Sub-Site)
+// POST - Create new tenant (Sub-Site) with secure credentials and domain mapping
 export async function POST(request: Request) {
   try {
     // Auth guard - require super admin for creating tenants
@@ -123,16 +129,28 @@ export async function POST(request: Request) {
     const { 
       name, 
       slug, 
-      domain, 
+      domain,
+      custom_domains = [], // Array of custom domains for this tenant
       owner_id,
       sync_payout_rates = true,
       sync_blocked_numbers = true,
       sync_lottery_status = true,
+      // Admin credentials (optional - auto-generate if not provided)
+      admin_username,
+      admin_password,
     } = body;
 
     if (!name || !slug) {
       return NextResponse.json(
         { error: 'กรุณากรอกชื่อและ slug' },
+        { status: 400 }
+      );
+    }
+
+    // Validate slug format (alphanumeric, lowercase, hyphens only)
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      return NextResponse.json(
+        { error: 'Slug ต้องเป็นตัวอักษรภาษาอังกฤษพิมพ์เล็ก ตัวเลข และ - เท่านั้น' },
         { status: 400 }
       );
     }
@@ -153,25 +171,61 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create tenant (only use columns that exist in the schema)
+    // Check if domain exists (if provided)
+    if (domain) {
+      const { data: existingDomain } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('domain', domain)
+        .single();
+
+      if (existingDomain) {
+        return NextResponse.json(
+          { error: 'โดเมนนี้ถูกใช้งานแล้ว' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Generate secure API key for this tenant (for child site integration)
+    const apiKeyRaw = `flk_${slug}_${crypto.randomBytes(24).toString('hex')}`;
+    const apiKeyHash = await bcrypt.hash(apiKeyRaw, 10);
+    const apiKeyPrefix = apiKeyRaw.slice(0, 16);
+
+    // Create tenant with domain mapping
     const { data: tenant, error } = await supabase
       .from('tenants')
       .insert({
         name,
         slug,
-        domain,
+        domain: domain || `${slug}.finlotto.com`, // Default subdomain
         owner_id,
         is_master: false,
         is_active: true,
         sync_payout_rates,
         sync_blocked_numbers,
         sync_lottery_status,
-        theme_config: { primaryColor: '#D4AF37', theme: 'midnight-gold' }
+        theme_config: { primaryColor: '#D4AF37', theme: 'midnight-gold' },
+        // Store custom domains as JSON array
+        custom_domains: custom_domains.length > 0 ? custom_domains : null,
       })
       .select()
       .single();
 
     if (error) throw error;
+
+    // Create site API key for this tenant (for risk aggregation integration)
+    await supabase
+      .from('site_api_keys')
+      .insert({
+        site_id: tenant.id,
+        site_name: name,
+        site_type: 'child_auto',
+        api_key_hash: apiKeyHash,
+        api_key_prefix: apiKeyPrefix,
+        is_active: true,
+        rate_limit_per_minute: 60,
+      });
 
     // Create initial stats record
     await supabase
@@ -181,39 +235,80 @@ export async function POST(request: Request) {
         stat_date: new Date().toISOString().split('T')[0]
       });
 
-    // 3. Auto-create tenant admin user
-    const tempPassword = `${slug}_admin_${Date.now().toString(36)}`;
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    // Generate secure admin credentials
+    const finalUsername = admin_username || `admin_${slug}`;
+    const finalPassword = admin_password || generateSecurePassword(slug);
+    const hashedPassword = await bcrypt.hash(finalPassword, 12);
     
+    // Create tenant admin user with secure credentials
     const { data: adminUser, error: adminError } = await supabase
       .from('users')
       .insert({
-        username: `admin_${slug}`,
+        username: finalUsername,
         password_hash: hashedPassword,
         role: 'admin',
         tenant_id: tenant.id,
         is_active: true,
         display_name: `Admin ${name}`,
+        // Force password change on first login
+        must_change_password: true,
       })
       .select('id, username')
       .single();
 
     if (adminError) {
       console.error('Failed to create tenant admin:', adminError);
-      // Tenant created but admin failed - log but don't fail the request
+    }
+
+    // Also insert into admin_users table for backward compatibility
+    if (adminUser) {
+      await supabase
+        .from('admin_users')
+        .insert({
+          id: adminUser.id,
+          username: finalUsername,
+          password_hash: hashedPassword,
+          role: 'admin',
+          tenant_id: tenant.id,
+          is_active: true,
+          display_name: `Admin ${name}`,
+        });
     }
 
     return NextResponse.json({
       success: true,
-      tenant,
+      tenant: {
+        ...tenant,
+        domain_mapping: {
+          primary: tenant.domain,
+          custom: custom_domains,
+          subdomain: `${slug}.finlotto.com`,
+        },
+      },
       admin: adminUser ? {
         username: adminUser.username,
-        password: tempPassword, // One-time display only
+        password: finalPassword, // One-time display only - NOT stored in logs
+        must_change_password: true,
         message: 'กรุณาเปลี่ยนรหัสผ่านทันทีหลังเข้าสู่ระบบครั้งแรก'
-      } : null
+      } : null,
+      api_key: {
+        key: apiKeyRaw, // One-time display only
+        prefix: apiKeyPrefix,
+        message: 'เก็บ API Key นี้ไว้ให้ดี - จะไม่แสดงอีก'
+      },
     });
   } catch (err) {
     console.error('Create tenant error:', err);
     return NextResponse.json({ error: 'ไม่สามารถสร้างเว็บลูกได้' }, { status: 500 });
   }
+}
+
+/**
+ * Generate secure password for tenant admin
+ * Format: [slug]_[random]_[timestamp]
+ */
+function generateSecurePassword(slug: string): string {
+  const random = crypto.randomBytes(8).toString('hex');
+  const timestamp = Date.now().toString(36);
+  return `${slug.slice(0, 4)}${random}${timestamp}`;
 }
