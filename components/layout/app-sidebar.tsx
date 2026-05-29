@@ -354,7 +354,7 @@ const comparisonReportItems = [
 // 19.3 ศูนย์แอดมิน (สำหรับ member/พนักงาน)
   const memberAdminItems = [
   { title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
-  { title: 'การเ��ิน', href: '/member/finance', icon: Wallet },
+  { title: 'การเ���ิน', href: '/member/finance', icon: Wallet },
   { title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
   ];
 
@@ -422,31 +422,150 @@ interface MenuSection {
   staffVisible?: boolean; // ถ้า true = staff (พนักงาน) เห็นได้
 }
 
-// STABLE VERSION - จัดระเบียบแล้ว (ลบเมนูซ้ำซ้อน)
+// =====================================================
+// CONSOLIDATED MENU - 8 SECTIONS (Clean & Professional)
+// =====================================================
 // แยก Dashboard ตาม Role:
 // - super_admin, admin: เห็นทุกเมนู
-// - agent: เห็นเฉพาะเมนู agentVisible (ข้อมูลลูกค้าใต้สาย, คอมมิชชั่นตัวเอง)
-// - member: เห็นเฉพาะเมนูสำหรับทำงาน (ศูนย์ปฏิบัติการ, หวย)
+// - agent: เห็นเฉพาะเมนู agentVisible
+// - member: เห็นเฉพาะเมนูสำหรับทำงาน
+
+// 2. GAMING & LOTTO HUB
+const gamingLottoItems = [
+  { title: 'จัดการหวย', href: '/lotteries', icon: Ticket },
+  { title: 'ผลหวย', href: '/results', icon: Trophy },
+  { title: 'ภาพรวมออโต้', href: '/auto-system', icon: Zap },
+  { title: 'รายการออโต้', href: '/auto-system/entries', icon: List },
+  { title: 'ลูกค้าออโต้', href: '/auto-system/customers', icon: Users },
+  { title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings },
+  { title: 'คีย์โพย', href: '/admin/key', icon: PenLine },
+  { title: 'ภาพรวมคีย์หวย', href: '/manual-key', icon: Keyboard },
+  { title: 'รายการคีย์หวย', href: '/manual-key/entries', icon: List },
+  { title: 'ลูกค้าคีย์หวย', href: '/manual-key/customers', icon: Users },
+  { title: 'ตั้งค่าเรท', href: '/manual-key/rates', icon: DollarSign },
+  { title: 'รายการทั้งหมด', href: '/entries', icon: List },
+];
+
+// 3. FINANCIAL OPERATIONS
+const financialOpsItems = [
+  { title: 'คำขอเติมเงิน', href: '/topup-requests', icon: CreditCard, badgeKey: 'topupPending' as const },
+  { title: 'คำขอถอนเงิน', href: '/withdraw-requests', icon: ArrowDownToLine, badgeKey: 'withdrawPending' as const },
+  { title: 'จ่ายรางวัลลูกค้าคีย์', href: '/prize-payout', icon: Trophy },
+  { title: 'ปรับยอดเครดิต', href: '/credits', icon: Wallet },
+  { title: 'แจ้งปัญหาฝากเงิน', href: '/deposit-issues', icon: AlertTriangle, badgeKey: 'depositIssuesPending' as const },
+  { title: 'รายการรอตรวจสอบ', href: '/pending-review', icon: ClipboardCheck },
+  { title: 'ธุรกรรมการเงิน', href: '/finance/transactions', icon: Receipt },
+  { title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart },
+  { title: 'จัดการ Payment Gateway', href: '/payment-gateway', icon: CreditCard },
+  { title: 'จัดการกระเป๋าเงิน', href: '/wallet-manager', icon: Wallet },
+  { title: 'ตั้งค่าธนาคาร', href: '/bank-settings', icon: Landmark },
+  { title: 'บัญชีรับเงิน', href: '/payment-accounts', icon: QrCode },
+  { title: 'บัญชีถอนเงิน', href: '/withdraw-accounts', icon: ArrowDownToLine },
+  { title: 'SCB แม่มณี', href: '/scb-maemanee', icon: Landmark },
+];
+
+// 4. STAFF & HR MANAGEMENT
+const staffHRItems = [
+  { title: 'ลงเวลางาน', href: '/attendance', icon: Clock },
+  { title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
+  { title: 'การเงิน', href: '/member/finance', icon: Wallet },
+  { title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
+  { title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
+  { title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck },
+  { title: 'Staff Performance', href: '/staff-performance', icon: TrendingUp },
+  { title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
+  { title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings },
+  { title: 'รายงานโอที', href: '/payroll/ot-report', icon: Clock },
+  { title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3 },
+];
+
+// 5. MARKETING & PROMOTIONS
+const marketingPromoItems = [
+  { title: 'จัดการโปรโมชั่น', href: '/promotions', icon: Sparkles },
+  { title: 'แนะนำลูกค้า', href: '/referrals', icon: Gift },
+  { title: 'ลิงก์แนะนำเพื่อน', href: '/affiliate', icon: Link2 },
+  { title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
+  { title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
+  { title: 'คอมมิชชั่น', href: '/agent-system/commission', icon: DollarSign },
+  { title: 'ตั้งค่าธนาคาร', href: '/agent-system/bank-settings', icon: Building2 },
+  { title: 'ตั้งค่าเว็บลูก', href: '/agent-system/site-settings', icon: Settings },
+  { title: 'ส่งยอดเข้าเว็บกลาง', href: '/agent-system/settlement', icon: Send },
+  { title: 'รายงานสายงาน', href: '/agent-system/report', icon: BarChart3 },
+  { title: 'ยูสนำแทง', href: '/lead-users', icon: Crown },
+  { title: 'ลิงก์ทั้งหมด', href: '/marketing-center', icon: Link2 },
+  { title: 'แดชบอร์ดเอเย่นต์', href: '/marketing-center/agent', icon: UsersRound },
+  { title: 'หน้าหลักสมาชิก', href: '/marketing-center/member', icon: Users },
+  { title: 'หน้าข้อมูลพาร์ทเนอร์', href: '/marketing-center/partner', icon: Handshake },
+  { title: 'สร้าง QR Code', href: '/marketing-center/qr-generator', icon: QrCode },
+  { title: 'ลิงก์สมาชิก', href: '/member-links', icon: Link2 },
+];
+
+// 6. CUSTOMER MANAGEMENT
+const customerMgmtItems = [
+  { title: 'รายชื่อลูกค้าแทงหวย', href: '/customers', icon: Users },
+  { title: 'ประวัติลูกค้า', href: '/customer-history', icon: History },
+  { title: 'ธนาคารลูกค้า', href: '/customer-banks', icon: Landmark },
+  { title: 'สรุปลูกค้า', href: '/member-summary', icon: UsersRound },
+];
+
+// 7. REPORTS & ANALYTICS
+const reportsAnalyticsItems = [
+  { title: 'Omni-Channel', href: '/reports/omni-channel', icon: Globe },
+  { title: 'รายงานย้อนหลัง', href: '/reports/daily-closing', icon: History },
+  { title: 'KPI Dashboard', href: '/kpi-dashboard', icon: Target },
+  { title: 'วิเคราะห์ยอดเลข', href: '/analysis', icon: BarChart3 },
+  { title: 'กำไร/ขาดทุน', href: '/profit-loss', icon: PieChart },
+  { title: 'รายงาน', href: '/reports', icon: FileDown },
+  { title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: Ticket },
+  { title: 'รายงานการเดิมพัน', href: '/betting/reports', icon: FileBarChart },
+];
+
+// 8. SYSTEM SETTINGS & SECURITY
+const systemSettingsItems = [
+  { title: 'ตั้งค่าธีม', href: '/web-theme', icon: Palette },
+  { title: 'จัดการรูปภาพ', href: '/manage-images', icon: Image },
+  { title: 'ตั้งค่าหน้าเว็บ', href: '/desktop-settings', icon: MonitorSmartphone },
+  { title: 'ตั้งค่าทั่วไป', href: '/settings', icon: Settings },
+  { title: 'ถ่ายทอดสด', href: '/live-draw', icon: Tv },
+  { title: 'Global Live Stream', href: '/live-stream', icon: Radio },
+  { title: 'บอทประกาศผล', href: '/result-announcement', icon: Bot },
+  { title: 'จัดการผู้ใช้', href: '/users', icon: UsersRound },
+  { title: 'สิทธิ์การใช้งาน', href: '/roles-permissions', icon: Shield },
+  { title: 'Security Dashboard', href: '/security-dashboard', icon: ShieldAlert },
+  { title: 'ยืนยันตัวตน 2 ชั้น (2FA)', href: '/security/2fa', icon: Smartphone },
+  { title: 'ประวัติการใช้งาน', href: '/audit-logs', icon: History },
+  { title: 'สำรองข้อมูล', href: '/backup', icon: Database },
+  { title: 'Health Check', href: '/health-check', icon: Activity },
+  { title: 'Dashboard ยอดรวม', href: '/multi-tenant/dashboard', icon: BarChart3 },
+  { title: 'รายการส่งยอด', href: '/multi-tenant/settlements', icon: Receipt },
+  { title: 'Enterprise Summary', href: '/enterprise-summary', icon: Crown },
+  { title: 'จัดการเว็บลูก', href: '/sub-sites', icon: Globe },
+  { title: 'VIP Dashboard', href: '/vip-dashboard', icon: Crown },
+  { title: 'Billion Dashboard', href: '/billion-dashboard', icon: TrendingUp },
+  { title: 'Tenant Manager', href: '/tenant-manager', icon: Globe },
+  { title: 'Site Manager', href: '/site-manager', icon: Globe },
+  { title: 'Branding/Theme', href: '/site-manager/branding', icon: Palette },
+  { title: 'เรท/อั้นกลาง', href: '/master-rates', icon: DollarSign },
+  { title: 'Financial Hub', href: '/financial-hub', icon: Wallet },
+  { title: 'Risk Control', href: '/risk-control', icon: Shield },
+  { title: 'API Docs', href: '/api-docs', icon: FileText },
+  { title: 'จัดการสายงาน', href: '/super-admin/downline', icon: Crown },
+  { title: 'ตั้งค่าการมองเห็นเอเย่น', href: '/agent-visibility', icon: Eye },
+  { title: 'ตั้งค่าการมองเห็นแมมเบอร์', href: '/member-visibility', icon: Users },
+  { title: 'ควบคุมความเสี่ยง', href: '/risk-management', icon: TrendingUp },
+  { title: 'Master Control', href: '/master-control', icon: Shield },
+  { title: 'ตั้งค่าระบบ', href: '/settings/system', icon: Settings },
+];
+
 const menuSections: MenuSection[] = [
-  // === ADMIN MENUS (เฉพาะ Admin/Super Admin) ===
-  { title: 'ศูนย์ปฏิบัติการ', icon: Headphones, items: operationItems, defaultOpen: true, adminOnly: true, staffVisible: true, memberVisible: true },
-  { title: 'ศูนย์แอดมิน', icon: User, items: memberAdminItems, defaultOpen: false, adminOnly: true },
-  { title: 'ลูกค้าแทงหวย', icon: Users, items: memberItems, defaultOpen: false, adminOnly: true, staffVisible: true },
-  { title: 'ธุรกรรมการเงิน', icon: Wallet, items: financeItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
-  { title: 'ประวัติการเดิมพัน', icon: Ticket, items: bettingHistoryItems, defaultOpen: false, adminOnly: true, staffVisible: true },
-  { title: 'หวย', icon: Ticket, items: lotteryItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
-  { title: 'ระบบออโต้', icon: Zap, items: autoSystemItems, defaultOpen: false, adminOnly: true },
-  { title: 'ระบบคีย์หวย', icon: Keyboard, items: manualKeyItems, defaultOpen: false, adminOnly: true },
-  { title: 'สายงานเอเย่นต์', icon: GitBranch, items: agentSystemItems, defaultOpen: false, adminOnly: true },
-  { title: 'โปรโมชั่น', icon: Sparkles, items: promoItems, defaultOpen: false, adminOnly: true },
-  { title: 'ศูนย์การตลาด', icon: Megaphone, items: marketingCenterItems, defaultOpen: false, adminOnly: true },
-  { title: 'รายงาน', icon: BarChart3, items: reportItems, defaultOpen: false, adminOnly: true, staffVisible: true },
-  { title: 'จัดการพนักงาน', icon: UsersRound, items: staffManagementItems, defaultOpen: false, adminOnly: true },
-  { title: 'ตั้งค่าเว็บ', icon: Settings, items: webSettingsItems, defaultOpen: false, adminOnly: true },
-  { title: 'ไลฟ์สด', icon: Tv, items: liveStreamItems, defaultOpen: false, adminOnly: true },
-  { title: 'Multi-Tenant', icon: Globe, items: multiTenantItems, defaultOpen: false, superAdminOnly: true, masterOnly: true },
-  { title: 'Super Admin', icon: Crown, items: superAdminItems, defaultOpen: false, superAdminOnly: true },
-  { title: 'ความปลอดภัย', icon: Shield, items: securityItems, defaultOpen: false, superAdminOnly: true },
+  // === 8 CONSOLIDATED ADMIN SECTIONS ===
+  { title: 'Gaming & Lotto Hub', icon: Ticket, items: gamingLottoItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
+  { title: 'Financial Operations', icon: Wallet, items: financialOpsItems, defaultOpen: true, adminOnly: true, staffVisible: true, memberVisible: true },
+  { title: 'Staff & HR', icon: UsersRound, items: staffHRItems, defaultOpen: false, adminOnly: true },
+  { title: 'Marketing & Promotions', icon: Megaphone, items: marketingPromoItems, defaultOpen: false, adminOnly: true },
+  { title: 'Customer Management', icon: Users, items: customerMgmtItems, defaultOpen: false, adminOnly: true, staffVisible: true },
+  { title: 'Reports & Analytics', icon: BarChart3, items: reportsAnalyticsItems, defaultOpen: false, adminOnly: true, staffVisible: true },
+  { title: 'System & Security', icon: Settings, items: systemSettingsItems, defaultOpen: false, superAdminOnly: true },
   
   // === AGENT MENUS (เฉพาะ Agent) ===
   { title: 'ศูนย์การเงิน', icon: Wallet, items: agentOperationItems, defaultOpen: true, agentOnly: true },
