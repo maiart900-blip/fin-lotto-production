@@ -86,12 +86,13 @@ interface WebhookInfo {
   instructions: string[];
 }
 
-const DEFAULT_TEMPLATE = `ผลหวย {lottery_name}
-งวดวันที่ {draw_date}
+const DEFAULT_TEMPLATE = `📢 ผลหวย {lottery_name}
+ประจำวันที่ {draw_date}
 
-รางวัลที่ 1: {prize_first}
-เลขท้าย 2 ตัว: {prize_last2}
-เลขท้าย 3 ตัว: {prize_last3}`;
+🎯 3 ตัวบน: {prize_first}
+🎯 2 ตัวล่าง: {prize_last2}
+
+ขอให้เฮง ๆ ทุกท่านค่ะ 🍀`;
 
 const PLATFORMS = [
   { id: 'line', name: 'LINE Messaging API', icon: MessageCircle, color: 'bg-green-500' },
