@@ -40,10 +40,15 @@ interface Agent {
   created_at: string;
 }
 
-const AGENT_LEVELS: Record<string, { label: string; color: string }> = {
-  senior_agent: { label: 'Senior Agent', color: 'bg-purple-500' },
-  agent: { label: 'Agent', color: 'bg-blue-500' },
-  sub_agent: { label: 'Sub Agent', color: 'bg-green-500' },
+// 4-TIER AGENT HIERARCHY (Mother Web -> Master -> Agent -> Sub-Agent)
+// ห้ามใช้ v1, v2 - ต้องใช้ชื่อเต็มเท่านั้น
+const AGENT_LEVELS: Record<string, { label: string; color: string; tier: number }> = {
+  mother_web: { label: 'Mother Web', color: 'bg-red-600', tier: 0 },
+  master: { label: 'Master', color: 'bg-purple-500', tier: 1 },
+  agent: { label: 'Agent', color: 'bg-blue-500', tier: 2 },
+  sub_agent: { label: 'Sub-Agent', color: 'bg-green-500', tier: 3 },
+  // Legacy mappings
+  senior_agent: { label: 'Master', color: 'bg-purple-500', tier: 1 },
 };
 
 export default function AgentSystemPage() {
@@ -186,7 +191,7 @@ export default function AgentSystemPage() {
   const renderTreeNode = (node: Agent & { children?: Agent[] }, depth: number = 0) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes.has(node.id);
-    const levelConfig = AGENT_LEVELS[node.agent_level] || { label: 'Agent', color: 'bg-gray-500' };
+    const levelConfig = AGENT_LEVELS[node.agent_level] || AGENT_LEVELS.agent;
 
     return (
       <div key={node.id}>
@@ -219,7 +224,7 @@ export default function AgentSystemPage() {
             <div className="flex items-center gap-2">
               <span className="font-medium truncate">{node.name || node.phone}</span>
               <Badge className={`${levelConfig.color} text-white text-xs`}>
-                Lv.{depth + 1}
+                {levelConfig.label}
               </Badge>
               {getSystemBadges(node)}
             </div>
@@ -303,7 +308,7 @@ export default function AgentSystemPage() {
       const data = await res.json();
       
       if (res.ok && data.success) {
-        toast.success('สร้างเอเย่นต์ใหม่สำเร็จ');
+        toast.success('สร้างเอเย่��ต์ใหม่สำเร็จ');
         setShowAddDialog(false);
         
         // ถ้ามี 2FA data ให้แสดง QR Modal

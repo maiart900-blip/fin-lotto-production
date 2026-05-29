@@ -302,32 +302,35 @@ export default function AgentVisibilityPage() {
         </CardContent>
       </Card>
 
-      {/* ลำดับชั้นระบบ */}
+      {/* ลำดับชั้นระบบ - 4-TIER HIERARCHY */}
       <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Shield className="h-5 w-5 text-amber-600" />
-            ลำดับชั้นระบบ
+            ลำดับชั้นระบบ (4-Tier Agent Hierarchy)
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 text-sm flex-wrap">
-            <Badge variant="default" className="bg-purple-600">เว็บแม่ (Master)</Badge>
+            <Badge variant="default" className="bg-red-600">Mother Web (เว็บแม่)</Badge>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <Badge variant="default" className="bg-blue-600">เอเย่น Lv.1</Badge>
+            <Badge variant="default" className="bg-purple-600">Master</Badge>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <Badge variant="default" className="bg-green-600">เอเย่น Lv.2</Badge>
+            <Badge variant="default" className="bg-blue-600">Agent</Badge>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <Badge variant="outline">แมมเบอร์ (ลูกค้า)</Badge>
+            <Badge variant="default" className="bg-green-600">Sub-Agent</Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            หวยจากแมมเบอร์ → ส่งผ่านเอเย่น (หัก % กำไร) → ส่งเว็บแม่
+            <strong>Mother Web</strong> มี 100% authority สามารถควบคุมการมองเห็นเมนูของทุกระดับ
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            <strong>Data Isolation:</strong> Downlines รับโครงสร้างระบบและเครื่องมือเท่านั้น ไม่มีสิทธิ์เข้าถึงข้อมูลเว็บแม่
           </p>
         </CardContent>
       </Card>
 
       <div className="grid md:grid-cols-3 gap-6">
-        {/* รายชื่อเอเย่น */}
+        {/* ��ายชื่อเอเย่น */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
