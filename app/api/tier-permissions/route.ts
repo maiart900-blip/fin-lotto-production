@@ -58,8 +58,21 @@ export async function PUT(request: NextRequest) {
     if (authResult instanceof NextResponse) return authResult;
     
     const supabase = await createClient();
-    const body = await request.json();
+    
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error('[v0] Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+    
     const { permissions } = body;
+    
+    console.log('[v0] Received permissions:', JSON.stringify(permissions, null, 2));
     
     if (!permissions || !Array.isArray(permissions)) {
       return NextResponse.json(
@@ -85,57 +98,63 @@ export async function PUT(request: NextRequest) {
       }
     }
     
-    // Upsert permissions
-    const { error } = await supabase
-      .from('tier_permissions')
-      .upsert(
-        permissions.map((p: {
-          tier: string;
-          menu_id: string;
-          can_view: boolean;
-          can_create: boolean;
-          can_edit: boolean;
-          can_delete: boolean;
-        }) => ({
-          tier: p.tier,
-          menu_id: p.menu_id,
-          can_view: p.can_view || false,
-          can_create: p.can_create || false,
-          can_edit: p.can_edit || false,
-          can_delete: p.can_delete || false,
-          updated_at: new Date().toISOString(),
-        })),
-        { 
-          onConflict: 'tier,menu_id',
-          ignoreDuplicates: false,
-        }
-      );
+    // Build clean records for upsert - only include valid columns
+    const cleanPermissions = permissions.map((p: {
+      tier: string;
+      menu_id: string;
+      can_view?: boolean;
+      can_create?: boolean;
+      can_edit?: boolean;
+      can_delete?: boolean;
+    }) => ({
+      tier: String(p.tier),
+      menu_id: String(p.menu_id),
+      can_view: Boolean(p.can_view),
+      can_create: Boolean(p.can_create),
+      can_edit: Boolean(p.can_edit),
+      can_delete: Boolean(p.can_delete),
+    }));
     
-    if (error) {
-      console.error('Error saving tier permissions:', error);
+    console.log('[v0] Clean permissions to upsert:', JSON.stringify(cleanPermissions.slice(0, 3), null, 2));
+    
+    // Upsert permissions one by one to avoid batch issues
+    const errors: string[] = [];
+    let successCount = 0;
+    
+    for (const perm of cleanPermissions) {
+      const { error } = await supabase
+        .from('tier_permissions')
+        .upsert(perm, { 
+          onConflict: 'tier,menu_id',
+        });
       
-      // If table doesn't exist, create it
-      if (error.code === '42P01') {
+      if (error) {
+        console.error('[v0] Error upserting permission:', perm, error);
+        errors.push(`${perm.tier}/${perm.menu_id}: ${error.message}`);
+      } else {
+        successCount++;
+      }
+    }
+    
+    if (errors.length > 0) {
+      console.error('[v0] Some permissions failed to save:', errors);
+      if (successCount === 0) {
         return NextResponse.json(
-          { error: 'tier_permissions table not found. Please run migrations.' },
+          { error: `Failed to save permissions: ${errors[0]}` },
           { status: 500 }
         );
       }
-      
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
     }
     
     return NextResponse.json({ 
       success: true,
       message: 'Tier permissions saved successfully',
-      count: permissions.length,
+      count: successCount,
+      errors: errors.length > 0 ? errors : undefined,
     });
     
   } catch (error) {
-    console.error('Tier permissions PUT error:', error);
+    console.error('[v0] Tier permissions PUT error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
