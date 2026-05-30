@@ -268,8 +268,7 @@ export const multiTenantItems: MenuItem[] = [
 // 16. Super Admin (Restricted - ต้อง master_admin เท่านั้น)
 export const superAdminItems: MenuItem[] = [
   { id: 'super-downline', title: 'จัดการสายงาน', href: '/super-admin/downline', icon: Crown, description: 'จัดการสายงานทั้งหมด' },
-  { id: 'agent-visibility', title: 'ตั้งค่าการมองเห็นเอเย่น', href: '/agent-visibility', icon: Eye, description: 'กำหนดสิทธิ์มองเห็นเอเย่น' },
-  { id: 'member-visibility', title: 'ตั้งค่าการมองเห็นแมมเบอร์', href: '/member-visibility', icon: Users, description: 'กำหนดสิทธิ์มองเห็นแมมเบอร์' },
+  // REMOVED: agent-visibility and member-visibility - now consolidated into roles-permissions (ศูนย์กลาง)
   { id: 'risk-management', title: 'ควบคุมความเสี่ยง', href: '/risk-management', icon: TrendingUp, description: 'จัดการความเสี่ยง' },
   { id: 'master-control', title: 'Master Control', href: '/master-control', icon: Shield, description: 'ควบคุมระบบหลัก' },
   { id: 'system-settings', title: 'ตั้งค่าระบบ', href: '/settings/system', icon: Settings, description: 'ตั้งค่าระบบทั้งหมด' },
@@ -297,7 +296,7 @@ export const agentOperationItems: MenuItem[] = [
 
 export const agentDownlineItems: MenuItem[] = [
   { id: 'agent-members', title: 'ลูกค้าใต้สาย', href: '/agent-members', icon: Users, description: 'จัดการลูกค้าใต้สาย' },
-  { id: 'agent-commission', title: 'คอมมิชชั่น', href: '/agent/commission', icon: DollarSign, description: 'ดูคอมมิชชั่น' },
+  { id: 'agent-commission', title: 'คอมมิชชั่น', href: '/agent/commission', icon: DollarSign, description: 'ดูคอมมิชชั���น' },
   { id: 'agent-profit-loss', title: 'รายงานแพ้ชนะ', href: '/agent-profit-loss', icon: PieChart, description: 'รายงานแพ้ชนะ' },
   { id: 'agent-withdraw-history', title: 'ถอนคอมมิชชั่น', href: '/agent-withdraw-history', icon: ArrowDownToLine, description: 'ถอนคอมมิชชั่น' },
 ];
