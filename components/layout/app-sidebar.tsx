@@ -354,7 +354,7 @@ const comparisonReportItems = [
 // 19.3 ศูนย์แอดมิน (สำหรับ member/พนักงาน)
   const memberAdminItems = [
   { title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
-  { title: 'การเ��ิน', href: '/member/finance', icon: Wallet },
+  { title: 'การเ���ิน', href: '/member/finance', icon: Wallet },
   { title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
   ];
 
@@ -372,8 +372,7 @@ const staffManagementItems = [
 // 20. Super Admin - เจ้าของระบบ (เว็บแม่เท่านั้น)
 const superAdminItems = [
   { title: 'จัดการสายงาน', href: '/super-admin/downline', icon: Crown },
-  { title: 'ตั้งค่าการมองเห็นเอเย่น', href: '/agent-visibility', icon: Eye },
-  { title: 'ตั้งค่าการมองเห็นแมมเบอร์', href: '/member-visibility', icon: Users },
+  // REMOVED: ตั้งค่าการมองเห็นเอเย่น and ตั้งค่าการมองเห็นแมมเบอร์ - now consolidated into /roles-permissions
   { title: 'ควบคุมความเสี่ยง', href: '/risk-management', icon: TrendingUp },
   { title: 'Master Control', href: '/master-control', icon: Shield },
   { title: 'ตั้งค่าระบบ', href: '/settings/system', icon: Settings },
