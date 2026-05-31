@@ -474,6 +474,18 @@ export function AppSidebar() {
     { refreshInterval: 5000 }
   );
 
+  // Fetch role permissions from database for the current user's role
+  const userRole = user?.role || 'agent';
+  const { data: rolePermissions } = useSWR<Array<{ permission_key: string; can_view: boolean }>>(
+    user ? `/api/role-permissions?role=${userRole}` : null,
+    fetcher
+  );
+
+  // Get allowed menu keys from database permissions
+  const dbAllowedMenus = (rolePermissions || [])
+    .filter(p => p.can_view)
+    .map(p => p.permission_key);
+
   // Track open sections
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -499,15 +511,12 @@ export function AppSidebar() {
                   user?.user_type === 'manual_key_agent' ||
                   user?.user_type === 'agent';
   
-  // DEBUG: Log user info and isAgent result
-  if (typeof window !== 'undefined') {
-    console.log('[v0] AppSidebar user:', { 
-      role: user?.role, 
-      user_type: user?.user_type,
-      username: user?.username,
-      isAgent,
-      isAdmin,
-      isSuperAdmin
+  // DEBUG: Log role permissions
+  if (typeof window !== 'undefined' && isAgent) {
+    console.log('[v0] AppSidebar Agent permissions from DB:', { 
+      role: userRole, 
+      dbAllowedMenus,
+      isAgent
     });
   }
   const isMember = user?.role === 'member';
@@ -559,9 +568,20 @@ export function AppSidebar() {
     // Normalize href to key format (remove leading slash)
     const menuKey = href.startsWith('/') ? href.slice(1) : href;
     
-    // For agents: use getEffectiveAgentMenus() for strict menu control
+    // For agents: use DATABASE permissions (role_permissions table)
     if (isAgent) {
-      // Check if menu is in effective menus list
+      // If DB permissions loaded, use them
+      if (dbAllowedMenus.length > 0) {
+        const isAllowed = dbAllowedMenus.some(permKey => {
+          return menuKey === permKey || 
+                 menuKey.startsWith(permKey + '/') ||
+                 menuKey.startsWith(permKey + '-') ||
+                 href === '/' + permKey ||
+                 href.startsWith('/' + permKey + '/');
+        });
+        return isAllowed;
+      }
+      // Fallback to hardcoded list if DB not loaded
       const isAllowed = agentEffectiveMenus.some(m => {
         const normalizedMenu = m.replace(/^\//, '');
         return menuKey === normalizedMenu || 
@@ -592,19 +612,11 @@ export function AppSidebar() {
     // Super Admin only sections
     if (section.superAdminOnly && !isSuperAdmin) return false;
     
-    // === AGENT: Only show agentOnly sections ===
+    // === AGENT: Filter based on DATABASE permissions ===
     if (isAgent) {
-      // IMPORTANT: Agents should ONLY see agentOnly sections
-      // Block ALL non-agentOnly sections for agents
-      if (!section.agentOnly) {
-        console.log('[v0] Agent blocking section:', section.title, '(not agentOnly)');
-        return false;
-      }
-      
-      // For agentOnly sections, show if they have valid items
-      const hasValidItems = section.items.some(item => isMenuVisible(item.href));
-      console.log('[v0] Agent section:', section.title, 'hasValidItems:', hasValidItems);
-      return hasValidItems;
+      // Check if ANY item in this section is allowed by DB permissions
+      const hasAllowedItems = section.items.some(item => isMenuVisible(item.href));
+      return hasAllowedItems;
     }
     
     // === MEMBER: เห็นเฉพาะ memberVisible sections ===
