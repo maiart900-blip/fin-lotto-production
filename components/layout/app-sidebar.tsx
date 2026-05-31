@@ -497,11 +497,17 @@ export function AppSidebar() {
   
   // DEBUG: Log tier detection (remove after fixing)
   if (typeof window !== 'undefined' && user) {
-    console.log('[v0-sidebar] User role detection:', { 
-      role: user.role, 
-      user_type: user.user_type,
-      userTier,
-      dbAllowedMenusCount: tierPermissionsData?.permissions?.length || 0
+    const filteredMenus = (tierPermissionsData?.permissions || [])
+      .filter(p => p.tier === userTier && p.can_view);
+    console.log('[v0-sidebar] FULL DEBUG:', { 
+      'user.role': user.role, 
+      'user.user_type': user.user_type,
+      'userTier (calculated)': userTier,
+      'tierPermissionsData loaded': !!tierPermissionsData,
+      'total permissions in response': tierPermissionsData?.permissions?.length || 0,
+      'filtered for userTier': filteredMenus.length,
+      'filteredMenuIds': filteredMenus.map(p => p.menu_id),
+      'dbAllowedMenus': dbAllowedMenus,
     });
   }
 
