@@ -58,12 +58,12 @@ export default function AgentDashboard() {
   const agent = settlementData?.agent || {};
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'แดชบอร์ด', href: '/dashboard', active: true },
-    { icon: Ticket, label: 'รายการโพย', href: '/entries' },
-    { icon: Calculator, label: 'กำไร/ขาดทุน', href: '/profit' },
-    { icon: ArrowUpRight, label: 'ส่งยอด', href: '/settlement' },
-    { icon: Users, label: 'พนักงาน', href: '/staff' },
-    { icon: Settings, label: 'ตั้งค่า', href: '/settings' },
+    { icon: LayoutDashboard, label: 'แดชบอร์ด', href: '/agent/dashboard', active: true },
+    { icon: Ticket, label: 'รายการโพย', href: '/agent/entries' },
+    { icon: Calculator, label: 'กำไร/ขาดทุน', href: '/agent/profit' },
+    { icon: ArrowUpRight, label: 'ส่งยอด', href: '/agent/settlement' },
+    { icon: Users, label: 'พนักงาน', href: '/agent/staff' },
+    { icon: Settings, label: 'ตั้งค่า', href: '/agent/settings' },
   ];
 
   return (
