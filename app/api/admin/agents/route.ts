@@ -44,26 +44,32 @@ export async function GET(request: Request) {
     const isAgent = adminRole === 'agent' || adminRole === 'agent_key';
     let currentAgentId: string | null = null;
     
+    console.log('[v0] Agent API - checking user:', { adminId, adminRole, isAgent });
+    
     if (isAgent && adminId) {
-      // Find the agent record for this user
-      const { data: agentRecord } = await supabase
-        .from('agents')
-        .select('id')
-        .eq('code', authResult.user?.username || '')
+      // First try to find by user's source field (e.g., "agent_UUID")
+      const { data: userRecord } = await supabase
+        .from('users')
+        .select('source, username')
+        .eq('id', adminId)
         .maybeSingle();
       
-      if (agentRecord) {
-        currentAgentId = agentRecord.id;
-      } else {
-        // Try to find by user_id link
-        const { data: userAgentLink } = await supabase
-          .from('users')
-          .select('source')
-          .eq('id', adminId)
+      console.log('[v0] User record:', userRecord);
+      
+      if (userRecord?.source?.startsWith('agent_')) {
+        currentAgentId = userRecord.source.replace('agent_', '');
+        console.log('[v0] Found agent ID from user.source:', currentAgentId);
+      } else if (userRecord?.username) {
+        // Find the agent record by username/code
+        const { data: agentRecord } = await supabase
+          .from('agents')
+          .select('id')
+          .eq('code', userRecord.username)
           .maybeSingle();
         
-        if (userAgentLink?.source?.startsWith('agent_')) {
-          currentAgentId = userAgentLink.source.replace('agent_', '');
+        if (agentRecord) {
+          currentAgentId = agentRecord.id;
+          console.log('[v0] Found agent ID from code match:', currentAgentId);
         }
       }
     }
