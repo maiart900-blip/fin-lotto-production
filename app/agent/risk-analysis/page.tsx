@@ -20,20 +20,24 @@ import {
   Shield,
   RefreshCw,
 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
-const MOCK_AGENT_ID = '7cf23d72-858d-4395-9b94-67e7a7ca821f';
 
 export default function AgentRiskAnalysisPage() {
+  const { user } = useAuth();
   const [lotteryId, setLotteryId] = useState<string>('');
   const today = new Date().toISOString().split('T')[0];
+
+  // Agent ID from session
+  const agentId = user?.source?.replace('agent_', '') || user?.agent_id || null;
 
   // ดึงรายชื่อหวย
   const { data: lotteries } = useSWR('/api/lotteries', fetcher);
 
   // ดึงข้อมูลวิเคราะห์ความเสี่ยง
   const { data: riskData, isLoading, mutate } = useSWR(
-    lotteryId ? `/api/agent/risk-analysis?agent_id=${MOCK_AGENT_ID}&lottery_id=${lotteryId}&date=${today}` : null,
+    agentId && lotteryId ? `/api/agent/risk-analysis?agent_id=${agentId}&lottery_id=${lotteryId}&date=${today}` : null,
     fetcher
   );
 
