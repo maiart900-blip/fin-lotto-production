@@ -57,6 +57,8 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     // Check for main 'session' cookie (used by login flow)
     const mainSessionCookie = cookieStore.get('session')?.value;
     
+    console.log('[v0] Auth cookies:', { adminId: !!adminId, adminRole, customerId: !!customerId, sessionCookie: !!sessionCookie, mainSessionCookie: !!mainSessionCookie });
+    
     let userId: string | null = null;
     let userRole: UserRole = 'customer';
     
@@ -85,6 +87,8 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
       }
     }
     
+    console.log('[v0] Resolved auth:', { userId, userRole });
+    
     if (!userId) {
       return { authenticated: false, user: null, error: 'No session found' };
     }
@@ -92,13 +96,16 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     // Verify user exists and is active
     const supabase = await createClient();
     
-    // Check in users table first (for admin/super_admin)
-    if (userRole === 'super_admin' || userRole === 'admin') {
-      const { data: user } = await supabase
+    // Check in users table first (for admin/super_admin/owner/staff)
+    const adminRoles = ['super_admin', 'admin', 'owner', 'staff', 'master_admin'];
+    if (adminRoles.includes(userRole)) {
+      const { data: user, error: userError } = await supabase
         .from('users')
         .select('id, username, role, is_active')
         .eq('id', userId)
         .single();
+      
+      console.log('[v0] User lookup:', { found: !!user, error: userError?.message });
       
       if (user && user.is_active) {
         return {
