@@ -127,7 +127,8 @@ export function useAuth() {
     setStoredSession(responseData.user);
     setUser(responseData.user);
     
-    return responseData.user;
+    // Return user with redirectTo from API response
+    return { ...responseData.user, redirectTo: responseData.redirectTo };
   }, []);
 
   const logout = useCallback(() => {
