@@ -130,8 +130,6 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
         .eq('id', userId)
         .single();
       
-      console.log('[v0] Agent lookup:', { found: !!agent, role: agent?.role, status: agent?.status });
-      
       if (agent && agent.status === 'active') {
         return {
           authenticated: true,
