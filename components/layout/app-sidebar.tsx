@@ -494,22 +494,6 @@ export function AppSidebar() {
     return 'internal'; // default for staff/admin
   };
   const userTier = getUserTier();
-  
-  // DEBUG: Log tier detection (remove after fixing)
-  if (typeof window !== 'undefined' && user) {
-    const filteredMenus = (tierPermissionsData?.permissions || [])
-      .filter(p => p.tier === userTier && p.can_view);
-    console.log('[v0-sidebar] FULL DEBUG:', { 
-      'user.role': user.role, 
-      'user.user_type': user.user_type,
-      'userTier (calculated)': userTier,
-      'tierPermissionsData loaded': !!tierPermissionsData,
-      'total permissions in response': tierPermissionsData?.permissions?.length || 0,
-      'filtered for userTier': filteredMenus.length,
-      'filteredMenuIds': filteredMenus.map(p => p.menu_id),
-      'dbAllowedMenus': dbAllowedMenus,
-    });
-  }
 
   // Fetch tier permissions from database (includes all tiers)
   const { data: tierPermissionsData } = useSWR<{ 

@@ -94,6 +94,10 @@ export function useAuth() {
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
+    // Clear old session BEFORE login to ensure fresh state
+    setStoredSession(null);
+    setUser(null);
+    
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
