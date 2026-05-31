@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import bcrypt from 'bcryptjs';
 import * as OTPAuth from 'otpauth';
-import { requireAdmin } from '@/lib/api-auth';
+import { requireAuth } from '@/lib/api-auth';
+import { cookies } from 'next/headers';
 
 // 4-TIER AGENT HIERARCHY: Mother Web -> Master -> Agent -> Sub-Agent
 // ห้ามใช้ v1, v2 - ต้องใช้ชื่อระดับเต็มเท่านั้น
@@ -22,8 +23,8 @@ const AGENT_LEVELS = {
 // GET - ดึงรายชื่อเอเย่นต์จาก agents table
 export async function GET(request: Request) {
   try {
-    // Auth guard - require admin
-    const authResult = await requireAdmin();
+    // Auth guard - require authenticated user (admin or agent)
+    const authResult = await requireAuth();
     if (authResult instanceof NextResponse) {
       console.error('[v0] Agent GET auth failed');
       return authResult;
@@ -34,7 +35,40 @@ export async function GET(request: Request) {
     const level = searchParams.get('level');
     const systemType = searchParams.get('system_type');
     
-    console.log('[v0] Fetching agents with filters:', { level, systemType });
+    // Get current user info to filter by parent_id for agents
+    const cookieStore = await cookies();
+    const adminId = cookieStore.get('admin_id')?.value;
+    const adminRole = cookieStore.get('admin_role')?.value;
+    
+    // Check if user is an agent (not admin)
+    const isAgent = adminRole === 'agent' || adminRole === 'agent_key';
+    let currentAgentId: string | null = null;
+    
+    if (isAgent && adminId) {
+      // Find the agent record for this user
+      const { data: agentRecord } = await supabase
+        .from('agents')
+        .select('id')
+        .eq('code', authResult.user?.username || '')
+        .maybeSingle();
+      
+      if (agentRecord) {
+        currentAgentId = agentRecord.id;
+      } else {
+        // Try to find by user_id link
+        const { data: userAgentLink } = await supabase
+          .from('users')
+          .select('source')
+          .eq('id', adminId)
+          .maybeSingle();
+        
+        if (userAgentLink?.source?.startsWith('agent_')) {
+          currentAgentId = userAgentLink.source.replace('agent_', '');
+        }
+      }
+    }
+    
+    console.log('[v0] Fetching agents with filters:', { level, systemType, isAgent, currentAgentId });
     
     let query = supabase
       .from('agents')
@@ -61,6 +95,11 @@ export async function GET(request: Request) {
       `)
       .order('level', { ascending: false })
       .order('created_at', { ascending: false });
+    
+    // If user is an agent, only show their downline
+    if (isAgent && currentAgentId) {
+      query = query.eq('parent_agent_id', currentAgentId);
+    }
     
     if (level && level !== 'all') {
       query = query.eq('role', level);
