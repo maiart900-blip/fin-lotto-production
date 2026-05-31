@@ -378,9 +378,10 @@ export const AGENT_DEFAULT_MENUS = [
   // Results
   'results', '/results',
   
-  // Reports
+  // Reports (agent's own profit/loss)
   'reports', '/reports', '/agent-reports',
   'profit-loss', '/profit-loss', '/agent-profit-loss',
+  'agent-summary', '/agent-summary',
   
   // Finance (agent's own)
   'agent/commission', '/agent/commission',
@@ -389,8 +390,14 @@ export const AGENT_DEFAULT_MENUS = [
   'member/finance', '/member/finance',
   'member/slip-upload', '/member/slip-upload',
   
-  // Downline
+  // Downline management
   'agent-members', '/agent-members',
+  
+  // Agent system - สายงานเอเย่นต์ (manage sub-agents and staff)
+  'agent-system', '/agent-system',
+  'agent-system/agents', '/agent-system/agents', // จัดการเอเย่นต์
+  'agent-system/staff', '/agent-system/staff', // จัดการพนักงาน/ทีมงาน
+  'agent-system/commission', '/agent-system/commission', // คอมมิชชั่น
 ];
 
 // =====================================================
