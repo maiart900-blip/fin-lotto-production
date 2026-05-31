@@ -297,6 +297,15 @@ const agentBettingItems = [
   { id: 'agent-results', title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
+// === SUB-AGENT MENUS (พนักงานคีย์หวย) ===
+// เมนูเฉพาะระดับ (Manual Key) สำหรับ Sub-Agent - 4 เมนู
+const subAgentKeyItems = [
+  { id: 'sub-agent-key-daily', title: 'หน้าจอคีย์เลขหวยรายวัน', href: '/sub-agent/key-daily', icon: PenLine },
+  { id: 'sub-agent-key-history', title: 'ประวัติการคีย์วันนี้', href: '/sub-agent/key-history', icon: History },
+  { id: 'sub-agent-customer-list', title: 'รายชื่อลูกค้า', href: '/sub-agent/customers', icon: Users },
+  { id: 'sub-agent-results', title: 'ดูผลหวย', href: '/sub-agent/results', icon: Trophy },
+];
+
 // 12.2 สายงานเอเย่นต์ Manual (Manual Downline Management)
 const manualDownlineItems = [
   { id: 'manual-downline', title: 'โครงสร้างสายงาน', href: '/manual-downline', icon: GitBranch },
@@ -411,6 +420,7 @@ interface MenuSection {
   title: string;
   icon: React.ElementType;
   items: Array<{
+    id?: string;
     title: string;
     href: string;
     icon: React.ElementType;
@@ -421,6 +431,7 @@ interface MenuSection {
   superAdminOnly?: boolean;
   masterOnly?: boolean; // เฉพาะเว็บแม่เท่านั้น
   agentOnly?: boolean;
+  subAgentOnly?: boolean; // เฉพาะ Sub-Agent (พนักงานคีย์หวย)
   agentVisible?: boolean; // ถ้า true = agent เห็นได้ (เว็บแม่อนุญาต)
   memberVisible?: boolean; // ถ้า true = member เห็นได้
   staffVisible?: boolean; // ถ้า true = staff (พนักงาน) เห็นได้
@@ -456,6 +467,9 @@ const menuSections: MenuSection[] = [
   { title: 'ศูนย์การเงิน', icon: Wallet, items: agentOperationItems, defaultOpen: true, agentOnly: true },
   { title: 'ลูกค้าใต้สาย', icon: Users, items: agentDownlineItems, defaultOpen: false, agentOnly: true },
   { title: 'คีย์หวย', icon: Ticket, items: agentBettingItems, defaultOpen: false, agentOnly: true },
+  
+  // === SUB-AGENT MENUS (เฉพาะ Sub-Agent / พนักงานคีย์หวย) ===
+  { title: 'เมนูเฉพาะระดับ (Manual Key)', icon: Keyboard, items: subAgentKeyItems, defaultOpen: true, subAgentOnly: true },
 ];
 
 // HIDDEN MENUS (ยังไม่พร้อม - จะเปิดเมื่อพัฒนาเสร็จ):
@@ -642,8 +656,13 @@ export function AppSidebar() {
       return section.staffVisible === true;
     }
     
-    // === ADMIN / SUPER ADMIN: เห็นทุกเมนูยกเว้น agentOnly ===
+    // === ADMIN / SUPER ADMIN: เห็นทุกเมนูยกเว้น agentOnly และ subAgentOnly ===
     if (section.agentOnly && !isAgent) {
+      return false;
+    }
+    
+    // Sub-Agent only sections - hide from non-sub-agents
+    if (section.subAgentOnly && !isSubAgent) {
       return false;
     }
     
