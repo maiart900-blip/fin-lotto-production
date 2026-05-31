@@ -214,8 +214,10 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
 const ROLE_HIERARCHY: Record<UserRole, number> = {
   super_admin: 100,
   admin: 90,
+  master_agent: 60,  // Master agent
   agent: 50,
   agent_key: 50,  // Same level as agent
+  sub_agent: 45,  // Sub-agent (under agent)
   partner: 40,
   staff: 30,
   member: 20,
@@ -297,10 +299,10 @@ export async function requireSuperAdmin(): Promise<{ user: AuthenticatedUser } |
 }
 
 /**
- * API Auth Guard - require agent or higher
+ * API Auth Guard - require agent or higher (includes sub_agent, master_agent)
  */
 export async function requireAgentOrHigher(): Promise<{ user: AuthenticatedUser } | NextResponse> {
-  return requireRole(['super_admin', 'admin', 'agent', 'agent_key', 'partner']);
+  return requireRole(['super_admin', 'admin', 'agent', 'agent_key', 'sub_agent', 'master_agent', 'partner']);
 }
 
 /**
