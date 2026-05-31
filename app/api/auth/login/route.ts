@@ -176,15 +176,21 @@ export async function POST(request: Request) {
       }
       
       // Set auth cookies for server-side verification
-      const userType = getUserTypeFromRole(user.role);
+      // Use user_type from database if available, otherwise derive from role
+      const userType = user.user_type || getUserTypeFromRole(user.role);
       const sourceTable = getSourceTableFromRole(user.role);
       await setAuthCookies(user.id, user.role, userType, sourceTable);
+      
+      // Check if this is a Manual Key Agent
+      const isManualKeyAgent = user.user_type === 'manual_key_agent';
+      const agentTier = user.agent_tier || null;
       
       // Log successful login
       await auditLogger.logAuth(user.id, 'login', undefined, {
         username: user.username,
         role: user.role,
         user_type: userType,
+        agent_tier: agentTier,
       });
       
       // Build response with rate limit headers
@@ -197,12 +203,17 @@ export async function POST(request: Request) {
           displayName: user.display_name,
           role: user.role,
           user_type: userType,
+          agent_tier: agentTier,
           source_table: sourceTable,
           referralCode: user.referral_code,
           is_unlimited_credit: user.is_unlimited_credit || false,
           credit_balance: user.credit_balance || 0,
           branch_id: user.branch_id || null,
           branch: branchInfo,
+          // Agent-specific fields
+          enable_manual_key: isManualKeyAgent ? true : (user.enable_manual_key ?? false),
+          enable_auto: user.enable_auto ?? false,
+          system_type: isManualKeyAgent ? 'manual_key' : (user.system_type || 'auto'),
           // Permission fields
           visible_menus: permissionData?.visible_menus || user.visible_menus || [],
           hidden_menus: permissionData?.hidden_menus || [],
@@ -213,7 +224,7 @@ export async function POST(request: Request) {
           can_manage_members: permissionData?.can_manage_members || false,
           can_manage_finances: permissionData?.can_manage_finances || false,
         },
-        redirectTo: user.role === 'agent' ? '/agent-dashboard' : '/'
+        redirectTo: isManualKeyAgent ? '/agent-dashboard' : (user.role === 'agent' ? '/agent-dashboard' : '/')
       });
       
       return addRateLimitHeaders(response, rateLimitResult);
