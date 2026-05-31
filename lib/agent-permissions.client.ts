@@ -398,6 +398,10 @@ export const AGENT_DEFAULT_MENUS = [
   'agent-system/agents', '/agent-system/agents', // จัดการเอเย่นต์
   'agent-system/staff', '/agent-system/staff', // จัดการพนักงาน/ทีมงาน
   'agent-system/commission', '/agent-system/commission', // คอมมิชชั่น
+  
+  // Credit management (distribute credit to sub-agents)
+  'agent-credit', '/agent-credit', // กระจายเครดิต
+  'agent-credit-transfer', '/agent-credit-transfer',
 ];
 
 // =====================================================
