@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import type { UserType, SourceTable, DetailedRole } from '@/lib/identity';
 
-export type UserRole = 'super_admin' | 'admin' | 'agent' | 'agent_key' | 'partner' | 'staff' | 'member' | 'customer';
+export type UserRole = 'super_admin' | 'admin' | 'agent' | 'agent_key' | 'sub_agent' | 'master_agent' | 'partner' | 'staff' | 'member' | 'customer';
 
 export interface BranchInfo {
   id: string;
@@ -122,6 +122,13 @@ export function useAuth() {
     if (!res.ok) {
       throw new Error(responseData.error || 'เข้าสู่ระบบไม่สำเร็จ');
     }
+    
+    // DEBUG: Log the user data from login response
+    console.log('[v0] Login response user:', {
+      role: responseData.user?.role,
+      user_type: responseData.user?.user_type,
+      username: responseData.user?.username,
+    });
     
     // Store in localStorage and state
     setStoredSession(responseData.user);
