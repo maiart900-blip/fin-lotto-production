@@ -338,6 +338,7 @@ export async function POST(request: Request) {
       
       // Set auth cookies for server-side verification (agents use 'agent' user_type)
       const agentRole = (agent.role || 'agent') as DetailedRole;
+      console.log('[v0] Login API - agent data:', { code: agent.code, role: agent.role, agentRole });
       await setAuthCookies(agent.id, agentRole, 'agent', 'agents');
       
       return NextResponse.json({
