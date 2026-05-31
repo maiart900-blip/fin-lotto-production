@@ -292,7 +292,7 @@ const agentBettingItems = [
 // === SUB-AGENT MENUS (พนักงานคีย์หวย) ===
 // เมนูเฉพาะระดับ (Manual Key) สำหรับ Sub-Agent - 4 เมนู
 const subAgentKeyItems = [
-  { id: 'sub-agent-key-daily', title: 'หน้าจอคีย์เลขหวยรายวัน', href: '/sub-agent/key-daily', icon: PenLine },
+  { id: 'sub-agent-key-daily', title: 'หน้าจอคีย์���ลขหวยรายวัน', href: '/sub-agent/key-daily', icon: PenLine },
   { id: 'sub-agent-key-history', title: 'ประวัติการคีย์วันนี้', href: '/sub-agent/key-history', icon: History },
   { id: 'sub-agent-customer-list', title: 'รายชื่อลูกค้า', href: '/sub-agent/customers', icon: Users },
   { id: 'sub-agent-results', title: 'ดูผลหวย', href: '/sub-agent/results', icon: Trophy },
@@ -317,7 +317,7 @@ const autoSystemItems = [
 
 // 14. สายง������������เอเย่นต์ (รวม ออโต้ และ คีย์หวย)
 const agentSystemItems = [
-  { id: 'agent-system-manage', title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
+  { id: 'agent-system-manage', title: '���ัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
   { id: 'agent-system-members', title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
   { id: 'agent-system-commission', title: 'คอมมิชชั่น', href: '/agent-system/commission', icon: DollarSign },
   { id: 'agent-system-bank-settings', title: 'ตั้งค่าธนาคาร', href: '/agent-system/bank-settings', icon: Building2 },
@@ -494,6 +494,16 @@ export function AppSidebar() {
     return 'internal'; // default for staff/admin
   };
   const userTier = getUserTier();
+  
+  // DEBUG: Log tier detection (remove after fixing)
+  if (typeof window !== 'undefined' && user) {
+    console.log('[v0-sidebar] User role detection:', { 
+      role: user.role, 
+      user_type: user.user_type,
+      userTier,
+      dbAllowedMenusCount: tierPermissionsData?.permissions?.length || 0
+    });
+  }
 
   // Fetch tier permissions from database (includes all tiers)
   const { data: tierPermissionsData } = useSWR<{ 
