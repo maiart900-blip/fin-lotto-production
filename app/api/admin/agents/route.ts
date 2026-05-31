@@ -182,7 +182,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { 
       agent_level, 
-      upline_id, 
+      upline_id: requestedUplineId, 
       commission_rate, 
       enable_auto, 
       enable_manual_key, 
@@ -193,6 +193,48 @@ export async function POST(request: Request) {
       system_type,
       require_2fa = true, // Default บังคับ 2FA
     } = body;
+    
+    // Get current user info to auto-set upline_id for agents creating sub-agents
+    const cookieStore = await cookies();
+    const adminId = cookieStore.get('admin_id')?.value;
+    const adminRole = cookieStore.get('admin_role')?.value;
+    
+    // Check if current user is an agent (not admin)
+    const isCreatorAgent = adminRole === 'agent' || adminRole === 'agent_key';
+    let currentAgentId: string | null = null;
+    
+    if (isCreatorAgent && adminId) {
+      // Find the agent record for this user
+      const { data: userRecord } = await supabase
+        .from('users')
+        .select('source, username')
+        .eq('id', adminId)
+        .maybeSingle();
+      
+      if (userRecord?.source?.startsWith('agent_')) {
+        currentAgentId = userRecord.source.replace('agent_', '');
+      } else if (userRecord?.username) {
+        const { data: agentRecord } = await supabase
+          .from('agents')
+          .select('id')
+          .eq('code', userRecord.username)
+          .maybeSingle();
+        
+        if (agentRecord) {
+          currentAgentId = agentRecord.id;
+        }
+      }
+    }
+    
+    // Use currentAgentId as upline if agent is creating sub-agent and no upline specified
+    const upline_id = requestedUplineId || (isCreatorAgent ? currentAgentId : null);
+    
+    console.log('[v0] Creating agent - upline detection:', { 
+      requestedUplineId, 
+      isCreatorAgent, 
+      currentAgentId, 
+      finalUplineId: upline_id 
+    });
     
     // Validate required fields
     if (!name?.trim()) {
