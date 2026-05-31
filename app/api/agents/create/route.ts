@@ -161,6 +161,38 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Also create user in users table for login functionality
+    const agentTierMap: Record<string, string> = {
+      'master': 'master',
+      'agent': 'agent',
+      'sub_agent': 'sub_agent',
+      'agent_key': agentLevel === 1 ? 'master' : agentLevel === 2 ? 'agent' : 'sub_agent',
+    };
+    
+    const { error: userCreateError } = await supabase
+      .from('users')
+      .insert({
+        username: agentCode,
+        password: hashedPassword,
+        display_name: name,
+        phone: phone || null,
+        role: 'agent', // All agents have 'agent' role for login
+        user_type: 'manual_key_agent',
+        agent_tier: agentTierMap[level] || agentTierMap[role] || 'agent',
+        source_type: system_type,
+        source: `agent_${newAgent.id}`,
+        is_active: status === 'active',
+        hierarchy_level: agentLevel,
+        parent_id: parent_agent_id || null,
+        commission_rate: commission_rate,
+      });
+    
+    if (userCreateError) {
+      console.error('Create user for agent error:', userCreateError);
+      // Don't fail the whole operation, agent is already created
+      // Just log the error - agent can be linked to user later
+    }
+    
     // Return success response
     return NextResponse.json({
       success: true,
