@@ -124,6 +124,7 @@ interface PendingCounts {
 
 // 0. ลงเวลา (สำหรับแอดมิน)
 const attendanceItem = {
+  id: 'attendance',
   title: 'ลงเวลางาน',
   href: '/attendance',
   icon: Clock,
@@ -131,6 +132,7 @@ const attendanceItem = {
 
 // 1. Dashboard (ไม่มี submenu) - หน้า Dashboard คือ / (main page)
 const dashboardItem = {
+  id: 'dashboard',
   title: 'Dashboard',
   href: '/',
   icon: LayoutDashboard,
@@ -138,130 +140,130 @@ const dashboardItem = {
 
 // 2. ศูนย์ปฏิบัติการแอดมิน
 const operationItems = [
-  { title: 'คำขอเติมเงิน', href: '/topup-requests', icon: CreditCard, badgeKey: 'topupPending' as const },
-  { title: 'คำขอถอนเงิน', href: '/withdraw-requests', icon: ArrowDownToLine, badgeKey: 'withdrawPending' as const },
-  { title: 'จ่ายรางวัลลูกค้าคีย์', href: '/prize-payout', icon: Trophy },
-  { title: 'ปรับยอดเครดิต', href: '/credits', icon: Wallet },
-  { title: 'แจ้งปัญหาฝากเงิน', href: '/deposit-issues', icon: AlertTriangle, badgeKey: 'depositIssuesPending' as const },
-  { title: 'รายการรอตรวจสอบ', href: '/pending-review', icon: ClipboardCheck },
+  { id: 'topup-requests', title: 'คำขอเติมเงิน', href: '/topup-requests', icon: CreditCard, badgeKey: 'topupPending' as const },
+  { id: 'withdraw-requests', title: 'คำขอถอนเงิน', href: '/withdraw-requests', icon: ArrowDownToLine, badgeKey: 'withdrawPending' as const },
+  { id: 'prize-payout', title: 'จ่ายรางวัลลูกค้าคีย์', href: '/prize-payout', icon: Trophy },
+  { id: 'credits', title: 'ปรับยอดเครดิต', href: '/credits', icon: Wallet },
+  { id: 'deposit-issues', title: 'แจ้งปัญหาฝากเงิน', href: '/deposit-issues', icon: AlertTriangle, badgeKey: 'depositIssuesPending' as const },
+  { id: 'pending-review', title: 'รายการรอตรวจสอบ', href: '/pending-review', icon: ClipboardCheck },
 ];
 
 // 3. ลูกค้าแทงหวย (Customers - ไม่ใช่พนักงาน)
 const memberItems = [
-  { title: 'รายชื่อลูกค้าแทงหวย', href: '/customers', icon: Users },
-  { title: 'ประวัติลูกค้า', href: '/customer-history', icon: History },
-  { title: 'ธนาคารลูกค้า', href: '/customer-banks', icon: Landmark },
-  { title: 'สรุปลูกค้า', href: '/member-summary', icon: UsersRound },
+  { id: 'customers', title: 'รายชื่อลูกค้าแทงหวย', href: '/customers', icon: Users },
+  { id: 'customer-history', title: 'ประวัติลูกค้า', href: '/customer-history', icon: History },
+  { id: 'customer-banks', title: 'ธนาคารลูกค้า', href: '/customer-banks', icon: Landmark },
+  { id: 'member-summary', title: 'สรุปลูกค้า', href: '/member-summary', icon: UsersRound },
 ];
 
 // 4. ธุรกรรมการเงิน (แยกจากการเดิมพัน)
 const financeItems = [
-  { title: 'จัดการ Payment Gateway', href: '/payment-gateway', icon: CreditCard },
-  { title: 'จัดการกระเป๋าเงิน', href: '/wallet-manager', icon: Wallet },
-  { title: 'ตั้งค่าธนาคาร', href: '/bank-settings', icon: Landmark },
-  { title: 'บัญชีรับเงิน', href: '/payment-accounts', icon: QrCode },
-  { title: 'บัญชีถอนเงิน', href: '/withdraw-accounts', icon: ArrowDownToLine },
-  { title: 'SCB แม่มณี', href: '/scb-maemanee', icon: Landmark },
-  { title: 'ธุรกรรมการเงิน', href: '/finance/transactions', icon: Receipt },
-  { title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart },
+  { id: 'payment-gateway', title: 'จัดการ Payment Gateway', href: '/payment-gateway', icon: CreditCard },
+  { id: 'wallet-manager', title: 'จัดการกระเป๋าเงิน', href: '/wallet-manager', icon: Wallet },
+  { id: 'bank-settings', title: 'ตั้งค่าธนาคาร', href: '/bank-settings', icon: Landmark },
+  { id: 'payment-accounts', title: 'บัญชีรับเงิน', href: '/payment-accounts', icon: QrCode },
+  { id: 'withdraw-accounts', title: 'บัญชีถอนเงิน', href: '/withdraw-accounts', icon: ArrowDownToLine },
+  { id: 'scb-maemanee', title: 'SCB แม่มณี', href: '/scb-maemanee', icon: Landmark },
+  { id: 'finance-transactions', title: 'ธุรกรรมการเงิน', href: '/finance/transactions', icon: Receipt },
+  { id: 'finance-reports', title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart },
 ];
 
 // 4.5 ประวัติการเดิมพัน (แยกจากการเงิน)
 const bettingHistoryItems = [
-  { title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: Ticket },
-  { title: 'รายงานการเดิมพัน', href: '/betting/reports', icon: FileBarChart },
+  { id: 'betting-history', title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: Ticket },
+  { id: 'betting-reports', title: 'รายงานการเดิมพัน', href: '/betting/reports', icon: FileBarChart },
 ];
 
 // 5. หวย (รวมทุกอย่างที่เกี่ยวกับการคีย์หวยไว้ที่นี่)
 const lotteryItems = [
-  { title: 'คีย์หวย', href: '/admin/key', icon: PenLine },
-  { title: 'รายการทั้งหมด', href: '/entries', icon: List },
-  { title: 'จัดการหวย', href: '/lotteries', icon: Ticket },
-  { title: 'ผลหวย', href: '/results', icon: Trophy },
+  { id: 'admin-key', title: 'คีย์หวย', href: '/admin/key', icon: PenLine },
+  { id: 'entries', title: 'รายการทั้งหมด', href: '/entries', icon: List },
+  { id: 'lotteries', title: 'จัดการหวย', href: '/lotteries', icon: Ticket },
+  { id: 'results', title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
 // 6. โปรโมชั่น
 const promoItems = [
-  { title: 'จัดการโปรโมชั่น', href: '/promotions', icon: Sparkles },
-  { title: 'แนะนำลูกค้า', href: '/referrals', icon: Gift },
-  { title: 'ลิงก์แนะนำเพื่อน', href: '/affiliate', icon: Link2 },
-  { title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
+  { id: 'promotions', title: 'จัดการโปรโมชั่น', href: '/promotions', icon: Sparkles },
+  { id: 'referrals', title: 'แนะนำลูกค้า', href: '/referrals', icon: Gift },
+  { id: 'affiliate', title: 'ลิงก์แนะนำเพื่อน', href: '/affiliate', icon: Link2 },
+  { id: 'agent-system', title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
 ];
 
 // 7. การตลาด
 const marketingItems = [
-  { title: 'ยูสนำแทง', href: '/lead-users', icon: Crown },
-  { title: 'ลิงก์สมาชิก', href: '/member-links', icon: Link2 },
-  { title: 'การแจ้งเตือน', href: '/notifications', icon: Bell },
-  { title: 'คู่มือ/กติกา', href: '/content-pages', icon: FileText },
+  { id: 'lead-users', title: 'ยูสนำแทง', href: '/lead-users', icon: Crown },
+  { id: 'member-links', title: 'ลิงก์สมาชิก', href: '/member-links', icon: Link2 },
+  { id: 'notifications', title: 'การแจ้งเตือน', href: '/notifications', icon: Bell },
+  { id: 'content-pages', title: 'คู่มือ/กติกา', href: '/content-pages', icon: FileText },
 ];
 
 // 7.1 ศูนย์การตลาด (Marketing Center)
 const marketingCenterItems = [
-  { title: 'ยูสนำแทง', href: '/lead-users', icon: Crown },
-  { title: 'ลิงก์ทั้งหมด', href: '/marketing-center', icon: Link2 },
-  { title: 'แดชบอร์ดเอเย่นต์', href: '/marketing-center/agent', icon: UsersRound },
-  { title: 'หน้าหลักสมาชิก', href: '/marketing-center/member', icon: Users },
-  { title: 'หน้าข้อมูลพาร์ทเนอร์', href: '/marketing-center/partner', icon: Handshake },
-  { title: 'สร้าง QR Code', href: '/marketing-center/qr-generator', icon: QrCode },
-  { title: 'ลิงก์สมาชิก', href: '/member-links', icon: Link2 },
+  { id: 'marketing-lead-users', title: 'ยูสนำแทง', href: '/lead-users', icon: Crown },
+  { id: 'marketing-center', title: 'ลิงก์ทั้งหมด', href: '/marketing-center', icon: Link2 },
+  { id: 'marketing-agent', title: 'แดชบอร์ดเอเย่นต์', href: '/marketing-center/agent', icon: UsersRound },
+  { id: 'marketing-member', title: 'หน้าหลักสมาชิก', href: '/marketing-center/member', icon: Users },
+  { id: 'marketing-partner', title: 'หน้าข้อมูลพาร์ทเนอร์', href: '/marketing-center/partner', icon: Handshake },
+  { id: 'qr-generator', title: 'สร้าง QR Code', href: '/marketing-center/qr-generator', icon: QrCode },
+  { id: 'marketing-links', title: 'ลิงก์สมาชิก', href: '/member-links', icon: Link2 },
 ];
 
 // 7.5. เอเย่น / Partner (รวมเมนูที่ซ้ำซ้อนให้กระชับ)
 const agentPartnerItems = [
-  { title: 'รายชื่อเอเย่น', href: '/agents', icon: UsersRound },
-  { title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
-  { title: 'สมาชิกใต้สาย', href: '/agent-members', icon: Users },
-  { title: 'คอมมิชชั่น', href: '/agent-commissions', icon: DollarSign },
-  { title: 'รายงาน', href: '/agent-reports', icon: BarChart3 },
-  { title: 'โยกย้ายลูกค้า', href: '/agent-transfer', icon: ArrowUpDown },
+  { id: 'agents', title: 'รายชื่อเอเย่น', href: '/agents', icon: UsersRound },
+  { id: 'agent-system', title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
+  { id: 'agent-members', title: 'สมาชิกใต้สาย', href: '/agent-members', icon: Users },
+  { id: 'agent-commissions', title: 'คอมมิชชั่น', href: '/agent-commissions', icon: DollarSign },
+  { id: 'agent-reports', title: 'รายงาน', href: '/agent-reports', icon: BarChart3 },
+  { id: 'agent-transfer', title: 'โยกย้ายลูกค้า', href: '/agent-transfer', icon: ArrowUpDown },
 ];
 
 // 8. รายงาน
 const reportItems = [
-  { title: 'Omni-Channel', href: '/reports/omni-channel', icon: Globe },
-  { title: 'รายงานย้อนหลัง', href: '/reports/daily-closing', icon: History },
-  { title: 'KPI Dashboard', href: '/kpi-dashboard', icon: Target },
-  { title: 'วิเคราะห์ยอดเลข', href: '/analysis', icon: BarChart3 },
-  { title: 'กำไร/ขาดทุน', href: '/profit-loss', icon: PieChart },
-  { title: 'รายงาน', href: '/reports', icon: FileDown },
+  { id: 'omni-channel', title: 'Omni-Channel', href: '/reports/omni-channel', icon: Globe },
+  { id: 'daily-closing', title: 'รายงานย้อนหลัง', href: '/reports/daily-closing', icon: History },
+  { id: 'kpi-dashboard', title: 'KPI Dashboard', href: '/kpi-dashboard', icon: Target },
+  { id: 'analysis', title: 'วิเคราะห์ยอดเลข', href: '/analysis', icon: BarChart3 },
+  { id: 'profit-loss', title: 'กำไร/ขาดทุน', href: '/profit-loss', icon: PieChart },
+  { id: 'reports', title: 'รายงาน', href: '/reports', icon: FileDown },
 ];
 
 // 9. ตั้งค่าเว็บ
 const webSettingsItems = [
-  { title: 'ตั้งค่าธีม', href: '/web-theme', icon: Palette },
-  { title: 'จัดการรูปภาพ', href: '/manage-images', icon: Image },
-  { title: 'ตั้งค่าหน้าเว็บ', href: '/desktop-settings', icon: MonitorSmartphone },
-  { title: 'ตั้งค่าทั่วไป', href: '/settings', icon: Settings },
+  { id: 'web-theme', title: 'ตั้งค่าธีม', href: '/web-theme', icon: Palette },
+  { id: 'manage-images', title: 'จัดการรูปภาพ', href: '/manage-images', icon: Image },
+  { id: 'desktop-settings', title: 'ตั้งค่าหน้าเว็บ', href: '/desktop-settings', icon: MonitorSmartphone },
+  { id: 'settings', title: 'ตั้งค่าทั่วไป', href: '/settings', icon: Settings },
 ];
 
 // 10. ความปลอดภัย (Super Admin)
 const securityItems = [
-  { title: 'จัดการผู้ใช้', href: '/users', icon: UsersRound },
-  { title: 'สิทธิ์การใช้งาน', href: '/roles-permissions', icon: Shield },
-  { title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
-  { title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
-  { title: 'Security Dashboard', href: '/security-dashboard', icon: ShieldAlert },
-  { title: 'ยืนยันตัวตน 2 ชั้น (2FA)', href: '/security/2fa', icon: Smartphone },
-  { title: 'ประวัติการใช้งาน', href: '/audit-logs', icon: History },
-  { title: 'สำรองข้อมูล', href: '/backup', icon: Database },
-  { title: 'Health Check', href: '/health-check', icon: Activity },
+  { id: 'users', title: 'จัดการผู้ใช้', href: '/users', icon: UsersRound },
+  { id: 'roles-permissions', title: 'สิทธิ์การใช้งาน', href: '/roles-permissions', icon: Shield },
+  { id: 'admin-attendance-report', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
+  { id: 'payroll', title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
+  { id: 'security-dashboard', title: 'Security Dashboard', href: '/security-dashboard', icon: ShieldAlert },
+  { id: '2fa', title: 'ยืนยันตัวตน 2 ชั้น (2FA)', href: '/security/2fa', icon: Smartphone },
+  { id: 'audit-logs', title: 'ประวัติการใช้งาน', href: '/audit-logs', icon: History },
+  { id: 'backup', title: 'สำรองข้อมูล', href: '/backup', icon: Database },
+  { id: 'health-check', title: 'Health Check', href: '/health-check', icon: Activity },
 ];
 
 // 11. เครือข่าย (Super Admin)
 const networkItems = [
-  { title: 'เครดิตแม่', href: '/master-credit', icon: Infinity },
-  { title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
-  { title: 'หุ้นส่วน', href: '/partners', icon: Handshake },
+  { id: 'master-credit', title: 'เครดิตแม่', href: '/master-credit', icon: Infinity },
+  { id: 'network-agent-system', title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
+  { id: 'partners', title: 'หุ้นส่วน', href: '/partners', icon: Handshake },
 ];
 
 // 12. ระบบคีย์หวย (Manual Key)
 const manualKeyItems = [
-  { title: 'ภาพรวมคีย์หวย', href: '/manual-key', icon: Keyboard },
-  { title: 'คีย์โพย', href: '/admin/key', icon: PenLine },
-  { title: 'รายการคีย์หวย', href: '/manual-key/entries', icon: List },
-  { title: 'ลูกค้าคีย์หวย', href: '/manual-key/customers', icon: Users },
-  { title: 'ตั้งค่าเรท', href: '/manual-key/rates', icon: DollarSign },
+  { id: 'manual-key', title: 'ภาพรวมคีย์หวย', href: '/manual-key', icon: Keyboard },
+  { id: 'manual-key-entry', title: 'คีย์โพย', href: '/admin/key', icon: PenLine },
+  { id: 'manual-key-entries', title: 'รายการคีย์หวย', href: '/manual-key/entries', icon: List },
+  { id: 'manual-key-customers', title: 'ลูกค้าคีย์หวย', href: '/manual-key/customers', icon: Users },
+  { id: 'manual-key-rates', title: 'ตั้งค่าเรท', href: '/manual-key/rates', icon: DollarSign },
 ];
 
 // 12.1 Agent Terminal (รวมเข้าไปใน หวย แล้ว - ใช้ /entry)
@@ -270,105 +272,106 @@ const manualKeyItems = [
 // === AGENT DASHBOARD MENUS (แยกจาก Admin) ===
 // เมนูสำหรับ Agent โดยเฉพาะ - ไม่เห็นข้อมูลเว็บแม่
 const agentDashboardItem = {
+  id: 'agent-dashboard',
   title: 'Dashboard เอเย่นต์',
   href: '/agent-dashboard',
   icon: LayoutDashboard,
 };
 
 const agentOperationItems = [
-  { title: 'ศูนย์การเงิน', href: '/member/slip-upload', icon: Upload },
-  { title: 'สรุปรายได้', href: '/member/summary', icon: DollarSign },
-  { title: 'ประวัติธุรกรรม', href: '/member/finance', icon: Receipt },
+  { id: 'agent-slip-upload', title: 'ศูนย์การเงิน', href: '/member/slip-upload', icon: Upload },
+  { id: 'agent-summary', title: 'สรุปรายได้', href: '/member/summary', icon: DollarSign },
+  { id: 'agent-finance', title: 'ประวัติธุรกรรม', href: '/member/finance', icon: Receipt },
 ];
 
 const agentDownlineItems = [
-  { title: 'ลูกค้าใต้สาย', href: '/agent-members', icon: Users },
-  { title: 'คอมมิชชั่น', href: '/agent/commission', icon: DollarSign },
-  { title: 'รายงานแพ้ชนะ', href: '/agent-profit-loss', icon: PieChart },
-  { title: 'ถอนคอมมิชชั่น', href: '/agent-withdraw-history', icon: ArrowDownToLine },
+  { id: 'agent-members', title: 'ลูกค้าใต้สาย', href: '/agent-members', icon: Users },
+  { id: 'agent-commission', title: 'คอมมิชชั่น', href: '/agent/commission', icon: DollarSign },
+  { id: 'agent-profit-loss', title: 'รายงานแพ้ชนะ', href: '/agent-profit-loss', icon: PieChart },
+  { id: 'agent-withdraw-history', title: 'ถอนคอมมิชชั่น', href: '/agent-withdraw-history', icon: ArrowDownToLine },
 ];
 
 const agentBettingItems = [
-  { title: 'คีย์โพย', href: '/agent-terminal/betting', icon: PenLine },
-  { title: 'รายการโพย', href: '/entries', icon: List },
-  { title: 'ผลหวย', href: '/results', icon: Trophy },
+  { id: 'agent-betting', title: 'คีย์โพย', href: '/agent-terminal/betting', icon: PenLine },
+  { id: 'agent-entries', title: 'รายการโพย', href: '/entries', icon: List },
+  { id: 'agent-results', title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
 // 12.2 สายงานเอเย่นต์ Manual (Manual Downline Management)
 const manualDownlineItems = [
-  { title: 'โครงสร้างสายงาน', href: '/manual-downline', icon: GitBranch },
-  { title: 'จัดการเครดิต', href: '/manual-downline/credit', icon: CreditCard },
-  { title: 'ตั้งค่า PT/คอม', href: '/manual-downline/commission', icon: Percent },
-  { title: 'รายชื่อลูกค้า', href: '/manual-downline/members', icon: Users },
-  { title: 'รายงานแพ้ชนะ', href: '/manual-downline/report', icon: BarChart3 },
+  { id: 'manual-downline', title: 'โครงสร้างสายงาน', href: '/manual-downline', icon: GitBranch },
+  { id: 'manual-downline-credit', title: 'จัดการเครดิต', href: '/manual-downline/credit', icon: CreditCard },
+  { id: 'manual-downline-commission', title: 'ตั้งค่า PT/คอม', href: '/manual-downline/commission', icon: Percent },
+  { id: 'manual-downline-members', title: 'รายชื่อลูกค้า', href: '/manual-downline/members', icon: Users },
+  { id: 'manual-downline-report', title: 'รายงานแพ้ชนะ', href: '/manual-downline/report', icon: BarChart3 },
 ];
 
 // 13. ระบบออโต้ (Auto)
 const autoSystemItems = [
-  { title: 'ภาพรวมออโต้', href: '/auto-system', icon: Zap },
-  { title: 'รายการออโต้', href: '/auto-system/entries', icon: List },
-  { title: 'ลูกค้าออโต้', href: '/auto-system/customers', icon: Users },
-  { title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings },
+  { id: 'auto-system', title: 'ภาพรวมออโต้', href: '/auto-system', icon: Zap },
+  { id: 'auto-system-entries', title: 'รายการออโต้', href: '/auto-system/entries', icon: List },
+  { id: 'auto-system-customers', title: 'ลูกค้าออโต้', href: '/auto-system/customers', icon: Users },
+  { id: 'auto-system-settings', title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings },
 ];
 
 // 14. สายงานเอเย่นต์ (รวม ออโต้ และ คีย์หวย)
 const agentSystemItems = [
-  { title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
-  { title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
-  { title: 'คอมมิชชั่น', href: '/agent-system/commission', icon: DollarSign },
-  { title: 'ตั้งค่าธนาคาร', href: '/agent-system/bank-settings', icon: Building2 },
-  { title: 'ตั้งค่าเว็บลูก', href: '/agent-system/site-settings', icon: Settings },
-  { title: 'ส่งยอดเข้าเว็บกลาง', href: '/agent-system/settlement', icon: Send },
-  { title: 'รายงาน', href: '/agent-system/report', icon: BarChart3 },
+  { id: 'agent-system-manage', title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
+  { id: 'agent-system-members', title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
+  { id: 'agent-system-commission', title: 'คอมมิชชั่น', href: '/agent-system/commission', icon: DollarSign },
+  { id: 'agent-system-bank-settings', title: 'ตั้งค่าธนาคาร', href: '/agent-system/bank-settings', icon: Building2 },
+  { id: 'agent-system-site-settings', title: 'ตั้งค่าเว็บลูก', href: '/agent-system/site-settings', icon: Settings },
+  { id: 'agent-system-settlement', title: 'ส่งยอดเข้าเว็บกลาง', href: '/agent-system/settlement', icon: Send },
+  { id: 'agent-system-report', title: 'รายงาน', href: '/agent-system/report', icon: BarChart3 },
 ];
 
 // 16. การตลาดคีย์หวย
 const manualKeyMarketingItems = [
-  { title: 'ภาพรวม', href: '/manual-key-marketing', icon: Target },
-  { title: 'แคมเปญ', href: '/manual-key-marketing/campaigns', icon: Megaphone },
-  { title: 'ลิงก์สมัคร', href: '/manual-key-marketing/links', icon: Link2 },
-  { title: 'รายงาน', href: '/manual-key-marketing/report', icon: BarChart3 },
+  { id: 'manual-key-marketing', title: 'ภาพรวม', href: '/manual-key-marketing', icon: Target },
+  { id: 'manual-key-marketing-campaigns', title: 'แคมเปญ', href: '/manual-key-marketing/campaigns', icon: Megaphone },
+  { id: 'manual-key-marketing-links', title: 'ลิงก์สมัคร', href: '/manual-key-marketing/links', icon: Link2 },
+  { id: 'manual-key-marketing-report', title: 'รายงาน', href: '/manual-key-marketing/report', icon: BarChart3 },
 ];
 
 // 17. การตลาดออโต้
 const autoMarketingItems = [
-  { title: 'ภาพรวม', href: '/auto-marketing', icon: Target },
-  { title: 'แคมเปญ', href: '/auto-marketing/campaigns', icon: Megaphone },
-  { title: 'ลิงก์สมัคร', href: '/auto-marketing/links', icon: Link2 },
-  { title: 'รายงาน', href: '/auto-marketing/report', icon: BarChart3 },
+  { id: 'auto-marketing', title: 'ภาพรวม', href: '/auto-marketing', icon: Target },
+  { id: 'auto-marketing-campaigns', title: 'แคมเปญ', href: '/auto-marketing/campaigns', icon: Megaphone },
+  { id: 'auto-marketing-links', title: 'ลิงก์สมัคร', href: '/auto-marketing/links', icon: Link2 },
+  { id: 'auto-marketing-report', title: 'รายงาน', href: '/auto-marketing/report', icon: BarChart3 },
 ];
 
 // 18. หุ้นลม / Credit Line
 const creditLineItems = [
-  { title: 'ภาพรวม Credit Line', href: '/credit-line', icon: Scale },
-  { title: 'จัดการหุ้นลม', href: '/credit-line/manage', icon: Coins },
-  { title: 'ประวัติ', href: '/credit-line/history', icon: History },
-  { title: 'ตั้งค่า', href: '/credit-line/settings', icon: Settings },
+  { id: 'credit-line', title: 'ภาพรวม Credit Line', href: '/credit-line', icon: Scale },
+  { id: 'credit-line-manage', title: 'จัดการหุ้นลม', href: '/credit-line/manage', icon: Coins },
+  { id: 'credit-line-history', title: 'ประวัติ', href: '/credit-line/history', icon: History },
+  { id: 'credit-line-settings', title: 'ตั้งค่า', href: '/credit-line/settings', icon: Settings },
 ];
 
 // 19. รายงานเปรียบเทียบ
 const comparisonReportItems = [
-  { title: 'เปรียบเทียบ คีย์หวย vs ออโต้', href: '/comparison-report', icon: FileBarChart },
-  { title: 'รายงานรายวัน', href: '/comparison-report/daily', icon: BarChart3 },
-  { title: 'รายงานรายเดือน', href: '/comparison-report/monthly', icon: PieChart },
+  { id: 'comparison-report', title: 'เปรียบเทียบ คีย์หวย vs ออโต้', href: '/comparison-report', icon: FileBarChart },
+  { id: 'comparison-report-daily', title: 'รายงานรายวัน', href: '/comparison-report/daily', icon: BarChart3 },
+  { id: 'comparison-report-monthly', title: 'รายงานรายเดือน', href: '/comparison-report/monthly', icon: PieChart },
 ];
 
 // 19.3 ศูนย์แอดมิน (สำหรับ member/พนักงาน)
   const memberAdminItems = [
-  { title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
-  { title: 'การเ����ิน', href: '/member/finance', icon: Wallet },
-  { title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
+  { id: 'member-summary', title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
+  { id: 'member-finance', title: 'การเงิน', href: '/member/finance', icon: Wallet },
+  { id: 'member-slip-upload', title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
   ];
 
 // 19.5 จัดการพนักงาน/แอดมิน (เว็บแม่และเอเย่นต์ดูได้)
 const staffManagementItems = [
-  { title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
-  { title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck },
-  { title: 'Staff Performance', href: '/staff-performance', icon: TrendingUp },
-  { title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
-  { title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings },
-  { title: 'รายงานโอที', href: '/payroll/ot-report', icon: Clock },
-  { title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3 },
+  { id: 'admin-attendance-report', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
+  { id: 'admin-performance', title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck },
+  { id: 'staff-performance', title: 'Staff Performance', href: '/staff-performance', icon: TrendingUp },
+  { id: 'payroll', title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet },
+  { id: 'payroll-settings', title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings },
+  { id: 'ot-report', title: 'รายงานโอที', href: '/payroll/ot-report', icon: Clock },
+  { id: 'admin-sales-report', title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3 },
 ];
 
 // 20. Super Admin - เจ้าของระบบ (เว็บแม่เท่านั้น)
@@ -456,7 +459,7 @@ const menuSections: MenuSection[] = [
 ];
 
 // HIDDEN MENUS (ยังไม่พร้อม - จะเปิดเมื่อพัฒนาเสร็จ):
-// - ระบบคีย์หว�� (manualKeyItems)
+// - ระบบคีย์หว��� (manualKeyItems)
 // - สายงานคีย์หวย (manualKeyAgentItems)
 // - การตลาดคีย์หวย (manualKeyMarketingItems)
 // - การตลาดออโต้ (autoMarketingItems)
@@ -474,17 +477,30 @@ export function AppSidebar() {
     { refreshInterval: 5000 }
   );
 
-  // Fetch role permissions from database for the current user's role
-  const userRole = user?.role || 'agent';
-  const { data: rolePermissions } = useSWR<Array<{ permission_key: string; can_view: boolean }>>(
-    user ? `/api/role-permissions?role=${userRole}` : null,
+  // Determine user's tier for permissions
+  const getUserTier = () => {
+    if (user?.role === 'agent' || user?.role === 'agent_key' || 
+        user?.role === 'partner' || user?.user_type === 'manual_key_agent') {
+      return 'agent';
+    }
+    if (user?.role === 'sub_agent') return 'sub_agent';
+    if (user?.role === 'master_agent') return 'master';
+    return 'internal'; // default for staff/admin
+  };
+  const userTier = getUserTier();
+
+  // Fetch tier permissions from database (includes all tiers)
+  const { data: tierPermissionsData } = useSWR<{ 
+    permissions: Array<{ tier: string; menu_id: string; can_view: boolean }> 
+  }>(
+    user ? '/api/tier-permissions' : null,
     fetcher
   );
 
-  // Get allowed menu keys from database permissions
-  const dbAllowedMenus = (rolePermissions || [])
-    .filter(p => p.can_view)
-    .map(p => p.permission_key);
+  // Get allowed menu_ids for current user's tier
+  const dbAllowedMenus = (tierPermissionsData?.permissions || [])
+    .filter(p => p.tier === userTier && p.can_view)
+    .map(p => p.menu_id);
 
   // Track open sections
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
@@ -505,20 +521,9 @@ export function AppSidebar() {
   };
 
   // Check if user is agent (includes agent_key, partner, and manual_key_agent)
-  const isAgent = user?.role === 'agent' || 
-                  user?.role === 'agent_key' || 
-                  user?.role === 'partner' || 
-                  user?.user_type === 'manual_key_agent' ||
-                  user?.user_type === 'agent';
-  
-  // DEBUG: Log role permissions
-  if (typeof window !== 'undefined' && isAgent) {
-    console.log('[v0] AppSidebar Agent permissions from DB:', { 
-      role: userRole, 
-      dbAllowedMenus,
-      isAgent
-    });
-  }
+  const isAgent = userTier === 'agent';
+  const isSubAgent = userTier === 'sub_agent';
+  const isMasterAgent = userTier === 'master';
   const isMember = user?.role === 'member';
   const isStaff = user?.role === 'staff';
   
@@ -562,16 +567,20 @@ export function AppSidebar() {
     );
   };
 
-  // Helper to check if a menu item is visible based on user's visible_menus
-  // Handles both href format ("/dashboard") and key format ("dashboard")
-  const isMenuVisible = (href: string): boolean => {
-    // Normalize href to key format (remove leading slash)
-    const menuKey = href.startsWith('/') ? href.slice(1) : href;
-    
-    // For agents: use DATABASE permissions (role_permissions table)
-    if (isAgent) {
+  // Helper to check if a menu item is visible based on user's permissions
+  // For agents: uses menu_id from tier_permissions table
+  // For others: uses href matching
+  const isMenuVisible = (itemId: string | undefined, href: string): boolean => {
+    // For agents: match by item.id against tier_permissions menu_id
+    if (isAgent || isSubAgent || isMasterAgent) {
       // If DB permissions loaded, use them
       if (dbAllowedMenus.length > 0) {
+        // Primary: match by item.id (recommended)
+        if (itemId && dbAllowedMenus.includes(itemId)) {
+          return true;
+        }
+        // Fallback: try to match by href patterns
+        const menuKey = href.startsWith('/') ? href.slice(1) : href;
         const isAllowed = dbAllowedMenus.some(permKey => {
           return menuKey === permKey || 
                  menuKey.startsWith(permKey + '/') ||
@@ -582,15 +591,19 @@ export function AppSidebar() {
         return isAllowed;
       }
       // Fallback to hardcoded list if DB not loaded
+      const normalizedHref = href.startsWith('/') ? href.slice(1) : href;
       const isAllowed = agentEffectiveMenus.some(m => {
         const normalizedMenu = m.replace(/^\//, '');
-        return menuKey === normalizedMenu || 
-               menuKey.startsWith(normalizedMenu + '/') ||
+        return normalizedHref === normalizedMenu || 
+               normalizedHref.startsWith(normalizedMenu + '/') ||
                href === m ||
                href.startsWith(m + '/');
       });
       return isAllowed;
     }
+    
+    // For non-agents: use original href-based logic
+    const menuKey = href.startsWith('/') ? href.slice(1) : href;
     
     // Check if menu is in hidden list
     if (userHiddenMenus.includes(href) || userHiddenMenus.includes(menuKey)) {
@@ -612,10 +625,10 @@ export function AppSidebar() {
     // Super Admin only sections
     if (section.superAdminOnly && !isSuperAdmin) return false;
     
-    // === AGENT: Filter based on DATABASE permissions ===
-    if (isAgent) {
+    // === AGENT/SUB-AGENT/MASTER: Filter based on DATABASE permissions ===
+    if (isAgent || isSubAgent || isMasterAgent) {
       // Check if ANY item in this section is allowed by DB permissions
-      const hasAllowedItems = section.items.some(item => isMenuVisible(item.href));
+      const hasAllowedItems = section.items.some(item => isMenuVisible(item.id, item.href));
       return hasAllowedItems;
     }
     
@@ -642,8 +655,8 @@ export function AppSidebar() {
     return true;
   }).map(section => {
     // Filter items within each section based on permissions
-    if (isAgent || (hasMenuRestrictions && !isSuperAdmin && !isAdmin)) {
-      const filteredItems = section.items.filter(item => isMenuVisible(item.href));
+    if (isAgent || isSubAgent || isMasterAgent || (hasMenuRestrictions && !isSuperAdmin && !isAdmin)) {
+      const filteredItems = section.items.filter(item => isMenuVisible(item.id, item.href));
       return { ...section, items: filteredItems };
     }
     return section;
