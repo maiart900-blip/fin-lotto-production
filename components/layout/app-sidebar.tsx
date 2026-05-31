@@ -293,7 +293,7 @@ const agentDownlineItems = [
 
 const agentBettingItems = [
   { id: 'agent-betting', title: 'คีย์โพย', href: '/agent-terminal/betting', icon: PenLine },
-  { id: 'agent-entries', title: 'รายการโพย', href: '/entries', icon: List },
+  { id: 'agent-entries', title: 'รายการ��พย', href: '/entries', icon: List },
   { id: 'agent-results', title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
@@ -323,7 +323,7 @@ const autoSystemItems = [
   { id: 'auto-system-settings', title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings },
 ];
 
-// 14. สายงา�������เอเย่นต์ (รวม ออโต้ และ คีย์หวย)
+// 14. สายงา���������เอเย่นต์ (รวม ออโต้ และ คีย์หวย)
 const agentSystemItems = [
   { id: 'agent-system-manage', title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
   { id: 'agent-system-members', title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
@@ -542,52 +542,18 @@ export function AppSidebar() {
   const isStaff = user?.role === 'staff';
   
   // Get user's visible menus from session (loaded at login)
-  // For agents, this comes from agents.visible_menus column or agent_permissions table
+  // For non-agents, this comes from users.visible_menus column
   const userVisibleMenus = user?.visible_menus || [];
   const userHiddenMenus = user?.hidden_menus || [];
   const hasMenuRestrictions = userVisibleMenus.length > 0;
-  
-  // Agent-specific feature flags
-  const agentEnableManualKey = (user as any)?.enable_manual_key !== false; // Default true
-  const agentEnableAuto = (user as any)?.enable_auto === true;
-  const agentSystemType = (user as any)?.system_type || 'manual_key';
-  
-  // Build agent session for permission check
-  const agentSession: AgentSession | null = isAgent ? {
-    id: user?.id || '',
-    user_type: 'agent',
-    role: user?.role || 'agent',
-    source_table: 'agents',
-    visible_menus: userVisibleMenus,
-    hidden_menus: userHiddenMenus,
-    enable_manual_key: agentEnableManualKey,
-    enable_auto: agentEnableAuto,
-    system_type: agentSystemType as any,
-    agent_tier: (user as any)?.agent_tier || 'agent',
-  } : null;
-  
-  // Get effective menus for agent (only menus they should see)
-  const agentEffectiveMenus = agentSession ? getEffectiveAgentMenus(agentSession) : [];
-
-  // Helper to check if menu is platform-only (should be blocked for agents)
-  const isPlatformOnlyMenu = (href: string): boolean => {
-    const normalizedHref = href.startsWith('/') ? href : '/' + href;
-    const menuKey = href.startsWith('/') ? href.slice(1) : href;
-    return PLATFORM_ONLY_MENUS.some(m => 
-      normalizedHref === m || 
-      normalizedHref.startsWith(m + '/') || 
-      menuKey === m ||
-      menuKey.startsWith(m + '/')
-    );
-  };
 
   // Helper to check if a menu item is visible based on user's permissions
-  // For agents: uses menu_id from tier_permissions table
+  // For agents: uses menu_id from tier_permissions table ONLY (no fallback)
   // For others: uses href matching
   const isMenuVisible = (itemId: string | undefined, href: string): boolean => {
     // For agents: match by item.id against tier_permissions menu_id
     if (isAgent || isSubAgent || isMasterAgent) {
-      // If DB permissions loaded, use them
+      // Use DB permissions ONLY - no hardcoded fallback
       if (dbAllowedMenus.length > 0) {
         // Primary: match by item.id (recommended)
         if (itemId && dbAllowedMenus.includes(itemId)) {
@@ -604,16 +570,8 @@ export function AppSidebar() {
         });
         return isAllowed;
       }
-      // Fallback to hardcoded list if DB not loaded
-      const normalizedHref = href.startsWith('/') ? href.slice(1) : href;
-      const isAllowed = agentEffectiveMenus.some(m => {
-        const normalizedMenu = m.replace(/^\//, '');
-        return normalizedHref === normalizedMenu || 
-               normalizedHref.startsWith(normalizedMenu + '/') ||
-               href === m ||
-               href.startsWith(m + '/');
-      });
-      return isAllowed;
+      // If DB permissions not loaded, only show Dashboard (href === '/')
+      return href === '/';
     }
     
     // For non-agents: use original href-based logic
