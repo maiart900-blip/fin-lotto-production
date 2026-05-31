@@ -1,47 +1,99 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { requireAdmin } from '@/lib/api-auth';
+import { cookies } from 'next/headers';
 
 /**
  * Users API - ADMIN ONLY
  * Manages system admin users (not customers)
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    console.log('[v0] Users GET: Starting...');
-    
-    // Auth guard - require admin for viewing users
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) {
-      console.log('[v0] Users GET: Auth failed, status:', authResult.status);
-      // Return the actual auth error instead of empty array
-      return authResult;
-    }
-    
-    console.log('[v0] Users GET: Auth passed, user:', authResult?.user?.username);
-
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username, display_name, role, user_type, agent_tier, credit_balance, is_unlimited_credit, parent_id, hierarchy_level, source_type, created_at')
-      .order('hierarchy_level', { ascending: true })
-      .order('created_at', { ascending: false });
+    const cookieStore = await cookies();
     
-    if (error) {
-      console.error('[v0] Users GET db error:', error.message, error.code);
-      return NextResponse.json(
-        { error: 'Database error: ' + error.message },
-        { status: 500 }
-      );
+    // Get session from multiple possible sources
+    const adminId = cookieStore.get('admin_id')?.value;
+    const sessionCookie = cookieStore.get('session')?.value;
+    const lotterySession = cookieStore.get('lottery_session')?.value;
+    
+    console.log('[v0] Users GET cookies:', { 
+      adminId: !!adminId, 
+      session: !!sessionCookie,
+      lottery: !!lotterySession 
+    });
+    
+    let userId: string | null = null;
+    let userRole: string | null = null;
+    
+    // Try admin_id cookie first
+    if (adminId) {
+      userId = adminId;
+      userRole = cookieStore.get('admin_role')?.value || 'admin';
+    } 
+    // Try session cookie
+    else if (sessionCookie) {
+      try {
+        const session = JSON.parse(decodeURIComponent(sessionCookie));
+        userId = session.userId || session.id;
+        userRole = session.role;
+      } catch (e) {
+        console.log('[v0] Failed to parse session cookie');
+      }
+    }
+    // Try lottery_session
+    else if (lotterySession) {
+      try {
+        const session = JSON.parse(lotterySession);
+        userId = session.id;
+        userRole = session.role;
+      } catch (e) {
+        console.log('[v0] Failed to parse lottery_session cookie');
+      }
     }
     
-    console.log('[v0] Users GET: Success, count:', data?.length || 0);
-    return NextResponse.json(data || []);
+    console.log('[v0] Users GET resolved:', { userId, userRole });
+    
+    // Verify user exists and has admin role
+    if (userId) {
+      const { data: user } = await supabase
+        .from('users')
+        .select('id, role, is_active')
+        .eq('id', userId)
+        .single();
+      
+      if (user?.is_active) {
+        const adminRoles = ['super_admin', 'admin', 'owner', 'staff', 'master_admin'];
+        if (adminRoles.includes(user.role)) {
+          // User is authenticated admin - proceed with query
+          const { data, error } = await supabase
+            .from('users')
+            .select('id, username, display_name, role, user_type, agent_tier, credit_balance, is_unlimited_credit, parent_id, hierarchy_level, source_type, created_at')
+            .order('hierarchy_level', { ascending: true })
+            .order('created_at', { ascending: false });
+          
+          if (error) {
+            console.error('[v0] Users GET db error:', error.message);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+          }
+          
+          console.log('[v0] Users GET success, count:', data?.length);
+          return NextResponse.json(data || []);
+        }
+      }
+    }
+    
+    // Not authenticated or not admin
+    console.log('[v0] Users GET: Unauthorized');
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' },
+      { status: 401 }
+    );
+    
   } catch (err) {
     console.error('[v0] Users GET exception:', err);
     return NextResponse.json(
-      { error: 'Server error: ' + (err instanceof Error ? err.message : 'Unknown') },
+      { error: 'Server error' },
       { status: 500 }
     );
   }
