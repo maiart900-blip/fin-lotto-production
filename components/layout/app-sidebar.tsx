@@ -104,14 +104,6 @@ import {
 } from '@/components/ui/collapsible';
 import { useState } from 'react';
 import { fetcher } from '@/lib/fetcher';
-import {
-  PLATFORM_ONLY_MENUS,
-  MANUAL_KEY_MENUS,
-  AUTO_SYSTEM_MENUS,
-  AGENT_DEFAULT_MENUS,
-  getEffectiveAgentMenus,
-  type AgentSession,
-} from '@/lib/agent-permissions.client';
 
 interface PendingCounts {
   topupPending: number;
@@ -293,7 +285,7 @@ const agentDownlineItems = [
 
 const agentBettingItems = [
   { id: 'agent-betting', title: 'คีย์โพย', href: '/agent-terminal/betting', icon: PenLine },
-  { id: 'agent-entries', title: 'รายการ��พย', href: '/entries', icon: List },
+  { id: 'agent-entries', title: '��ายการ��พย', href: '/entries', icon: List },
   { id: 'agent-results', title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
@@ -323,7 +315,7 @@ const autoSystemItems = [
   { id: 'auto-system-settings', title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings },
 ];
 
-// 14. สายงา���������เอเย่นต์ (รวม ออโต้ และ คีย์หวย)
+// 14. สายง������������เอเย่นต์ (รวม ออโต้ และ คีย์หวย)
 const agentSystemItems = [
   { id: 'agent-system-manage', title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
   { id: 'agent-system-members', title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
