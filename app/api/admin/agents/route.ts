@@ -26,7 +26,6 @@ export async function GET(request: Request) {
     // Auth guard - require authenticated user (admin or agent)
     const authResult = await requireAuth();
     if (authResult instanceof NextResponse) {
-      console.error('[v0] Agent GET auth failed');
       return authResult;
     }
 
@@ -40,41 +39,45 @@ export async function GET(request: Request) {
     const adminId = cookieStore.get('admin_id')?.value;
     const adminRole = cookieStore.get('admin_role')?.value;
     
-    // Check if user is an agent (not admin)
-    const isAgent = adminRole === 'agent' || adminRole === 'agent_key';
+    // Check if user is an agent (not admin) - includes all agent-related roles
+    const agentRoles = ['agent', 'agent_key', 'sub_agent', 'master_agent', 'partner'];
+    const isAgent = agentRoles.includes(adminRole || '');
     let currentAgentId: string | null = null;
     
-    console.log('[v0] Agent API - checking user:', { adminId, adminRole, isAgent });
-    
     if (isAgent && adminId) {
-      // First try to find by user's source field (e.g., "agent_UUID")
-      const { data: userRecord } = await supabase
-        .from('users')
-        .select('source, username')
+      // First check if adminId is already an agent ID (direct login from agents table)
+      const { data: directAgentRecord } = await supabase
+        .from('agents')
+        .select('id')
         .eq('id', adminId)
         .maybeSingle();
       
-      console.log('[v0] User record:', userRecord);
-      
-      if (userRecord?.source?.startsWith('agent_')) {
-        currentAgentId = userRecord.source.replace('agent_', '');
-        console.log('[v0] Found agent ID from user.source:', currentAgentId);
-      } else if (userRecord?.username) {
-        // Find the agent record by username/code
-        const { data: agentRecord } = await supabase
-          .from('agents')
-          .select('id')
-          .eq('code', userRecord.username)
+      if (directAgentRecord) {
+        currentAgentId = directAgentRecord.id;
+      } else {
+        // Try to find by user's source field (e.g., "agent_UUID")
+        const { data: userRecord } = await supabase
+          .from('users')
+          .select('source, username')
+          .eq('id', adminId)
           .maybeSingle();
         
-        if (agentRecord) {
-          currentAgentId = agentRecord.id;
-          console.log('[v0] Found agent ID from code match:', currentAgentId);
+        if (userRecord?.source?.startsWith('agent_')) {
+          currentAgentId = userRecord.source.replace('agent_', '');
+        } else if (userRecord?.username) {
+          // Find the agent record by username/code
+          const { data: agentRecord } = await supabase
+            .from('agents')
+            .select('id')
+            .eq('code', userRecord.username)
+            .maybeSingle();
+          
+          if (agentRecord) {
+            currentAgentId = agentRecord.id;
+          }
         }
       }
     }
-    
-    console.log('[v0] Fetching agents with filters:', { level, systemType, isAgent, currentAgentId });
     
     let query = supabase
       .from('agents')
@@ -118,7 +121,6 @@ export async function GET(request: Request) {
     const { data: agents, error } = await query;
     
     if (error) {
-      console.error('[v0] Agents fetch error:', error);
       // Return error message to frontend instead of silent empty array
       return NextResponse.json({ 
         agents: [], 
@@ -127,8 +129,6 @@ export async function GET(request: Request) {
         _debug: { errorCode: error.code, errorDetails: error.details }
       });
     }
-    
-    console.log('[v0] Agents fetched successfully:', { count: agents?.length || 0 });
     
     // Map to expected format for frontend
     const mappedAgents = (agents || []).map(agent => ({
