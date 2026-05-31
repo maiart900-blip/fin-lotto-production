@@ -27,19 +27,23 @@ import {
   History,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
-const MOCK_AGENT_ID = '7cf23d72-858d-4395-9b94-67e7a7ca821f';
 
 export default function AgentSettlementPage() {
+  const { user } = useAuth();
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Agent ID from session
+  const agentId = user?.source?.replace('agent_', '') || user?.agent_id || null;
+
   // ดึงข้อมูลยอดส่ง
   const { data: settlementData, isLoading } = useSWR(
-    `/api/agent/settlement?agent_id=${MOCK_AGENT_ID}&period=${period}`,
+    agentId ? `/api/agent/settlement?agent_id=${agentId}&period=${period}` : null,
     fetcher
   );
 
