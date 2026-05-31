@@ -9,9 +9,17 @@ import { requireAdmin } from '@/lib/api-auth';
  */
 export async function GET() {
   try {
+    console.log('[v0] Users GET: Starting...');
+    
     // Auth guard - require admin for viewing users
     const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
+    if (authResult instanceof NextResponse) {
+      console.log('[v0] Users GET: Auth failed, status:', authResult.status);
+      // Return the actual auth error instead of empty array
+      return authResult;
+    }
+    
+    console.log('[v0] Users GET: Auth passed, user:', authResult?.user?.username);
 
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -21,14 +29,21 @@ export async function GET() {
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error('[v0] Users GET error:', error.message);
-      return NextResponse.json([]);
+      console.error('[v0] Users GET db error:', error.message, error.code);
+      return NextResponse.json(
+        { error: 'Database error: ' + error.message },
+        { status: 500 }
+      );
     }
     
+    console.log('[v0] Users GET: Success, count:', data?.length || 0);
     return NextResponse.json(data || []);
   } catch (err) {
     console.error('[v0] Users GET exception:', err);
-    return NextResponse.json([]);
+    return NextResponse.json(
+      { error: 'Server error: ' + (err instanceof Error ? err.message : 'Unknown') },
+      { status: 500 }
+    );
   }
 }
 
