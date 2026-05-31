@@ -323,7 +323,7 @@ const autoSystemItems = [
   { id: 'auto-system-settings', title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings },
 ];
 
-// 14. สายงา�����เอเย่นต์ (รวม ออโต้ และ คีย์หวย)
+// 14. สายงา�������เอเย่นต์ (รวม ออโต้ และ คีย์หวย)
 const agentSystemItems = [
   { id: 'agent-system-manage', title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
   { id: 'agent-system-members', title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
@@ -493,14 +493,6 @@ export function AppSidebar() {
 
   // Determine user's tier for permissions
   const getUserTier = () => {
-    // DEBUG: Log user data
-    if (typeof window !== 'undefined') {
-      console.log('[v0] getUserTier - user data:', { 
-        role: user?.role, 
-        user_type: user?.user_type,
-        username: user?.username
-      });
-    }
     if (user?.role === 'agent' || user?.role === 'agent_key' || 
         user?.role === 'partner' || user?.user_type === 'manual_key_agent') {
       return 'agent';
@@ -548,11 +540,6 @@ export function AppSidebar() {
   const isMasterAgent = userTier === 'master';
   const isMember = user?.role === 'member';
   const isStaff = user?.role === 'staff';
-  
-  // DEBUG: Log tier detection results
-  if (typeof window !== 'undefined' && user) {
-    console.log('[v0] Tier detection:', { userTier, isAgent, isSubAgent, isMasterAgent, dbAllowedMenus: dbAllowedMenus.length });
-  }
   
   // Get user's visible menus from session (loaded at login)
   // For agents, this comes from agents.visible_menus column or agent_permissions table
@@ -838,7 +825,7 @@ export function AppSidebar() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate text-[#E5E5E5]">{user.displayName}</p>
               <p className="text-xs text-[#D4AF37] drop-shadow-[0_0_4px_rgba(212,175,55,0.3)]">
-                {isSuperAdmin ? 'Super Admin' : isAdmin ? 'ผู้ดูแลระบบ' : isAgent ? 'เอเย่นต์' : isMember ? 'แมมเบอร์' : isStaff ? 'พนักงาน' : 'ผู้ใช้'}
+                {isSuperAdmin ? 'Super Admin' : isAdmin ? 'ผู้ดูแลระบบ' : isMasterAgent ? 'มาสเตอร์เอเย่นต์' : isAgent ? 'เอเย่นต์' : isSubAgent ? 'ซับเอเย่นต์' : isMember ? 'แมมเบอร์' : isStaff ? 'พนักงาน' : 'ผู้ใช้'}
               </p>
             </div>
           </div>

@@ -123,13 +123,6 @@ export function useAuth() {
       throw new Error(responseData.error || 'เข้าสู่ระบบไม่สำเร็จ');
     }
     
-    // DEBUG: Log the user data from login response
-    console.log('[v0] Login response user:', {
-      role: responseData.user?.role,
-      user_type: responseData.user?.user_type,
-      username: responseData.user?.username,
-    });
-    
     // Store in localStorage and state
     setStoredSession(responseData.user);
     setUser(responseData.user);
