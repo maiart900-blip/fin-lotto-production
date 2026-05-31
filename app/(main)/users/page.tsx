@@ -126,8 +126,13 @@ const AGENT_TIER_LEVELS: Record<string, number> = {
 };
 
 export default function UsersPage() {
-  const { user: authUser, isAdmin, isSuperAdmin } = useAuth();
-  const { data: users = [], isLoading, error } = useSWR<User[]>('/api/users', fetcher);
+  // Check auth loading first - don't show "no access" while loading
+  const { user: authUser, isAdmin, isSuperAdmin, isLoading: isAuthLoading } = useAuth();
+  const { data: users = [], isLoading, error } = useSWR<User[]>(
+    // Only fetch when auth is loaded and user has permission
+    !isAuthLoading && (isAdmin || isSuperAdmin) ? '/api/users' : null,
+    fetcher
+  );
   
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -338,6 +343,20 @@ export default function UsersPage() {
     });
     setEditingUser(user);
   };
+
+  // Show loading while auth is being checked
+  if (isAuthLoading) {
+    return (
+      <div className="p-6">
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="py-12 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-500 mx-auto" />
+            <p className="text-gray-400 mt-2">กำลังตรวจสอบสิทธิ์...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Check if can manage users
   if (!isAdmin && !isSuperAdmin) {
