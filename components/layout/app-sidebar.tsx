@@ -323,7 +323,7 @@ const autoSystemItems = [
   { id: 'auto-system-settings', title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings },
 ];
 
-// 14. สายงา���เอเย่นต์ (รวม ออโต้ และ คีย์หวย)
+// 14. สายงา�����เอเย่นต์ (รวม ออโต้ และ คีย์หวย)
 const agentSystemItems = [
   { id: 'agent-system-manage', title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound },
   { id: 'agent-system-members', title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
@@ -548,6 +548,11 @@ export function AppSidebar() {
   const isMasterAgent = userTier === 'master';
   const isMember = user?.role === 'member';
   const isStaff = user?.role === 'staff';
+  
+  // DEBUG: Log tier detection results
+  if (typeof window !== 'undefined' && user) {
+    console.log('[v0] Tier detection:', { userTier, isAgent, isSubAgent, isMasterAgent, dbAllowedMenus: dbAllowedMenus.length });
+  }
   
   // Get user's visible menus from session (loaded at login)
   // For agents, this comes from agents.visible_menus column or agent_permissions table
