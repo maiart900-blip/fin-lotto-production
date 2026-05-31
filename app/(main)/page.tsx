@@ -61,8 +61,14 @@ export default function DashboardPage() {
   
   // Redirect Agent ไป Agent Dashboard
   useEffect(() => {
-    if (!authLoading && user?.role === 'agent') {
-      router.replace('/agent-dashboard');
+    if (!authLoading && user) {
+      // Check if user is any type of agent (role-based or user_type-based)
+      const isAgent = user.role === 'agent' || 
+                      user.role === 'agent_key' || 
+                      user.user_type === 'manual_key_agent';
+      if (isAgent) {
+        router.replace('/agent-dashboard');
+      }
     }
   }, [user, authLoading, router]);
   
