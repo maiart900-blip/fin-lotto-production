@@ -492,8 +492,18 @@ export function AppSidebar() {
     toast.success('ออกจากระบบสำเร็จ');
   };
 
-  // Check if user is agent (includes agent_key and partner)
-  const isAgent = user?.role === 'agent' || user?.role === 'agent_key' || user?.role === 'partner';
+  // Check if user is agent (includes agent_key, partner, and manual_key_agent)
+  const isAgent = user?.role === 'agent' || 
+                  user?.role === 'agent_key' || 
+                  user?.role === 'partner' || 
+                  user?.user_type === 'manual_key_agent' ||
+                  user?.user_type === 'agent';
+  
+  console.log('[v0] Sidebar isAgent check:', { 
+    role: user?.role, 
+    user_type: user?.user_type, 
+    isAgent 
+  });
   const isMember = user?.role === 'member';
   const isStaff = user?.role === 'staff';
   
