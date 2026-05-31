@@ -586,22 +586,19 @@ export function AppSidebar() {
     // Super Admin only sections
     if (section.superAdminOnly && !isSuperAdmin) return false;
     
-    // === AGENT: Filter based on permissions and feature flags ===
+    // === AGENT: Only show agentOnly sections ===
     if (isAgent) {
-      // Block sections with platform-only items
-      const allItemsPlatformOnly = section.items.every(item => isPlatformOnlyMenu(item.href));
-      if (allItemsPlatformOnly) return false;
-      
-      // Check agentOnly sections first (these are always visible for agents)
-      if (section.agentOnly === true) {
-        // But still filter items based on system_type
-        const hasValidItems = section.items.some(item => isMenuVisible(item.href));
-        return hasValidItems;
+      // IMPORTANT: Agents should ONLY see agentOnly sections
+      // Block ALL non-agentOnly sections for agents
+      if (!section.agentOnly) {
+        console.log('[v0] Agent blocking section:', section.title, '(not agentOnly)');
+        return false;
       }
       
-      // For non-agentOnly sections, check if any item is allowed
-      const hasAllowedItems = section.items.some(item => isMenuVisible(item.href));
-      return hasAllowedItems;
+      // For agentOnly sections, show if they have valid items
+      const hasValidItems = section.items.some(item => isMenuVisible(item.href));
+      console.log('[v0] Agent section:', section.title, 'hasValidItems:', hasValidItems);
+      return hasValidItems;
     }
     
     // === MEMBER: เห็นเฉพาะ memberVisible sections ===
@@ -615,7 +612,6 @@ export function AppSidebar() {
     }
     
     // === ADMIN / SUPER ADMIN: เห็นทุกเมนูยกเว้น agentOnly ===
-    // (agentOnly เป็นเมนูเฉพาะ Agent ไม่ต้องแสดงใน Admin Dashboard)
     if (section.agentOnly && !isAgent) {
       return false;
     }
@@ -628,13 +624,12 @@ export function AppSidebar() {
     return true;
   }).map(section => {
     // Filter items within each section based on permissions
-    // For agents: always filter; for others: only if restrictions exist
     if (isAgent || (hasMenuRestrictions && !isSuperAdmin && !isAdmin)) {
       const filteredItems = section.items.filter(item => isMenuVisible(item.href));
       return { ...section, items: filteredItems };
     }
     return section;
-  }).filter(section => section.items.length > 0); // Remove empty sections
+  }).filter(section => section.items.length > 0);
 
   return (
     <Sidebar className="bg-black">
