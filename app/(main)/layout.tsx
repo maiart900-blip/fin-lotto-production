@@ -26,6 +26,10 @@ export default function MainLayout({
   
   // Public routes that don't require auth (for testing)
   const isPublicRoute = pathname === '/agents' || pathname.startsWith('/agents/') || pathname === '/agent-members' || pathname === '/admin/key';
+  
+  // Sub-agent allowed routes
+  const subAgentAllowedRoutes = ['/sub-agent', '/manual-key', '/customers', '/entries', '/reports'];
+  const isSubAgentRoute = pathname && subAgentAllowedRoutes.some(route => pathname.startsWith(route));
 
   useEffect(() => {
     // Prevent multiple redirects
@@ -35,8 +39,16 @@ export default function MainLayout({
     if (!isLoading && !isAuthenticated && !isPublicRoute) {
       hasRedirectedRef.current = true;
       router.replace('/login');
+      return;
     }
-  }, [isAuthenticated, isLoading, router, isPublicRoute, pathname, user]);
+    
+    // Redirect sub_agent to their portal if trying to access other routes
+    if (!isLoading && isAuthenticated && user?.role === 'sub_agent' && !isSubAgentRoute && !isPublicRoute) {
+      hasRedirectedRef.current = true;
+      router.replace('/sub-agent');
+      return;
+    }
+  }, [isAuthenticated, isLoading, router, isPublicRoute, pathname, user, isSubAgentRoute]);
 
   // Show loading while checking auth (skip for public routes)
   if (isLoading && !isPublicRoute) {

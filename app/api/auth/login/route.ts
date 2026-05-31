@@ -333,9 +333,15 @@ export async function POST(request: Request) {
         }
       }
       
-      // Determine redirect based on system_type
+      // Determine redirect based on role and system_type
       let redirectTo = '/manual-key'; // Default for Agent Key
-      if (agent.system_type === 'auto') {
+      
+      // Sub-agent and Master agent go to their specific portal
+      if (agent.role === 'sub_agent') {
+        redirectTo = '/sub-agent'; // Sub-Agent Portal
+      } else if (agent.role === 'master_agent') {
+        redirectTo = '/master-agent'; // Master Agent Portal
+      } else if (agent.system_type === 'auto') {
         redirectTo = '/auto-system';
       } else if (agent.system_type === 'both' || agent.system_type === 'hybrid') {
         redirectTo = '/';
