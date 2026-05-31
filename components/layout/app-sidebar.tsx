@@ -109,6 +109,8 @@ import {
   MANUAL_KEY_MENUS,
   AUTO_SYSTEM_MENUS,
   AGENT_DEFAULT_MENUS,
+  getEffectiveAgentMenus,
+  type AgentSession,
 } from '@/lib/agent-permissions.client';
 
 interface PendingCounts {
@@ -354,7 +356,7 @@ const comparisonReportItems = [
 // 19.3 ศูนย์แอดมิน (สำหรับ member/พนักงาน)
   const memberAdminItems = [
   { title: 'สรุปยอด', href: '/member/summary', icon: BarChart3 },
-  { title: 'การเ���ิน', href: '/member/finance', icon: Wallet },
+  { title: 'การเ����ิน', href: '/member/finance', icon: Wallet },
   { title: 'อัปโหลดสลิป / ถอนเงิน', href: '/member/slip-upload', icon: Upload },
   ];
 
@@ -505,6 +507,23 @@ export function AppSidebar() {
   const agentEnableManualKey = (user as any)?.enable_manual_key !== false; // Default true
   const agentEnableAuto = (user as any)?.enable_auto === true;
   const agentSystemType = (user as any)?.system_type || 'manual_key';
+  
+  // Build agent session for permission check
+  const agentSession: AgentSession | null = isAgent ? {
+    id: user?.id || '',
+    user_type: 'agent',
+    role: user?.role || 'agent',
+    source_table: 'agents',
+    visible_menus: userVisibleMenus,
+    hidden_menus: userHiddenMenus,
+    enable_manual_key: agentEnableManualKey,
+    enable_auto: agentEnableAuto,
+    system_type: agentSystemType as any,
+    agent_tier: (user as any)?.agent_tier || 'agent',
+  } : null;
+  
+  // Get effective menus for agent (only menus they should see)
+  const agentEffectiveMenus = agentSession ? getEffectiveAgentMenus(agentSession) : [];
 
   // Helper to check if menu is platform-only (should be blocked for agents)
   const isPlatformOnlyMenu = (href: string): boolean => {
@@ -524,32 +543,22 @@ export function AppSidebar() {
     // Normalize href to key format (remove leading slash)
     const menuKey = href.startsWith('/') ? href.slice(1) : href;
     
-    // For agents: block platform-only menus regardless of visible_menus
-    if (isAgent && isPlatformOnlyMenu(href)) {
-      return false;
+    // For agents: use getEffectiveAgentMenus() for strict menu control
+    if (isAgent) {
+      // Check if menu is in effective menus list
+      const isAllowed = agentEffectiveMenus.some(m => {
+        const normalizedMenu = m.replace(/^\//, '');
+        return menuKey === normalizedMenu || 
+               menuKey.startsWith(normalizedMenu + '/') ||
+               href === m ||
+               href.startsWith(m + '/');
+      });
+      return isAllowed;
     }
     
     // Check if menu is in hidden list
     if (userHiddenMenus.includes(href) || userHiddenMenus.includes(menuKey)) {
       return false;
-    }
-    
-    // For agents: check manual key menus
-    if (isAgent) {
-      const isManualKeyMenu = MANUAL_KEY_MENUS.some(m => 
-        href === m || menuKey === m.replace(/^\//, '') || href.startsWith(m + '/')
-      );
-      if (isManualKeyMenu && !agentEnableManualKey) {
-        return false;
-      }
-      
-      // Check auto system menus
-      const isAutoMenu = AUTO_SYSTEM_MENUS.some(m => 
-        href === m || menuKey === m.replace(/^\//, '') || href.startsWith(m + '/')
-      );
-      if (isAutoMenu && !agentEnableAuto) {
-        return false;
-      }
     }
     
     // If no menu restrictions, allow (for admins)
