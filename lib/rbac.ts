@@ -17,7 +17,7 @@
  * - customer: Lottery betting customer, no admin access (ลูกค้าแทงหวย)
  */
 
-export type UserRole = 'super_admin' | 'admin' | 'agent' | 'agent_key' | 'partner' | 'staff' | 'member' | 'customer';
+export type UserRole = 'super_admin' | 'admin' | 'agent' | 'agent_key' | 'sub_agent' | 'master_agent' | 'partner' | 'staff' | 'member' | 'customer';
 
 // User type classification
 export type UserType = 'customer' | 'member' | 'agent' | 'admin';
@@ -30,6 +30,8 @@ export function getUserTypeFromRole(role: UserRole): UserType {
       return 'admin';
     case 'agent':
     case 'agent_key':
+    case 'sub_agent':
+    case 'master_agent':
     case 'partner':
       return 'agent';
     case 'staff':

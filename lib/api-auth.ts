@@ -122,13 +122,15 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
       }
     }
     
-    // Check in agents table (for agent/partner roles)
-    if (userRole === 'agent' || userRole === 'partner' || userRole === 'agent_key') {
+    // Check in agents table (for agent/partner/sub_agent/master_agent roles)
+    if (userRole === 'agent' || userRole === 'partner' || userRole === 'agent_key' || userRole === 'sub_agent' || userRole === 'master_agent') {
       const { data: agent } = await supabase
         .from('agents')
-        .select('id, code, role, status, parent_id')
+        .select('id, code, role, status, parent_agent_id')
         .eq('id', userId)
         .single();
+      
+      console.log('[v0] Agent lookup:', { found: !!agent, role: agent?.role, status: agent?.status });
       
       if (agent && agent.status === 'active') {
         return {
@@ -140,7 +142,7 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
             user_type: 'agent',
             source_table: 'agents',
             is_active: true,
-            parent_id: agent.parent_id,
+            parent_id: agent.parent_agent_id,
           },
         };
       }
