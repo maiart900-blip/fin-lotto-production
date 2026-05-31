@@ -251,6 +251,7 @@ export const PLATFORM_ONLY_MENUS = [
   
   // Platform Settings
   'settings/system', '/settings/system',
+  'settings', '/settings',
   'master-rates', '/master-rates',
   'risk-control', '/risk-control',
   
@@ -260,6 +261,83 @@ export const PLATFORM_ONLY_MENUS = [
   // Platform Finance
   'payment-gateway', '/payment-gateway',
   'scb-maemanee', '/scb-maemanee',
+  'wallet-manager', '/wallet-manager',
+  'bank-settings', '/bank-settings',
+  'payment-accounts', '/payment-accounts',
+  'withdraw-accounts', '/withdraw-accounts',
+  'finance/transactions', '/finance/transactions',
+  'finance-reports', '/finance-reports',
+  
+  // Admin Operations (agents should not see platform operations)
+  'topup-requests', '/topup-requests',
+  'withdraw-requests', '/withdraw-requests',
+  'credits', '/credits',
+  'deposit-issues', '/deposit-issues',
+  'pending-review', '/pending-review',
+  
+  // Customers (platform-level customer management)
+  'customers', '/customers',
+  'customer-history', '/customer-history',
+  'customer-banks', '/customer-banks',
+  'member-summary', '/member-summary',
+  
+  // Betting History (platform-level)
+  'betting/history', '/betting/history',
+  'betting/reports', '/betting/reports',
+  
+  // Lottery Management (platform-level)
+  'lotteries', '/lotteries',
+  'entries', '/entries',
+  
+  // Promotions (platform-level)
+  'promotions', '/promotions',
+  'referrals', '/referrals',
+  'affiliate', '/affiliate',
+  
+  // Marketing (platform-level)
+  'marketing-dashboard', '/marketing-dashboard',
+  'campaigns', '/campaigns',
+  'banners', '/banners',
+  'notification-center', '/notification-center',
+  'social-marketing', '/social-marketing',
+  
+  // Reports (platform-level)
+  'reports/overview', '/reports/overview',
+  'reports/summary', '/reports/summary',
+  'reports/profit-loss', '/reports/profit-loss',
+  'reports/vip-risk', '/reports/vip-risk',
+  'number-analysis', '/number-analysis',
+  
+  // Staff Management (platform-level)
+  'staff-management', '/staff-management',
+  'attendance', '/attendance',
+  
+  // Site Settings (platform-level)
+  'site-settings', '/site-settings',
+  'theme-settings', '/theme-settings',
+  'maintenance', '/maintenance',
+  'export-data', '/export-data',
+  
+  // Live Feed (platform-level)
+  'live-feed', '/live-feed',
+  'live-broadcast', '/live-broadcast',
+  'stream-settings', '/stream-settings',
+  
+  // Risk Control (platform-level)
+  'risk-dashboard', '/risk-dashboard',
+  'smart-risk', '/smart-risk',
+  'number-limits', '/number-limits',
+  'number-ban', '/number-ban',
+  
+  // Auto System (platform-level unless enabled)
+  'auto-system', '/auto-system',
+  'auto-system/entries', '/auto-system/entries',
+  'auto-system/customers', '/auto-system/customers',
+  'auto-marketing', '/auto-marketing',
+  
+  // Members under downline (platform-level)
+  'downline-members', '/downline-members',
+  'member-tree', '/member-tree',
 ];
 
 // =====================================================
