@@ -51,7 +51,10 @@ async function setAuthCookies(
   // Agent-related roles (agent, sub_agent, master_agent) should use admin cookies
   const agentTypes = ['admin', 'super_admin', 'agent', 'member'];
   const agentRoles = ['agent', 'agent_key', 'sub_agent', 'master_agent', 'partner'];
-  if (agentTypes.includes(userType) || agentRoles.includes(role)) {
+  const shouldUseAdminCookies = agentTypes.includes(userType) || agentRoles.includes(role);
+  console.log('[v0] setAuthCookies:', { userId, role, userType, shouldUseAdminCookies, agentRolesCheck: agentRoles.includes(role) });
+  
+  if (shouldUseAdminCookies) {
     cookieStore.set('admin_id', userId, cookieOptions);
     cookieStore.set('admin_role', role, cookieOptions);
   } else {
@@ -341,7 +344,13 @@ export async function POST(request: Request) {
       
       // Set auth cookies for server-side verification (agents use 'agent' user_type)
       const agentRole = (agent.role || 'agent') as DetailedRole;
-      console.log('[v0] Login API - agent data:', { code: agent.code, role: agent.role, agentRole });
+      console.log('[v0] Login API - agent data:', { 
+        code: agent.code, 
+        dbRole: agent.role, 
+        agentRole,
+        isSubAgent: agent.role === 'sub_agent',
+        parentAgentId: agent.parent_agent_id
+      });
       await setAuthCookies(agent.id, agentRole, 'agent', 'agents');
       
       return NextResponse.json({
