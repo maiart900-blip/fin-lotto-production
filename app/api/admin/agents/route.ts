@@ -273,16 +273,38 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password || '123456', 10);
     
-    // Determine level
+    // Determine level - always parent level + 1
     let hierarchyLevel = 1;
+    let masterAgentId: string | null = null;
+    
     if (upline_id) {
       const { data: upline } = await supabase
         .from('agents')
-        .select('level')
+        .select('level, parent_agent_id')
         .eq('id', upline_id)
         .single();
       
-      hierarchyLevel = (upline?.level || 0) + 1;
+      // Calculate level: parent level + 1 (default to 2 if parent has no level)
+      hierarchyLevel = ((upline?.level ?? 1) + 1);
+      
+      // Find master agent (walk up the chain to find level 1)
+      if (upline?.level === 1) {
+        // Upline is the master
+        masterAgentId = upline_id;
+      } else if (upline?.parent_agent_id) {
+        // Walk up to find master
+        const { data: masterCandidate } = await supabase
+          .from('agents')
+          .select('id, level')
+          .eq('id', upline.parent_agent_id)
+          .single();
+        
+        if (masterCandidate?.level === 1) {
+          masterAgentId = masterCandidate.id;
+        }
+      }
+      
+      console.log('[v0] Agent hierarchy:', { uplineLevel: upline?.level, newLevel: hierarchyLevel, masterAgentId });
     }
     
     // Determine system_type
