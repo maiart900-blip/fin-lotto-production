@@ -15,25 +15,31 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowLeft,
+  LayoutDashboard,
+  Users,
+  Settings,
+  LogOut,
+  Ticket,
+  Calculator,
+  ArrowUpRight,
   Calendar,
   TrendingUp,
   TrendingDown,
   DollarSign,
-  Calculator,
 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
-const MOCK_AGENT_ID = '7cf23d72-858d-4395-9b94-67e7a7ca821f';
 
 export default function AgentProfitPage() {
+  const { user, logout } = useAuth();
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [lotteryId, setLotteryId] = useState<string>('all');
 
   // ดึงข้อมูลกำไร
   const { data: profitData, isLoading } = useSWR(
-    `/api/agent/profit?agent_id=${MOCK_AGENT_ID}&start_date=${startDate}&end_date=${endDate}${lotteryId !== 'all' ? `&lottery_id=${lotteryId}` : ''}`,
+    `/api/agent/profit?start_date=${startDate}&end_date=${endDate}${lotteryId !== 'all' ? `&lottery_id=${lotteryId}` : ''}`,
     fetcher
   );
 
@@ -42,22 +48,60 @@ export default function AgentProfitPage() {
 
   const summary = profitData?.summary || {};
   const details = profitData?.details || [];
-  const agent = profitData?.agent || {};
+
+  const menuItems = [
+    { icon: LayoutDashboard, label: 'แดชบอร์ด', href: '/agent/dashboard' },
+    { icon: Ticket, label: 'รายการโพย', href: '/agent/entries' },
+    { icon: Calculator, label: 'กำไร/ขาดทุน', href: '/agent/profit', active: true },
+    { icon: ArrowUpRight, label: 'ส่งยอด', href: '/agent/settlement' },
+    { icon: Users, label: 'พนักงาน', href: '/agent/staff' },
+    { icon: Settings, label: 'ตั้งค่า', href: '/agent/settings' },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#f8f5f0] p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="size-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-amber-600">กำไร/ขาดทุน</h1>
-            <p className="text-muted-foreground">สรุปยอดกำไรขาดทุนของร้าน</p>
-          </div>
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#0D1321] border-r border-white/10 p-4 flex flex-col">
+        <div className="mb-8">
+          <h1 className="text-xl font-bold text-amber-400">ร้านหวย</h1>
+          <p className="text-sm text-white/60">{user?.name || 'เอเย่น'}</p>
+          <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30">
+            กำไร 90%
+          </Badge>
+        </div>
+
+        <nav className="flex-1 space-y-1">
+          {menuItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                item.active
+                  ? 'bg-amber-500/20 text-amber-400'
+                  : 'text-white/60 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <item.icon className="size-5" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+
+        <Button 
+          variant="ghost" 
+          onClick={() => logout()}
+          className="mt-auto text-white/60 hover:text-white justify-start gap-3"
+        >
+          <LogOut className="size-5" />
+          ออกจากระบบ
+        </Button>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 p-6 bg-[#f8f5f0]">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-amber-600">กำไร/ขาดทุน</h2>
+          <p className="text-muted-foreground">สรุปยอดกำไรขาดทุนของร้าน</p>
         </div>
 
         {/* Filters */}
@@ -195,7 +239,7 @@ export default function AgentProfitPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   );
 }
