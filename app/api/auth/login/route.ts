@@ -48,7 +48,10 @@ async function setAuthCookies(
   cookieStore.set('lottery_session', JSON.stringify(sessionData), cookieOptions);
   
   // Set role-specific cookies for backward compatibility
-  if (userType === 'admin' || userType === 'super_admin' || userType === 'agent' || userType === 'member') {
+  // Agent-related roles (agent, sub_agent, master_agent) should use admin cookies
+  const agentTypes = ['admin', 'super_admin', 'agent', 'member'];
+  const agentRoles = ['agent', 'agent_key', 'sub_agent', 'master_agent', 'partner'];
+  if (agentTypes.includes(userType) || agentRoles.includes(role)) {
     cookieStore.set('admin_id', userId, cookieOptions);
     cookieStore.set('admin_role', role, cookieOptions);
   } else {
