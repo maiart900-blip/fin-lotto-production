@@ -456,7 +456,7 @@ const menuSections: MenuSection[] = [
 ];
 
 // HIDDEN MENUS (ยังไม่พร้อม - จะเปิดเมื่อพัฒนาเสร็จ):
-// - ระบบคีย์หวย (manualKeyItems)
+// - ระบบคีย์หว�� (manualKeyItems)
 // - สายงานคีย์หวย (manualKeyAgentItems)
 // - การตลาดคีย์หวย (manualKeyMarketingItems)
 // - การตลาดออโต้ (autoMarketingItems)
@@ -499,11 +499,17 @@ export function AppSidebar() {
                   user?.user_type === 'manual_key_agent' ||
                   user?.user_type === 'agent';
   
-  console.log('[v0] Sidebar isAgent check:', { 
-    role: user?.role, 
-    user_type: user?.user_type, 
-    isAgent 
-  });
+  // DEBUG: Log user info and isAgent result
+  if (typeof window !== 'undefined') {
+    console.log('[v0] AppSidebar user:', { 
+      role: user?.role, 
+      user_type: user?.user_type,
+      username: user?.username,
+      isAgent,
+      isAdmin,
+      isSuperAdmin
+    });
+  }
   const isMember = user?.role === 'member';
   const isStaff = user?.role === 'staff';
   
