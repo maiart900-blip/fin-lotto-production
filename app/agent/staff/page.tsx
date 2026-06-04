@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -18,10 +19,19 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   LayoutDashboard,
   Users,
@@ -38,15 +48,32 @@ import {
   Trash2,
   ClipboardList,
   DollarSign,
+  Key,
+  UserX,
+  UserCheck,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/use-auth';
+import { toast } from 'sonner';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function AgentStaffPage() {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newStaff, setNewStaff] = useState({
+    username: '',
+    name: '',
+    password: '',
+    phone: '',
+    role: 'staff' as 'staff' | 'operator',
+  });
 
   // ดึงข้อมูล sub-agents/staff - ต้อง filter เฉพาะใต้สายของ agent นี้
   const { data: staffData, mutate } = useSWR(
@@ -58,8 +85,70 @@ export default function AgentStaffPage() {
 
   const filteredStaff = staff.filter((s: any) => 
     s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.code?.toLowerCase().includes(searchTerm.toLowerCase())
+    s.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.username?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // ฟังก์ชันเพิ่มพนักงานใหม่ - ผูก parent_agent_id อัตโนมัติ
+  const handleAddStaff = async () => {
+    if (!newStaff.username || !newStaff.name || !newStaff.password) {
+      toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('ไม่พบข้อมูลผู้ใช้งาน');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/agent/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newStaff,
+          parent_agent_id: user.id, // ผูกกับ agent ที่ login อัตโนมัติ
+          account_type: 'staff',
+        }),
+      });
+
+      if (res.ok) {
+        toast.success('เพิ่มพนักงานสำเร็จ');
+        setIsAddDialogOpen(false);
+        setNewStaff({
+          username: '',
+          name: '',
+          password: '',
+          phone: '',
+          role: 'staff',
+        });
+        mutate(); // refresh data
+      } else {
+        const error = await res.json();
+        toast.error(error.message || error.error || 'เกิดข้อผิดพลาด');
+      }
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาดในการเพิ่มพนักงาน');
+    }
+  };
+
+  // ฟังก์ชันเปลี่ยนสถานะพนักงาน
+  const handleToggleStatus = async (staffId: string, currentStatus: boolean) => {
+    try {
+      const res = await fetch(`/api/agent/staff/${staffId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !currentStatus }),
+      });
+
+      if (res.ok) {
+        toast.success(currentStatus ? 'ระงับการใช้งานแล้ว' : 'เปิดใช้งานแล้ว');
+        mutate();
+      }
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาด');
+    }
+  };
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'แดชบอร์ด', href: '/agent/dashboard' },
@@ -78,7 +167,7 @@ export default function AgentStaffPage() {
       <aside className="w-64 bg-[#0D1321] border-r border-white/10 p-4 flex flex-col">
         <div className="mb-8">
           <h1 className="text-xl font-bold text-amber-400">ร้านหวย</h1>
-          <p className="text-sm text-white/60">{user?.name || 'เอเย่น'}</p>
+          <p className="text-sm text-white/60">{user?.name || 'เอเย่นต์'}</p>
           <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30">
             กำไร 90%
           </Badge>
@@ -118,12 +207,82 @@ export default function AgentStaffPage() {
             <h2 className="text-2xl font-bold text-amber-600">จัดการพนักงาน</h2>
             <p className="text-muted-foreground">รายชื่อ Sub-Agent และพนักงานในสายงาน</p>
           </div>
-          <Link href="/agent-system/members">
-            <Button className="bg-amber-500 hover:bg-amber-600 text-white gap-2">
-              <UserPlus className="size-4" />
-              เพิ่มพนักงาน
-            </Button>
-          </Link>
+          
+          {/* Dialog เพิ่มพนักงาน - เปิดในหน้านี้เลย ไม่ redirect */}
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-amber-500 hover:bg-amber-600 text-white gap-2">
+                <UserPlus className="size-4" />
+                เพิ่มพนักงาน
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>เพิ่มพนักงานใหม่</DialogTitle>
+                <DialogDescription>
+                  พนักงานจะถูกผูกเข้ากับสายงานของคุณ ({user?.name || user?.username}) โดยอัตโนมัติ
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>ชื่อผู้ใช้ (Username) *</Label>
+                  <Input
+                    value={newStaff.username}
+                    onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
+                    placeholder="username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ชื่อ-นามสกุล *</Label>
+                  <Input
+                    value={newStaff.name}
+                    onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                    placeholder="ชื่อ-นามสกุล"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>รหัสผ่าน *</Label>
+                  <Input
+                    type="password"
+                    value={newStaff.password}
+                    onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                    placeholder="รหัสผ่าน"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>เบอร์โทร</Label>
+                  <Input
+                    value={newStaff.phone}
+                    onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
+                    placeholder="0812345678"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ตำแหน่ง</Label>
+                  <Select
+                    value={newStaff.role}
+                    onValueChange={(value: 'staff' | 'operator') => setNewStaff({ ...newStaff, role: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="staff">พนักงาน (Staff)</SelectItem>
+                      <SelectItem value="operator">ผู้ดูแลระบบ (Operator)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  ยกเลิก
+                </Button>
+                <Button onClick={handleAddStaff} className="bg-amber-500 hover:bg-amber-600">
+                  เพิ่มพนักงาน
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Search */}
@@ -154,7 +313,7 @@ export default function AgentStaffPage() {
               <div className="text-center py-12 text-muted-foreground">
                 <Users className="size-12 mx-auto mb-4 opacity-50" />
                 <p>ยังไม่มีพนักงานในสายงาน</p>
-                <p className="text-sm">กดปุ่ม "เพิ่มพนักงาน" เพื่อเริ่มต้น</p>
+                <p className="text-sm">กดปุ่ม &quot;เพิ่มพนักงาน&quot; เพื่อเริ่มต้น</p>
               </div>
             ) : (
               <Table>
@@ -172,10 +331,11 @@ export default function AgentStaffPage() {
                   {filteredStaff.map((s: any) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.code}</TableCell>
+                      <TableCell>{s.username || s.code}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {s.role === 'sub_agent' ? 'Sub-Agent' : s.role}
+                          {s.role === 'sub_agent' ? 'Sub-Agent' : 
+                           s.role === 'operator' ? 'ผู้ดูแล' : 'พนักงาน'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -185,9 +345,38 @@ export default function AgentStaffPage() {
                       </TableCell>
                       <TableCell>0 บาท</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="size-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Edit className="size-4 mr-2" />
+                              แก้ไข
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Key className="size-4 mr-2" />
+                              เปลี่ยนรหัสผ่าน
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleToggleStatus(s.id, s.is_active)}
+                            >
+                              {s.is_active ? (
+                                <>
+                                  <UserX className="size-4 mr-2" />
+                                  ระงับการใช้งาน
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="size-4 mr-2" />
+                                  เปิดใช้งาน
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
