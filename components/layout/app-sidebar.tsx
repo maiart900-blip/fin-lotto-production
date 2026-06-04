@@ -121,10 +121,10 @@ const attendanceItem = {
 // =====================================================
 
 const lotteryKeySystemItems = [
-  { id: 'lotteries', title: 'หวย (เปิด-ปิดงวด)', href: '/lotteries', icon: Ticket },
   { id: 'admin-key', title: 'คีย์หวย (หน้ารับแทง)', href: '/admin/key', icon: PenLine },
   { id: 'entries', title: 'รายการโพยทั้งหมด', href: '/entries', icon: List },
-  { id: 'results', title: 'ผลหวย', href: '/results', icon: Trophy },
+  { id: 'lotteries', title: 'จัดการหวย (เปิด-ปิดงวด)', href: '/lotteries', icon: Ticket },
+  { id: 'results', title: 'ผลหวย (กรอกผลรางวัล)', href: '/results', icon: Trophy },
   { id: 'prize-payout', title: 'จ่ายรางวัลลูกค้าคีย์', href: '/prize-payout', icon: DollarSign },
   { id: 'betting-history', title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: History },
 ];
@@ -134,18 +134,15 @@ const lotteryKeySystemItems = [
 // =====================================================
 
 const autoWebSystemItems = [
-  { id: 'auto-system', title: 'ภาพรวมออโต้ (คาสิโน/สล็อต/กีฬา)', href: '/auto-system', icon: Zap },
-  { id: 'auto-system-entries', title: 'รายการออโต้', href: '/auto-system/entries', icon: List },
-  { id: 'auto-system-customers', title: 'ลูกค้าออโต้', href: '/auto-system/customers', icon: Users },
-  { id: 'auto-system-settings', title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings },
-  { id: 'live-draw', title: 'ถ่ายทอดสด', href: '/live-draw', icon: Tv },
-  { id: 'live-stream', title: 'Global Live Stream', href: '/live-stream', icon: Radio },
-  { id: 'result-announcement', title: 'บอทประกาศผล', href: '/result-announcement', icon: Bot },
-  { id: 'promotions', title: 'จัดการโปรโมชั่น', href: '/promotions', icon: Sparkles },
-  { id: 'referrals', title: 'แนะนำลูกค้า', href: '/referrals', icon: Gift },
+  { id: 'auto-system', title: 'ระบบออโต้ (คาสิโน/สล็อต/กีฬา)', href: '/auto-system', icon: Zap },
+  { id: 'live-stream', title: 'ไลฟ์สด', href: '/live-stream', icon: Radio },
+  { id: 'live-draw', title: 'ถ่ายทอดสดหวย', href: '/live-draw', icon: Tv },
+  { id: 'promotions', title: 'โปรโมชั่น', href: '/promotions', icon: Sparkles },
+  { id: 'marketing-center', title: 'ศูนย์การตลาด', href: '/marketing-center', icon: Megaphone },
   { id: 'affiliate', title: 'ลิงก์แนะนำเพื่อน', href: '/affiliate', icon: Link2 },
-  { id: 'marketing-center', title: 'ลิงก์การตลาด', href: '/marketing-center', icon: Megaphone },
+  { id: 'referrals', title: 'แนะนำลูกค้า', href: '/referrals', icon: Gift },
   { id: 'qr-generator', title: 'สร้าง QR Code', href: '/marketing-center/qr-generator', icon: QrCode },
+  { id: 'result-announcement', title: 'บอทประกาศผล', href: '/result-announcement', icon: Bot },
   { id: 'lead-users', title: 'ยูสนำแทง', href: '/lead-users', icon: Crown },
 ];
 
@@ -332,7 +329,7 @@ const menuSections: MenuSection[] = [
   
   // === GROUP 4: ธุรกรรมการเงิน ===
   { 
-    title: 'ธุรกรรมการเงิน', 
+    title: '���ุรกรรมการเงิน', 
     icon: Wallet, 
     items: financeTransactionItems, 
     defaultOpen: true, 
