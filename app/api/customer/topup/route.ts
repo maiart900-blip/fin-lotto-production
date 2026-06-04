@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { sendAdminNotificationAsync } from '@/lib/notifications/admin-notify';
 
 export async function GET() {
   try {
@@ -91,6 +92,13 @@ export async function POST(request: Request) {
         .maybeSingle();
       
       if (existingSlip) {
+        // Send risk alert for duplicate slip
+        sendAdminNotificationAsync('risk_alert', {
+          userId: customerId.slice(0, 8) + '...',
+          reason: 'สลิปซ้ำ',
+          details: `พบการใช้สลิปซ้ำจากรายการ #${existingSlip.topup_request_id}`,
+        });
+        
         return NextResponse.json(
           { error: 'สลิปนี้เคยใช้แจ้งเติมเงินแล้ว กรุณาใช้สลิปใหม่' },
           { status: 400 }
@@ -158,6 +166,19 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+    
+    // Fire-and-forget: Send admin notification (async, doesn't block response)
+    sendAdminNotificationAsync('deposit', {
+      amount: Number(amount),
+      customerName: customer?.name || 'ไม่ทราบชื่อ',
+      bankName: bank_name || 'ไม่ระบุ',
+      time: new Date().toLocaleString('th-TH', { 
+        timeZone: 'Asia/Bangkok',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      requestId: data?.id,
+    });
     
     return NextResponse.json(data);
   } catch (err) {
