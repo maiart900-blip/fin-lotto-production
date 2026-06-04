@@ -234,7 +234,7 @@ export const staffManagementItems: MenuItem[] = [
   { id: 'payroll', title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet, description: 'สรุปเงินเดือนพนักงาน' },
   { id: 'payroll-settings', title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings, description: 'ตั้งค่าระบบเงินเดือน' },
   { id: 'ot-report', title: 'รายงานโอที', href: '/payroll/ot-report', icon: Clock, description: 'รายงานการทำโอที' },
-  { id: 'admin-sales-report', title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3, description: 'รายงานยอดขายแอดมิน' },
+  { id: 'admin-sales-report', title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3, description: 'รายงานยอดขายแอดม���น' },
 ];
 
 // 13. ตั้งค่าเว็บ
@@ -272,6 +272,7 @@ export const multiTenantItems: MenuItem[] = [
 // 16. Super Admin (Restricted - ต้อง master_admin เท่านั้น)
 export const superAdminItems: MenuItem[] = [
   { id: 'super-downline', title: 'จัดการสายงาน', href: '/super-admin/downline', icon: Crown, description: 'จัดการสายงานทั้งหมด' },
+  { id: 'agent-network-settlement', title: 'เคลียร์ยอดเอเย่นต์', href: '/agent-network-settlement', icon: Percent, description: 'สรุปยอดได้-เสียและเคลียร์ยอดแยกตามเอเย่นต์' },
   // REMOVED: agent-visibility and member-visibility - now consolidated into roles-permissions (ศูนย์กลาง)
   { id: 'risk-management', title: 'ควบคุมความเสี่ยง', href: '/risk-management', icon: TrendingUp, description: 'จัดการความเสี่ยง' },
   { id: 'master-control', title: 'Master Control', href: '/master-control', icon: Shield, description: 'ควบคุมระบบหลัก' },
