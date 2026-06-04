@@ -77,6 +77,9 @@ const typeLabels: Record<string, string> = {
   fee: 'ค่าธรรมเนียม',
   refund: 'คืนเงิน',
   bonus: 'โบนัส',
+  bet: 'คอมมิชชั่นจากโพย',
+  bet_commission: 'คอมมิชชั่นจากโพย',
+  commission: 'ส่วนแบ่งรายได้',
 };
 
 const typeIcons: Record<string, React.ReactNode> = {

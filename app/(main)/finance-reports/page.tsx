@@ -20,6 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { 
   FileBarChart, 
   TrendingUp,
@@ -33,6 +38,10 @@ import {
   RefreshCw,
   Calendar,
   DollarSign,
+  ChevronDown,
+  ChevronRight,
+  ChevronsUpDown,
+  Percent,
 } from 'lucide-react';
 
 interface FinanceData {
@@ -65,10 +74,48 @@ interface FinanceData {
   }>;
 }
 
+// Transaction type labels - แก้ไขคำว่า "bet" เป็นคำที่ชัดเจน
+const transactionTypeLabels: Record<string, string> = {
+  deposit: 'ฝากเงิน',
+  withdraw: 'ถอนเงิน',
+  bet: 'คอมมิชชั่นจากโพย', // แก้จาก "bet" เป็น "คอมมิชชั่นจากโพย"
+  bet_commission: 'คอมมิชชั่นจากโพย',
+  commission: 'ส่วนแบ่งรายได้',
+  payout: 'จ่ายรางวัล',
+  refund: 'คืนเงิน',
+  bonus: 'โบนัส',
+  adjustment: 'ปรับยอด',
+};
+
 const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+// Helper to format date for grouping
+const formatDateKey = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return date.toISOString().split('T')[0]; // YYYY-MM-DD
+};
+
+const formatDateDisplay = (dateKey: string) => {
+  const date = new Date(dateKey);
+  return date.toLocaleDateString('th-TH', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
+const isToday = (dateKey: string) => {
+  const today = new Date().toISOString().split('T')[0];
+  return dateKey === today;
+};
 
 export default function FinanceReportsPage() {
   const [period, setPeriod] = useState('today');
+  const [viewMode, setViewMode] = useState<'daily' | 'monthly' | 'yearly'>('daily');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   
   const { data, mutate, isLoading } = useSWR<FinanceData>(
     `/api/finance-reports?period=${period}`,
@@ -82,14 +129,106 @@ export default function FinanceReportsPage() {
     }).format(amount);
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('th-TH', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
+  const formatTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  // Generate month options (Thai Buddhist calendar)
+  const monthOptions = [
+    { value: '01', label: 'มกราคม' },
+    { value: '02', label: 'กุมภาพันธ์' },
+    { value: '03', label: 'มีนาคม' },
+    { value: '04', label: 'เมษายน' },
+    { value: '05', label: 'พฤษภาคม' },
+    { value: '06', label: 'มิถุนายน' },
+    { value: '07', label: 'กรกฎาคม' },
+    { value: '08', label: 'สิงหาคม' },
+    { value: '09', label: 'กันยายน' },
+    { value: '10', label: 'ตุลาคม' },
+    { value: '11', label: 'พฤศจิกายน' },
+    { value: '12', label: 'ธันวาคม' },
+  ];
+
+  // Generate year options (last 5 years)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 5 }, (_, i) => {
+    const year = currentYear - i;
+    return { value: year.toString(), label: `${year + 543}` }; // Convert to Buddhist year
+  });
+
+  // Group transactions by date
+  const groupedTransactions = useMemo(() => {
+    if (!data?.transactions) return new Map();
+    
+    const grouped = new Map<string, {
+      transactions: typeof data.transactions;
+      totalDeposit: number;
+      totalWithdraw: number;
+      totalCommission: number;
+      totalPayout: number;
+    }>();
+
+    data.transactions.forEach((tx) => {
+      const dateKey = formatDateKey(tx.created_at);
+      
+      if (!grouped.has(dateKey)) {
+        grouped.set(dateKey, {
+          transactions: [],
+          totalDeposit: 0,
+          totalWithdraw: 0,
+          totalCommission: 0,
+          totalPayout: 0,
+        });
+      }
+      
+      const group = grouped.get(dateKey)!;
+      group.transactions.push(tx);
+      
+      // Calculate daily totals
+      if (tx.type === 'deposit') {
+        group.totalDeposit += tx.amount;
+      } else if (tx.type === 'withdraw') {
+        group.totalWithdraw += tx.amount;
+      } else if (tx.type === 'bet' || tx.type === 'bet_commission' || tx.type === 'commission') {
+        group.totalCommission += tx.amount;
+      } else if (tx.type === 'payout') {
+        group.totalPayout += tx.amount;
+      }
+    });
+
+    // Sort by date descending
+    return new Map([...grouped.entries()].sort((a, b) => b[0].localeCompare(a[0])));
+  }, [data?.transactions]);
+
+  // Auto-expand today's transactions
+  useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    if (groupedTransactions.has(today) && !expandedDates.has(today)) {
+      setExpandedDates(new Set([today]));
+    }
+  }, [groupedTransactions]);
+
+  const toggleDate = (dateKey: string) => {
+    setExpandedDates(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dateKey)) {
+        newSet.delete(dateKey);
+      } else {
+        newSet.add(dateKey);
+      }
+      return newSet;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedDates(new Set(groupedTransactions.keys()));
+  };
+
+  const collapseAll = () => {
+    setExpandedDates(new Set());
   };
 
   // Calculate summary
@@ -122,19 +261,17 @@ export default function FinanceReportsPage() {
   }, [data]);
 
   const handleExport = () => {
-    if (!stats) return;
-    
     const periodLabel = getPeriodLabel();
     const csvContent = [
       ['รายงานการเงิน - ' + periodLabel],
       [''],
       ['รายการ', 'จำนวนรายการ', 'ยอดเงิน (บาท)'],
-      ['ยอดฝาก', stats.depositCount, stats.totalDeposits],
-      ['ยอดถอน', stats.withdrawCount, stats.totalWithdrawals],
-      ['ยอดแทง', stats.betCount, stats.totalBets],
-      ['ยอดจ่ายรางวัล', stats.payoutCount, stats.totalPayouts],
+      ['ยอดฝาก', summary.depositCount, summary.totalDeposit],
+      ['ยอดถอน', summary.withdrawCount, summary.totalWithdraw],
+      ['คอมมิชชั่นจากโพย', summary.betCount, summary.totalBets],
+      ['ยอดจ่ายรางวัล', summary.payoutCount, summary.totalPayouts],
       [''],
-      ['กำไรสุทธิ', '', stats.netProfit],
+      ['กำไรสุทธิ', '', summary.netProfit],
       [''],
       ['สร้างเมื่อ', new Date().toLocaleString('th-TH')],
     ].map(row => row.join(',')).join('\n');
@@ -161,6 +298,27 @@ export default function FinanceReportsPage() {
     }
   };
 
+  const getTransactionTypeLabel = (type: string) => {
+    return transactionTypeLabels[type] || type;
+  };
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case 'deposit':
+        return <ArrowDownToLine className="size-4 text-emerald-500" />;
+      case 'withdraw':
+        return <ArrowUpFromLine className="size-4 text-orange-500" />;
+      case 'bet':
+      case 'bet_commission':
+      case 'commission':
+        return <Percent className="size-4 text-blue-500" />;
+      case 'payout':
+        return <Trophy className="size-4 text-purple-500" />;
+      default:
+        return <DollarSign className="size-4 text-gray-500" />;
+    }
+  };
+
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen -m-6">
       {/* Header */}
@@ -172,7 +330,7 @@ export default function FinanceReportsPage() {
           </h1>
           <p className="text-gray-600 mt-1">สรุปยอดรายรับ-รายจ่ายและกำไร</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[160px] bg-white">
               <Calendar className="size-4 mr-2 text-gray-500" />
@@ -252,16 +410,16 @@ export default function FinanceReportsPage() {
           </CardContent>
         </Card>
 
-        {/* Bets */}
+        {/* Commission from Bets - แก้ไขจาก "ยอดแทงรวม" เป็น "คอมมิชชั่นจากโพย" */}
         <Card className="bg-white border-gray-200">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">ยอดแทงรวม</p>
-                <p className="text-2xl font-bold text-blue-600">{formatMoney(summary.totalBets)}</p>
+                <p className="text-sm text-gray-500">คอมมิชชั่นจากโพย</p>
+                <p className="text-2xl font-bold text-blue-600">+{formatMoney(summary.totalBets)}</p>
                 <p className="text-xs text-gray-400 mt-1">{summary.betCount} โพย</p>
               </div>
-              <Ticket className="size-10 text-blue-500/30" />
+              <Percent className="size-10 text-blue-500/30" />
             </div>
           </CardContent>
         </Card>
@@ -301,8 +459,8 @@ export default function FinanceReportsPage() {
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <Ticket className="size-5 text-blue-500" />
-                <span>ยอดแทง</span>
+                <Percent className="size-5 text-blue-500" />
+                <span>คอมมิชชั่นจากโพย</span>
               </div>
               <span className="font-bold text-blue-600">+{formatMoney(summary.totalBets)}</span>
             </div>
@@ -358,7 +516,7 @@ export default function FinanceReportsPage() {
                 {formatMoney(summary.totalDeposit - summary.totalWithdraw + summary.totalBets - summary.totalPayouts)} บาท
               </p>
               <p className="text-sm text-white/60 mt-1">
-                ฝาก - ถอน + แทง - จ่ายรางวัล
+                ฝาก - ถอน + คอมมิชชั่น - จ่ายรางวัล
               </p>
             </div>
             <Wallet className="size-16 text-white/30" />
@@ -366,13 +524,63 @@ export default function FinanceReportsPage() {
         </CardContent>
       </Card>
 
-      {/* Recent Transactions */}
+      {/* Transaction History with Date Grouping */}
       <Card className="bg-white border-gray-200">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-gray-900 flex items-center gap-2">
             <DollarSign className="size-5" />
-            ธุรกรรมล่าสุด
+            ประวัติธุรกรรม
           </CardTitle>
+          <div className="flex items-center gap-2">
+            {/* View Mode Selector */}
+            <Select value={viewMode} onValueChange={(v) => setViewMode(v as 'daily' | 'monthly' | 'yearly')}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">รายวัน</SelectItem>
+                <SelectItem value="monthly">รายเดือน</SelectItem>
+                <SelectItem value="yearly">รายปี</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Month Filter (for monthly view) */}
+            {viewMode === 'monthly' && (
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="เลือกเดือน" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map(m => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            {/* Year Filter */}
+            {(viewMode === 'monthly' || viewMode === 'yearly') && (
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map(y => (
+                    <SelectItem key={y.value} value={y.value}>พ.ศ. {y.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            {/* Expand/Collapse All */}
+            <Button variant="outline" size="sm" onClick={expandAll}>
+              <ChevronsUpDown className="size-4 mr-1" />
+              กางทั้งหมด
+            </Button>
+            <Button variant="outline" size="sm" onClick={collapseAll}>
+              พับทั้งหมด
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {!data?.transactions || data.transactions.length === 0 ? (
@@ -382,50 +590,127 @@ export default function FinanceReportsPage() {
               <p className="text-sm mt-1">เลือกช่วงเวลาอื่นเพื่อดูข้อมูล</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead>ประเภท</TableHead>
-                  <TableHead>รายละเอียด</TableHead>
-                  <TableHead>จำนวน</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead>วันที่</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.transactions.slice(0, 10).map((tx) => (
-                  <TableRow key={tx.id}>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {tx.type === 'deposit' ? 'ฝาก' :
-                         tx.type === 'withdraw' ? 'ถอน' :
-                         tx.type === 'bet' ? 'แทง' :
-                         tx.type === 'payout' ? 'รางวัล' : tx.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-gray-700">{tx.description}</TableCell>
-                    <TableCell>
-                      <span className={tx.type === 'deposit' || tx.type === 'bet' ? 'text-green-600' : 'text-red-600'}>
-                        {tx.type === 'deposit' || tx.type === 'bet' ? '+' : '-'}{formatMoney(tx.amount)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={
-                        tx.status === 'completed' ? 'bg-green-500/20 text-green-600' :
-                        tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-600' :
-                        'bg-red-500/20 text-red-600'
-                      }>
-                        {tx.status === 'completed' ? 'สำเร็จ' :
-                         tx.status === 'pending' ? 'รอดำเนินการ' : tx.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-500">
-                      {formatDate(tx.created_at)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="space-y-3">
+              {Array.from(groupedTransactions.entries()).map(([dateKey, group]) => {
+                const isExpanded = expandedDates.has(dateKey);
+                const isTodayDate = isToday(dateKey);
+                
+                return (
+                  <Collapsible
+                    key={dateKey}
+                    open={isExpanded}
+                    onOpenChange={() => toggleDate(dateKey)}
+                  >
+                    {/* Daily Header - Summary */}
+                    <CollapsibleTrigger asChild>
+                      <div className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-colors ${
+                        isTodayDate 
+                          ? 'bg-blue-50 hover:bg-blue-100 border border-blue-200' 
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          {isExpanded ? (
+                            <ChevronDown className="size-5 text-gray-500" />
+                          ) : (
+                            <ChevronRight className="size-5 text-gray-500" />
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-gray-900">
+                                {formatDateDisplay(dateKey)}
+                              </span>
+                              {isTodayDate && (
+                                <Badge className="bg-blue-500 text-white">วันนี้</Badge>
+                              )}
+                            </div>
+                            <span className="text-sm text-gray-500">
+                              {group.transactions.length} รายการ
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Daily Totals */}
+                        <div className="flex items-center gap-6">
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">ฝากรวม</p>
+                            <p className="font-semibold text-emerald-600">+{formatMoney(group.totalDeposit)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">ถอนรวม</p>
+                            <p className="font-semibold text-orange-600">-{formatMoney(group.totalWithdraw)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">คอมมิชชั่น</p>
+                            <p className="font-semibold text-blue-600">+{formatMoney(group.totalCommission)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">จ่ายรางวัล</p>
+                            <p className="font-semibold text-purple-600">-{formatMoney(group.totalPayout)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    
+                    {/* Expanded Transaction Details */}
+                    <CollapsibleContent>
+                      <div className="mt-2 ml-8 border-l-2 border-gray-200 pl-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-gray-50">
+                              <TableHead className="w-[100px]">เวลา</TableHead>
+                              <TableHead>ประเภท</TableHead>
+                              <TableHead>รายละเอียด</TableHead>
+                              <TableHead className="text-right">จำนวน</TableHead>
+                              <TableHead>สถานะ</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.transactions.map((tx) => (
+                              <TableRow key={tx.id}>
+                                <TableCell className="text-sm text-gray-500">
+                                  {formatTime(tx.created_at)}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    {getTransactionIcon(tx.type)}
+                                    <Badge variant="outline" className="font-normal">
+                                      {getTransactionTypeLabel(tx.type)}
+                                    </Badge>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-gray-700 max-w-[200px] truncate">
+                                  {tx.description || '-'}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className={
+                                    tx.type === 'deposit' || tx.type === 'bet' || tx.type === 'bet_commission' || tx.type === 'commission'
+                                      ? 'text-green-600 font-semibold' 
+                                      : 'text-red-600 font-semibold'
+                                  }>
+                                    {tx.type === 'deposit' || tx.type === 'bet' || tx.type === 'bet_commission' || tx.type === 'commission' 
+                                      ? '+' : '-'}{formatMoney(tx.amount)}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge className={
+                                    tx.status === 'completed' ? 'bg-green-500/20 text-green-600' :
+                                    tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-600' :
+                                    'bg-red-500/20 text-red-600'
+                                  }>
+                                    {tx.status === 'completed' ? 'สำเร็จ' :
+                                     tx.status === 'pending' ? 'รอดำเนินการ' : tx.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </div>
           )}
         </CardContent>
       </Card>
