@@ -1,9 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { getDateRange, getBusinessDay, getYesterdayBusinessDay } from '@/lib/daily-reset';
+import { requireAgentOrHigher } from '@/lib/api-auth';
+import { getCustomerScopeForUser } from '@/lib/customer-scope';
 
 export async function GET(request: Request) {
   try {
+    // SECURITY: Auth guard
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
+
     const { searchParams } = new URL(request.url);
     const lotteryId = searchParams.get('lottery_id');
     const startDate = searchParams.get('start_date');
@@ -32,10 +39,47 @@ export async function GET(request: Request) {
     
     const demoUserIds = (demoUsers || []).map(u => u.id);
 
-    // Fetch all entries (exclude demo users)
+    // SECURITY: Get customer scope for data filtering
+    const scope = await getCustomerScopeForUser({
+      id: session.id,
+      role: session.role,
+      user_type: session.user_type,
+      tenant_id: session.tenant_id,
+    });
+
+    // Get accessible customer IDs based on scope
+    let scopedCustomerIds: string[] | null = null;
+    
+    if (scope.isAgent && scope.agentIds.length > 0) {
+      // Agent sees only their customers
+      const { data: scopedCustomers } = await supabase
+        .from('customers')
+        .select('id')
+        .in('agent_id', scope.agentIds);
+      scopedCustomerIds = (scopedCustomers || []).map(c => c.id);
+    } else if (scope.isTenantOwner && scope.tenantId) {
+      // Tenant owner sees customers in their tenant
+      const { data: tenantCustomers } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('tenant_id', scope.tenantId);
+      scopedCustomerIds = (tenantCustomers || []).map(c => c.id);
+    }
+    // Super admin (scopedCustomerIds = null) sees all
+
+    // Fetch all entries (exclude demo users, apply scope filter)
     let entriesQuery = supabase
       .from('entries')
       .select('*, lottery:lotteries(id, name), customer:customers(id, name, is_demo_user)');
+
+    // SECURITY: Apply scope filter
+    if (scopedCustomerIds !== null) {
+      if (scopedCustomerIds.length === 0) {
+        // No accessible customers - return empty
+        return NextResponse.json({ entries: [], results: [], winnings: [], lotteries: [], summary: getEmptySummary() });
+      }
+      entriesQuery = entriesQuery.in('customer_id', scopedCustomerIds);
+    }
 
     if (lotteryId) {
       entriesQuery = entriesQuery.eq('lottery_id', lotteryId);

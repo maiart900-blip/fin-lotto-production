@@ -201,7 +201,11 @@ export async function distributeCommissions(
     if (result.totalCommission <= 0) continue;
 
     try {
-      // Start transaction - update agent credit balance
+      // WARNING: This RPC usage pattern may not work as expected
+      // The .update() method does not accept RPC calls inline
+      // TODO: Verify increment_credit and increment_commission RPCs exist in database
+      // Alternative: Use raw SQL or separate RPC call
+      // For atomic operations, consider: SELECT ... FOR UPDATE pattern
       const { error: updateError } = await supabase
         .from('agents')
         .update({
