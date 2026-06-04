@@ -77,26 +77,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'distribute') {
-      // Calculate and distribute
-      let results = await calculateAllAgentsCommission(startDate, endDate);
-      
-      // Filter to specific agents if provided
-      if (agentIds && agentIds.length > 0) {
-        results = results.filter(r => agentIds.includes(r.agentId));
-      }
-
-      // Get current user as admin
-      const { data: { user } } = await supabase.auth.getUser();
-      const adminId = user?.id || 'system';
-
-      const distribution = await distributeCommissions(results, adminId);
-
-      return NextResponse.json({
-        action: 'distribute',
-        period: { startDate, endDate },
-        distribution,
-        message: `Distributed ${distribution.totalDistributed.toLocaleString()} to ${distribution.success} agents`,
-      });
+      // HTTP 501 Not Implemented
+      // Commission Distribution is not supported in the current version.
+      // Required RPC functions (increment_credit, increment_commission) do not exist in database.
+      // See: lib/commission/commission-system.ts distributeCommissions()
+      return NextResponse.json(
+        { 
+          error: 'Not Implemented',
+          message: 'Commission Distribution ยังไม่รองรับในเวอร์ชันปัจจุบัน เนื่องจาก RPC functions ที่จำเป็นยังไม่มีใน Database',
+          requiredRPCs: ['increment_credit', 'increment_commission'],
+          status: 'pending_database_migration'
+        },
+        { status: 501 }
+      );
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
