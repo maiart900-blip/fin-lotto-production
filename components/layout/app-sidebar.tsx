@@ -117,7 +117,7 @@ const attendanceItem = {
 };
 
 // =====================================================
-// GROUP 2: ระบบหวยคีย์
+// GROUP 2: ระบบหวยคีย์ (รวมเอเย่นต์ Manual Key ไว้ที่นี่)
 // =====================================================
 
 const lotteryKeySystemItems = [
@@ -129,8 +129,16 @@ const lotteryKeySystemItems = [
   { id: 'betting-history', title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: History },
 ];
 
+// เอเย่นต์คีย์หวย (Manual Key Agent Hierarchy)
+// ระบบนี้ใช้สำหรับหวยคีย์มือเท่านั้น ไม่เกี่ยวกับเว็บออโต้
+const agentHierarchyItems = [
+  { id: 'agent-system', title: 'สายงานเอเย่นต์คีย์หวย', href: '/agent-system', icon: GitBranch },
+  { id: 'agent-system-commission', title: 'คอมมิชชั่นเอเย่นต์', href: '/agent-system/commission', icon: DollarSign },
+  { id: 'agent-tree', title: 'ต้นไม้สายงาน (4-Tier)', href: '/agent-system/tree', icon: Network },
+];
+
 // =====================================================
-// GROUP 3: ระบบเว็บออโต้
+// GROUP 3: ระบบเว็บออโต้ (ไม่มีเอเย่นต์)
 // =====================================================
 
 const autoWebSystemItems = [
@@ -167,18 +175,26 @@ const financeTransactionItems = [
 
 // =====================================================
 // GROUP 5: การจัดการสมาชิก
+// แยกชัดเจน: ลูกค้า / แอดมินภายใน / พนักงานออฟฟิศ
 // =====================================================
 
-const memberManagementItems = [
-  { id: 'users', title: 'ศูนย์ปฏิบัติการ/ศูนย์แอดมิน', href: '/users', icon: Headphones },
-  { id: 'roles-permissions', title: 'สิทธิ์การใช้งาน', href: '/roles-permissions', icon: Shield },
+// 5.1 ลูกค้าหวยคีย์ (ลูกค้าภายนอก)
+const customerManagementItems = [
   { id: 'customers', title: 'ลูกค้าแทงหวย', href: '/customers', icon: Users },
   { id: 'customer-history', title: 'ประวัติลูกค้า', href: '/customer-history', icon: History },
   { id: 'customer-banks', title: 'ธนาคารลูกค้า', href: '/customer-banks', icon: Landmark },
   { id: 'member-summary', title: 'สรุปลูกค้า', href: '/member-summary', icon: UsersRound },
-  { id: 'agent-system', title: 'สายงานเอเย่นต์', href: '/agent-system', icon: GitBranch },
-  { id: 'agent-system-members', title: 'จัดการพนักงาน/ทีมงาน', href: '/agent-system/members', icon: Users },
-  { id: 'agent-system-commission', title: 'คอมมิชชั่นเอเย่นต์', href: '/agent-system/commission', icon: DollarSign },
+];
+
+// 5.2 ศูนย์แอดมิน (พนักงานภายใน + สิทธิ์การใช้งาน)
+const adminCenterItems = [
+  { id: 'users', title: 'ศูนย์ปฏิบัติการ/ศูนย์แอดมิน', href: '/users', icon: Headphones },
+  { id: 'roles-permissions', title: 'สิทธิ์การใช้งาน', href: '/roles-permissions', icon: Shield },
+];
+
+// 5.3 จัดการพนักงาน/ทีมงาน (Staff ออฟฟิศที่ดูแลระบบ)
+const staffManagementItems = [
+  { id: 'staff-management', title: 'จัดการพนักงาน', href: '/staff-management', icon: Users },
   { id: 'admin-attendance-report', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock },
   { id: 'admin-performance', title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck },
   { id: 'staff-performance', title: 'ผลงานพนักงาน', href: '/staff-performance', icon: Target },
@@ -318,7 +334,17 @@ const menuSections: MenuSection[] = [
     memberVisible: true 
   },
   
-  // === GROUP 3: ระบบเว็บออโต้ ===
+  // === GROUP 2.1: เอเย่นต์คีย์หวย (Manual Key Only) ===
+  { 
+    title: 'เอเย่นต์คีย์หวย', 
+    icon: GitBranch, 
+    items: agentHierarchyItems, 
+    defaultOpen: false, 
+    adminOnly: true,
+    agentVisible: true,
+  },
+  
+  // === GROUP 3: ระบบเว็บออโต้ (ไม่มีเอเย่นต์) ===
   { 
     title: 'ระบบเว็บออโต้', 
     icon: Zap, 
@@ -329,7 +355,7 @@ const menuSections: MenuSection[] = [
   
   // === GROUP 4: ธุรกรรมการเงิน ===
   { 
-    title: '���ุรกรรมการเงิน', 
+    title: 'ธุรกรรมการเงิน', 
     icon: Wallet, 
     items: financeTransactionItems, 
     defaultOpen: true, 
@@ -338,14 +364,32 @@ const menuSections: MenuSection[] = [
     memberVisible: true 
   },
   
-  // === GROUP 5: การจัดการสมาชิก ===
+  // === GROUP 5.1: จัดการลูกค้า ===
   { 
-    title: 'การจัดการสมาชิก', 
-    icon: UsersRound, 
-    items: memberManagementItems, 
+    title: 'จัดการลูกค้า', 
+    icon: Users, 
+    items: customerManagementItems, 
     defaultOpen: false, 
     adminOnly: true, 
     staffVisible: true 
+  },
+  
+  // === GROUP 5.2: ศูนย์แอดมิน (สิทธิ์การใช้งาน) ===
+  { 
+    title: 'ศูนย์แอดมิน', 
+    icon: Headphones, 
+    items: adminCenterItems, 
+    defaultOpen: false, 
+    adminOnly: true, 
+  },
+  
+  // === GROUP 5.3: จัดการพนักงาน ===
+  { 
+    title: 'จัดการพนักงาน', 
+    icon: UsersRound, 
+    items: staffManagementItems, 
+    defaultOpen: false, 
+    adminOnly: true, 
   },
   
   // === GROUP 6: รายงานสรุปผล ===
