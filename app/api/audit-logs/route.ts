@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
+    const category = searchParams.get('category');
     const userId = searchParams.get('user_id');
     const tableName = searchParams.get('table_name');
     const limit = parseInt(searchParams.get('limit') || '100');
@@ -23,6 +24,9 @@ export async function GET(request: NextRequest) {
 
     if (action && action !== 'all') {
       query = query.eq('action', action);
+    }
+    if (category && category !== 'all') {
+      query = query.eq('category', category);
     }
     if (userId) {
       query = query.eq('user_id', userId);
