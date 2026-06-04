@@ -103,6 +103,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Auth guard
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     const { customer_id, type, amount, note, created_by } = body;
@@ -115,6 +119,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get customer current balance (database uses credit_balance column)
+    // WARNING: Race condition risk - read-then-write pattern
+    // TODO: Convert to atomic transaction using Postgres RPC with FOR UPDATE lock
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .select('id, name, credit_balance')

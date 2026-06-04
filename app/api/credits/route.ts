@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // GET - fetch credit transactions for a customer
 export async function GET(request: NextRequest) {
+  // SECURITY: Auth guard
+  const authResult = await requireAgentOrHigher();
+  if (authResult instanceof NextResponse) return authResult;
+
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
   const customerId = searchParams.get('customer_id');
@@ -34,6 +39,10 @@ export async function GET(request: NextRequest) {
 
 // POST - create a credit transaction (deposit/withdraw)
 export async function POST(request: NextRequest) {
+  // SECURITY: Auth guard - only agents or higher can modify credits
+  const authResult = await requireAgentOrHigher();
+  if (authResult instanceof NextResponse) return authResult;
+
   const supabase = await createClient();
   const body = await request.json();
   const { customer_id, type, amount, note, created_by } = body;
@@ -53,6 +62,9 @@ export async function POST(request: NextRequest) {
   }
 
   // Get current balance
+  // WARNING: Race condition risk - read-then-write pattern
+  // TODO: Convert to atomic transaction using Postgres RPC with FOR UPDATE lock
+  // For production, create function: process_credit_transaction(customer_id, type, amount)
   const { data: customer, error: fetchError } = await supabase
     .from('customers')
     .select('credit_balance')
