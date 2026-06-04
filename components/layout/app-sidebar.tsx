@@ -262,20 +262,21 @@ const manualKeyItems = [
 // ลบออกเพื่อลดความซ้ำซ้อน - ให้เอเย่นต์ใช้ หวย > คีย์หวย แทน
 
 // === AGENT DASHBOARD MENUS (แยกจาก Admin) ===
-// เมนูสำหรับ Agent โดยเฉพาะ - ไม่เห็นข้อมูลเว็บแม่
+// เมนูสำหรับ Agent โดยเฉพาะ - ใช้ menu_ids ตรงกับ tier_permissions
 const agentDashboardItem = {
-  id: 'agent-dashboard',
-  title: 'Dashboard เอเย่นต์',
-  href: '/agent-dashboard',
+  id: 'dashboard',
+  title: 'Dashboard',
+  href: '/',
   icon: LayoutDashboard,
 };
 
+// Agent Operation Items - ใช้ menu_ids จาก tier_permissions
 const agentOperationItems = [
-  { id: 'agent-slip-upload', title: 'ศูนย์การเงิน', href: '/member/slip-upload', icon: Upload },
-  { id: 'agent-summary', title: 'สรุปรายได้', href: '/member/summary', icon: DollarSign },
-  { id: 'agent-finance', title: 'ประวัติธุรกรรม', href: '/member/finance', icon: Receipt },
+  { id: 'attendance', title: 'ลงเวลางาน', href: '/attendance', icon: Clock },
+  { id: 'prize-payout', title: 'จ่ายรางวัลลูกค้าคีย์', href: '/prize-payout', icon: Trophy },
 ];
 
+// Agent Downline Items - ยังคงเดิม (ถ้ามีใน tier_permissions)
 const agentDownlineItems = [
   { id: 'agent-members', title: 'ลูกค้าใต้สาย', href: '/agent-members', icon: Users },
   { id: 'agent-commission', title: 'คอมมิชชั่น', href: '/agent/commission', icon: DollarSign },
@@ -283,10 +284,13 @@ const agentDownlineItems = [
   { id: 'agent-withdraw-history', title: 'ถอนคอมมิชชั่น', href: '/agent-withdraw-history', icon: ArrowDownToLine },
 ];
 
+// Agent Key Items - ใช้ menu_ids ตรงกับ tier_permissions (manual-key-*)
 const agentBettingItems = [
-  { id: 'agent-betting', title: 'คีย์โพย', href: '/agent-terminal/betting', icon: PenLine },
-  { id: 'agent-entries', title: '��ายการ��พย', href: '/entries', icon: List },
-  { id: 'agent-results', title: 'ผลหวย', href: '/results', icon: Trophy },
+  { id: 'manual-key', title: 'ภาพรวมคีย์หวย', href: '/manual-key', icon: Keyboard },
+  { id: 'manual-key-entry', title: 'คีย์โพย', href: '/admin/key', icon: PenLine },
+  { id: 'manual-key-entries', title: 'รายการคีย์หวย', href: '/manual-key/entries', icon: List },
+  { id: 'manual-key-customers', title: 'ลูกค้าคีย์หวย', href: '/manual-key/customers', icon: Users },
+  { id: 'results', title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
 // === SUB-AGENT MENUS (พนักงานคีย์หวย) ===
