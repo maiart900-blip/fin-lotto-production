@@ -794,6 +794,7 @@ export function AppSidebar() {
         <div className="text-xs text-center space-y-1">
           <p className="font-bold bg-gradient-to-r from-[#F5D061] via-[#D4AF37] to-[#B8860B] bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]">FIN LOTTO R+</p>
           <p className="text-[#555555]">Premium Admin v2.0</p>
+          <p className="text-[#444444] text-[10px]">Build: d6bf199-{new Date().toISOString().slice(0,10)}</p>
         </div>
       </SidebarFooter>
     </Sidebar>
