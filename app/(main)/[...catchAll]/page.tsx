@@ -5,10 +5,17 @@ import { Construction, Home, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 export default function CatchAllPage() {
   const router = useRouter();
   const pathname = usePathname();
+
+  // EXCLUSION RULE: ห้าม intercept routes ที่เป็น /agent/*
+  // ปล่อยให้ Next.js route ไปยัง app/agent/* ตามปกติ
+  if (pathname.startsWith('/agent/') || pathname === '/agent') {
+    notFound();
+  }
 
   // ดึงชื่อหน้าจาก pathname เช่น /topup-requests -> คำขอเติมเงิน
   const pageNames: Record<string, string> = {
