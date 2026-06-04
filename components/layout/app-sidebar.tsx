@@ -198,13 +198,13 @@ const marketingCenterItems = [
   { id: 'marketing-member', title: 'หน้าหลักสมาชิก', href: '/marketing-center/member', icon: Users },
   { id: 'marketing-partner', title: 'หน้าข้อมูลพาร์ทเนอร์', href: '/marketing-center/partner', icon: Handshake },
   { id: 'qr-generator', title: 'สร้าง QR Code', href: '/marketing-center/qr-generator', icon: QrCode },
-  { id: 'marketing-links', title: 'ลิงก์สมาชิก', href: '/member-links', icon: Link2 },
+  // Removed duplicate: marketing-links pointed to same /member-links as member-links
 ];
 
 // 7.5. เอเย่น / Partner (รวมเมนูที่ซ้ำซ้อนให้กระชับ)
 const agentPartnerItems = [
   { id: 'agents', title: 'รายชื่อเอเย่น', href: '/agents', icon: UsersRound },
-  { id: 'agent-system', title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },
+  { id: 'agent-system-overview', title: 'สายงานเอเย่นต์', href: '/agent-system', icon: Network },  // Renamed to avoid duplicate
   { id: 'agent-members', title: 'สมาชิกใต้สาย', href: '/agent-members', icon: Users },
   { id: 'agent-commissions', title: 'คอมมิชชั่น', href: '/agent-commissions', icon: DollarSign },
   { id: 'agent-reports', title: 'รายงาน', href: '/agent-reports', icon: BarChart3 },
@@ -266,7 +266,7 @@ const manualKeyItems = [
 const agentDashboardItem = {
   id: 'agent-dashboard',
   title: 'Dashboard เอเย่นต์',
-  href: '/agent-dashboard',
+  href: '/agent/dashboard',  // Canonical route
   icon: LayoutDashboard,
 };
 
@@ -285,17 +285,17 @@ const agentDownlineItems = [
 
 const agentBettingItems = [
   { id: 'agent-betting', title: 'คีย์โพย', href: '/agent-terminal/betting', icon: PenLine },
-  { id: 'agent-entries', title: '��ายการ��พย', href: '/entries', icon: List },
+  { id: 'agent-entries', title: 'รายการโพย', href: '/manual-key/entries', icon: List },  // แยกเป็น Manual
   { id: 'agent-results', title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
 // === SUB-AGENT MENUS (พนักงานคีย์หวย) ===
-// เมนูเฉพาะระดับ (Manual Key) สำหรับ Sub-Agent - 4 เมนู
+// เมนูเฉพาะระดับ (Manual Key) สำหรับ Sub-Agent - ชี้ไป routes ที่มีจริง
 const subAgentKeyItems = [
-  { id: 'sub-agent-key-daily', title: 'หน้าจอคีย์���ลขหวยรายวัน', href: '/sub-agent/key-daily', icon: PenLine },
-  { id: 'sub-agent-key-history', title: 'ประวัติการคีย์วันนี้', href: '/sub-agent/key-history', icon: History },
-  { id: 'sub-agent-customer-list', title: 'รายชื่อลูกค้า', href: '/sub-agent/customers', icon: Users },
-  { id: 'sub-agent-results', title: 'ดูผลหวย', href: '/sub-agent/results', icon: Trophy },
+  { id: 'sub-agent-key-daily', title: 'คีย์หวย', href: '/admin/key', icon: PenLine },  // ใช้หน้า admin/key
+  { id: 'sub-agent-key-history', title: 'รายการคีย์วันนี้', href: '/manual-key/entries', icon: History },  // ใช้หน้า entries
+  { id: 'sub-agent-customer-list', title: 'ลูกค้าคีย์หวย', href: '/manual-key/customers', icon: Users },  // ใช้หน้า customers
+  { id: 'sub-agent-results', title: 'ดูผลหวย', href: '/results', icon: Trophy },  // ใช้หน้า results
 ];
 
 // 12.2 สายงานเอเย่นต์ Manual (Manual Downline Management)
