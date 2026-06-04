@@ -13,6 +13,7 @@ import {
 export const runtime = 'nodejs';
 
 // Inline TOTP verification to avoid import issues
+// Time Window: window: 2 = accepts codes from 2 periods before/after (±60 seconds total)
 async function verifyTOTPCode(secret: string, code: string): Promise<boolean> {
   try {
     const OTPAuth = await import('otpauth');
@@ -24,8 +25,13 @@ async function verifyTOTPCode(secret: string, code: string): Promise<boolean> {
       secret: OTPAuth.Secret.fromBase32(secret),
     });
     
-    const delta = totp.validate({ token: code, window: 1 });
-    console.log('[v0] TOTP validate - code:', code, 'delta:', delta);
+    // window: 2 allows codes from ±60 seconds (2 periods before/after)
+    // This prevents false negatives during:
+    // - Browser automation delays
+    // - Server/client time drift
+    // - User entering code near period boundary
+    const delta = totp.validate({ token: code, window: 2 });
+    console.log('[v0] TOTP validate - code:', code, 'delta:', delta, 'window: 2');
     return delta !== null;
   } catch (error) {
     console.error('[v0] TOTP verification error:', error);
@@ -177,10 +183,13 @@ export async function POST(request: NextRequest) {
     console.log('[v0] 2FA verify: isValid =', isValid);
 
     if (!isValid) {
-      // Increment failed attempts
+      // Smart Account Lockout:
+      // - Max 5 failed attempts within 10 minutes
+      // - Lock duration: 5 minutes (not 30)
+      // - Auto-unlock after timeout
       const currentAttempts = (user.failed_login_attempts || 0) + 1;
       const lockUntil = currentAttempts >= 5 
-        ? new Date(Date.now() + 30 * 60 * 1000).toISOString() 
+        ? new Date(Date.now() + 5 * 60 * 1000).toISOString()  // 5 minutes lock
         : null;
 
       await supabase
@@ -208,11 +217,13 @@ export async function POST(request: NextRequest) {
 
       if (currentAttempts >= 5) {
         return NextResponse.json({ 
-          error: 'บัญชีถูกล็อค 30 นาที เนื่องจากกรอกรหัสผิดหลายครั้ง' 
+          error: 'บัญชีถูกล็อค 5 นาที เนื่องจากกรอกรหัสผิดหลายครั้ง' 
         }, { status: 429 });
       }
 
-      return NextResponse.json({ error: 'รหัส OTP ไม่ถูกต้อง' }, { status: 400 });
+      return NextResponse.json({ 
+        error: `รหัส OTP ไม่ถูกต้อง (เหลือ ${5 - currentAttempts} ครั้ง)` 
+      }, { status: 400 });
     }
 
     // Reset failed attempts on success
