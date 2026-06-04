@@ -4,68 +4,70 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ================================
-   PREMIUM GOLD & MIDNIGHT LUXURY
-   FIN LOTTO R+ - High-End Betting Platform
-   ULTRA PREMIUM EDITION
+   ULTRA PREMIUM GOLD & OBSIDIAN
+   FIN LOTTO R+ - High-End Casino Aesthetic
+   LUXURY EDITION v2.0
    ================================ */
 
 :root {
-  /* Core Premium Colors - Deep Black & Charcoal */
+  /* Core Premium Colors - Obsidian Black */
   --midnight: #000000;
-  --midnight-deep: #050505;
-  --midnight-light: #0a0a0a;
-  --charcoal: #121212;
-  --charcoal-light: #1a1a1a;
+  --midnight-deep: #030303;
+  --midnight-light: #080808;
+  --charcoal: #0d0d0d;
+  --charcoal-light: #141414;
+  --velvet-navy: #0a0a14;
   
-  /* Premium Gold Palette - Metallic Gradient */
-  --gold-primary: #D4AF37;
-  --gold-dark: #B8860B;
-  --gold-light: #F5D061;
-  --gold-bright: #FFD700;
+  /* Premium Champagne Gold Palette */
+  --gold-champagne: #D4AF37;
+  --gold-rose: #B76E79;
   --gold-metallic: #C9A227;
-  --gold-shine: #FFFACD;
-  --gold-deep: #996515;
+  --gold-bright: #F5D061;
+  --gold-shine: #FFE8A0;
+  --gold-deep: #9A7B4F;
+  --gold-glow: rgba(212, 175, 55, 0.4);
   
   /* Legacy Colors */
-  --pearl-white: #FFFFFF;
-  --light-grey: #F8FAFC;
-  --deep-slate: #1E293B;
+  --pearl-white: #FAFAFA;
+  --ivory: #F5F5F0;
+  --platinum: #E8E8E8;
   
-  /* Background - Deep Black Premium */
-  --background: #050505;
+  /* Background - Obsidian with depth */
+  --background: #030303;
   --foreground: #F5F5F5;
   
-  /* Cards - Deep Black with Gold Border */
+  /* Cards - Glassmorphic Dark */
   --card: #0a0a0a;
   --card-foreground: #F5F5F5;
   
   /* Popovers */
-  --popover: #121212;
+  --popover: #0d0d0d;
   --popover-foreground: #F5F5F5;
   
-  /* Primary - Premium Gold */
+  /* Primary - Champagne Gold */
   --primary: #D4AF37;
   --primary-foreground: #000000;
   
-  /* Secondary - Charcoal */
-  --secondary: #1a1a1a;
+  /* Secondary - Deep Charcoal */
+  --secondary: #141414;
   --secondary-foreground: #F5F5F5;
   
-  /* Muted - FIXED: Brighter text for dark backgrounds */
-  --muted: #2a2a2a;
-  --muted-foreground: #B0B0B0;
+  /* Muted - Brighter for readability */
+  --muted: #1a1a1a;
+  --muted-foreground: #B8B8B8;
   
   /* Accent - Gold Glow */
-  --accent: rgba(212, 175, 55, 0.15);
+  --accent: rgba(212, 175, 55, 0.12);
   --accent-foreground: #D4AF37;
   
   /* Destructive */
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
   
-  /* Borders - Gold subtle */
-  --border: #2a2a2a;
-  --input: #1a1a1a;
+  /* Borders - Crisp Gold */
+  --border: rgba(212, 175, 55, 0.15);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --input: #141414;
   --ring: #D4AF37;
   
   /* Charts */
@@ -77,14 +79,14 @@
   
   --radius: 0.75rem;
   
-  /* Sidebar - Pure Black Premium */
+  /* Sidebar - Pure Obsidian */
   --sidebar: #000000;
-  --sidebar-foreground: #E5E5E5;
+  --sidebar-foreground: #E8E8E8;
   --sidebar-primary: #D4AF37;
   --sidebar-primary-foreground: #000000;
-  --sidebar-accent: rgba(212, 175, 55, 0.12);
+  --sidebar-accent: rgba(212, 175, 55, 0.10);
   --sidebar-accent-foreground: #D4AF37;
-  --sidebar-border: rgba(212, 175, 55, 0.15);
+  --sidebar-border: rgba(212, 175, 55, 0.12);
   --sidebar-ring: #D4AF37;
   
   /* Custom Premium Colors */
@@ -501,16 +503,18 @@
 
 /* ================================
    GLASSMORPHISM STATS CARDS
-   Premium frosted glass effect
+   Ultra Premium frosted glass effect
    ================================ */
 .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(234, 179, 8, 0.25);
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(212, 175, 55, 0.15);
   border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
-              0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 0 60px rgba(212, 175, 55, 0.03);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -522,38 +526,57 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
-  background: linear-gradient(180deg, rgba(252, 246, 186, 0.15) 0%, transparent 100%);
-  pointer-events: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
 }
 
 .glass-card:hover {
-  border-color: rgba(234, 179, 8, 0.5);
-  box-shadow: 0 12px 48px rgba(184, 134, 11, 0.2),
-              0 0 40px rgba(234, 179, 8, 0.15),
-              0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  border-color: rgba(212, 175, 55, 0.35);
+  box-shadow: 
+    0 16px 64px rgba(0, 0, 0, 0.5),
+    0 0 80px rgba(212, 175, 55, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
   transform: translateY(-6px);
 }
 
 /* Gold corner accent for glass cards */
 .glass-card-gold {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(234, 179, 8, 0.3);
+  background: rgba(10, 10, 10, 0.9);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border-radius: 20px;
   position: relative;
   overflow: hidden;
 }
 
+.glass-card-gold::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 10%, rgba(212, 175, 55, 0.5), transparent 90%);
+}
+
 .glass-card-gold::after {
   content: '';
   position: absolute;
-  top: -30px;
-  right: -30px;
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.3) 0%, transparent 70%);
+  top: -40px;
+  right: -40px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
   border-radius: 50%;
+}
+
+/* White glass card for light sections */
+.glass-card-light {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 /* ================================
@@ -2241,3 +2264,327 @@ input, textarea, select, button:active {
   opacity: 1;
 }
 
+/* ================================
+   ULTRA LUXURY EFFECTS
+   High-End Casino Aesthetic
+   ================================ */
+
+/* Obsidian Background with Radial Depth */
+.bg-obsidian {
+  background: radial-gradient(ellipse at 50% 0%, #0d0d14 0%, #030303 50%, #000000 100%);
+}
+
+.bg-obsidian-deep {
+  background: radial-gradient(ellipse at 50% 50%, #080810 0%, #030303 100%);
+}
+
+.bg-velvet-navy {
+  background: radial-gradient(ellipse at 50% 0%, #0a0a1a 0%, #050510 50%, #000005 100%);
+}
+
+/* Champagne Gold Gradients */
+.gradient-gold-champagne {
+  background: linear-gradient(135deg, #D4AF37 0%, #F5D061 25%, #C9A227 50%, #F5D061 75%, #D4AF37 100%);
+}
+
+.gradient-gold-metallic {
+  background: linear-gradient(135deg, 
+    #bf953f 0%, 
+    #fcf6ba 25%, 
+    #b38728 50%, 
+    #fbf5b7 75%, 
+    #aa771c 100%
+  );
+}
+
+.gradient-gold-rose {
+  background: linear-gradient(135deg, #D4AF37 0%, #B76E79 50%, #D4AF37 100%);
+}
+
+/* Gold Text with Metallic Shimmer */
+.text-gold-metallic {
+  background: linear-gradient(135deg, #D4AF37 0%, #F5D061 25%, #C9A227 50%, #F5D061 75%, #D4AF37 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-gold 3s linear infinite;
+}
+
+@keyframes shimmer-gold {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Neon Gold Glow */
+.glow-gold {
+  box-shadow: 
+    0 0 10px rgba(212, 175, 55, 0.3),
+    0 0 20px rgba(212, 175, 55, 0.2),
+    0 0 40px rgba(212, 175, 55, 0.1);
+}
+
+.glow-gold-intense {
+  box-shadow: 
+    0 0 15px rgba(212, 175, 55, 0.5),
+    0 0 30px rgba(212, 175, 55, 0.3),
+    0 0 60px rgba(212, 175, 55, 0.2);
+}
+
+.glow-gold-text {
+  text-shadow: 
+    0 0 10px rgba(212, 175, 55, 0.5),
+    0 0 20px rgba(212, 175, 55, 0.3),
+    0 0 40px rgba(212, 175, 55, 0.2);
+}
+
+/* Gold Glow on Hover */
+.hover-glow-gold {
+  transition: all 0.3s ease-in-out;
+}
+
+.hover-glow-gold:hover {
+  box-shadow: 
+    0 0 20px rgba(212, 175, 55, 0.4),
+    0 0 40px rgba(212, 175, 55, 0.2),
+    0 0 60px rgba(212, 175, 55, 0.1);
+}
+
+/* Premium Button - Gold */
+.btn-luxury-gold {
+  background: linear-gradient(135deg, #D4AF37 0%, #C9A227 50%, #D4AF37 100%);
+  color: #000000;
+  font-weight: 600;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  box-shadow: 
+    0 4px 15px rgba(212, 175, 55, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-luxury-gold::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease-in-out;
+}
+
+.btn-luxury-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(212, 175, 55, 0.5),
+    0 0 40px rgba(212, 175, 55, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-luxury-gold:hover::before {
+  left: 100%;
+}
+
+/* Premium Button - Outline Gold */
+.btn-luxury-gold-outline {
+  background: transparent;
+  color: #D4AF37;
+  font-weight: 600;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  padding: 12px 24px;
+  border-radius: 12px;
+  transition: all 0.3s ease-in-out;
+}
+
+.btn-luxury-gold-outline:hover {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: #D4AF37;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+}
+
+/* Luxury Card - Glassmorphic Dark */
+.card-luxury {
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(212, 175, 55, 0.12);
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-luxury::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+}
+
+.card-luxury:hover {
+  border-color: rgba(212, 175, 55, 0.25);
+  box-shadow: 
+    0 16px 64px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(212, 175, 55, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-4px);
+}
+
+/* Luxury Table */
+.table-luxury-dark {
+  background: rgba(10, 10, 10, 0.9);
+  border: 1px solid rgba(212, 175, 55, 0.12);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.table-luxury-dark thead {
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.table-luxury-dark thead th {
+  color: #D4AF37;
+  font-weight: 600;
+  padding: 16px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.table-luxury-dark tbody tr {
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease-in-out;
+}
+
+.table-luxury-dark tbody tr:hover {
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.table-luxury-dark tbody td {
+  color: #E8E8E8;
+  padding: 14px 16px;
+}
+
+/* Premium Amount Display */
+.amount-luxury {
+  font-family: 'Inter', monospace;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: #D4AF37;
+  text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.amount-luxury-large {
+  font-family: 'Inter', monospace;
+  font-weight: 800;
+  font-size: 2.5rem;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #D4AF37 0%, #F5D061 50%, #D4AF37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.4));
+}
+
+/* Crisp Gold Border */
+.border-gold-crisp {
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.border-gold-crisp-hover:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+}
+
+/* Smooth Transitions for All Interactive Elements */
+.transition-luxury {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-luxury-slow {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Icon Minimalist Style */
+.icon-minimalist {
+  stroke-width: 1.5;
+  opacity: 0.9;
+  transition: all 0.3s ease-in-out;
+}
+
+.icon-minimalist:hover {
+  opacity: 1;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+/* Sidebar Icon Premium */
+.sidebar-icon-premium {
+  color: #A0A0A0;
+  transition: all 0.3s ease-in-out;
+}
+
+.sidebar-icon-premium:hover,
+.sidebar-icon-premium.active {
+  color: #D4AF37;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.5));
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.5);
+}
+
+/* Premium Selection */
+::selection {
+  background: rgba(212, 175, 55, 0.3);
+  color: #FFFFFF;
+}
+
+/* Focus Ring Gold */
+.focus-ring-gold:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.5);
+}
+
+/* Animated Border Glow */
+@keyframes border-glow {
+  0%, 100% {
+    border-color: rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.1);
+  }
+  50% {
+    border-color: rgba(212, 175, 55, 0.4);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  }
+}
+
+.border-glow-animated {
+  animation: border-glow 3s ease-in-out infinite;
+}
