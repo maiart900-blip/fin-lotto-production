@@ -395,8 +395,7 @@ export const AGENT_DEFAULT_MENUS = [
   
   // Agent system - สายงานเอเย่นต์ (manage sub-agents and staff)
   'agent-system', '/agent-system',
-  'agent-system/agents', '/agent-system/agents', // จัดการเอเย่นต์
-  'agent-system/staff', '/agent-system/staff', // จัดการพนักงาน/ทีมงาน
+  'agent-system/members', '/agent-system/members', // จัดการพนักงาน/ทีมงาน
   'agent-system/commission', '/agent-system/commission', // คอมมิชชั่น
   
   // Credit management (distribute credit to sub-agents)

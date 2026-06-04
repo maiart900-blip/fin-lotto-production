@@ -114,7 +114,7 @@ export default function AgentStaffPage() {
             <h2 className="text-2xl font-bold text-amber-600">จัดการพนักงาน</h2>
             <p className="text-muted-foreground">รายชื่อ Sub-Agent และพนักงานในสายงาน</p>
           </div>
-          <Link href="/agent-system/agents">
+          <Link href="/agent-system/members">
             <Button className="bg-amber-500 hover:bg-amber-600 text-white gap-2">
               <UserPlus className="size-4" />
               เพิ่มพนักงาน
