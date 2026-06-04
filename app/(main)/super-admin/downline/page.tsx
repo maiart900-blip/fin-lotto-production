@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { RouteGuard } from '@/components/security/route-guard';
 import { 
   Crown, 
   TrendingUp, 
@@ -385,7 +386,8 @@ export default function SuperAdminDownlinePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#030712] via-[#0a0f1a] to-[#030712] p-4 md:p-6 space-y-6">
+  <RouteGuard requireSuperAdmin>
+  <div className="min-h-screen bg-gradient-to-b from-[#030712] via-[#0a0f1a] to-[#030712] p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -573,5 +575,6 @@ export default function SuperAdminDownlinePage() {
         )}
       </div>
     </div>
+  </RouteGuard>
   );
 }
