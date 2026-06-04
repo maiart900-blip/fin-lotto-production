@@ -140,6 +140,17 @@ export default function TwoFactorVerifyPage() {
                       ? e.target.value.toUpperCase() 
                       : e.target.value.replace(/\D/g, '');
                     setVerificationCode(value);
+                    
+                    // Auto-submit immediately when code is complete (no delay)
+                    // For TOTP: 6 digits, For Backup: 6 characters
+                    const requiredLength = 6;
+                    if (value.length === requiredLength && !useBackupCode) {
+                      // Use setTimeout(0) to allow state to update before submit
+                      setTimeout(() => {
+                        const form = document.querySelector('form');
+                        if (form) form.requestSubmit();
+                      }, 0);
+                    }
                   }}
                   placeholder={useBackupCode ? 'XXXXXX' : '000000'}
                   className="w-full h-14 pl-12 text-center text-xl font-mono tracking-widest bg-neutral-800/50 border border-neutral-700 rounded-xl text-white placeholder:text-neutral-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all"

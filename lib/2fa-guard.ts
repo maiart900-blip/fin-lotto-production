@@ -80,6 +80,11 @@ export async function generate2FASecret(username: string): Promise<{ secret: str
 }
 
 // Verify TOTP code using otpauth (async for dynamic import)
+// Time Window: window: 2 = accepts codes from 2 periods before/after (±60 seconds total)
+// This helps with:
+// - Server/client time drift
+// - Browser automation delays
+// - User entering code near period boundary
 export async function verify2FACode(secret: string, code: string): Promise<boolean> {
   console.log('[v0] verify2FACode called with secret length:', secret?.length, 'code:', code);
   
@@ -98,9 +103,10 @@ export async function verify2FACode(secret: string, code: string): Promise<boole
     console.log('[v0] Current valid token:', currentToken, 'Input code:', code);
     
     // validate returns null if invalid, or delta (time difference) if valid
-    // window: 1 allows 1 period before/after (±30 seconds)
-    const delta = totp.validate({ token: code, window: 1 });
-    console.log('[v0] TOTP validate delta:', delta, '(null=invalid, number=valid)');
+    // window: 2 allows 2 periods before/after (±60 seconds)
+    // This prevents false negatives when code is entered near period boundary
+    const delta = totp.validate({ token: code, window: 2 });
+    console.log('[v0] TOTP validate delta:', delta, '(null=invalid, number=valid, window=2)');
     
     const isValid = delta !== null;
     console.log('[v0] verify2FACode result:', isValid);
