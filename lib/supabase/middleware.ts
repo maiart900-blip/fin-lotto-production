@@ -28,9 +28,9 @@ const ROLE_ROUTES: Record<string, string[]> = {
   '/agents': ['super_admin', 'master_admin', 'admin'],
   '/customers': ['super_admin', 'master_admin', 'admin', 'agent', 'sub_agent'],
   '/settings': ['super_admin', 'master_admin', 'admin', 'agent'],
-  '/manual-key': ['super_admin', 'master_admin', 'admin', 'agent', 'agent_key', 'sub_agent', 'key_staff', 'staff'],
-  '/key-entry': ['super_admin', 'master_admin', 'admin', 'agent', 'agent_key', 'sub_agent', 'key_staff', 'staff'],
-  '/auto-system': ['super_admin', 'master_admin', 'admin', 'agent', 'agent_key', 'sub_agent', 'key_staff', 'staff'],
+  '/manual-key': ['super_admin', 'master_admin', 'admin', 'agent', 'sub_agent', 'key_staff', 'staff'],
+  '/key-entry': ['super_admin', 'master_admin', 'admin', 'agent', 'sub_agent', 'key_staff', 'staff'],
+  '/auto-system': ['super_admin', 'master_admin', 'admin', 'agent', 'sub_agent', 'key_staff', 'staff'],
   '/c': ['customer', 'super_admin', 'master_admin'],
 };
 
