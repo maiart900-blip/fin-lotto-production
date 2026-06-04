@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Radio, Trophy, Clock, Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft, Radio, Trophy, Clock, Loader2, RefreshCw, Sparkles, Crown, Tv } from 'lucide-react';
 import useSWR from 'swr';
+import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json()).then(data => Array.isArray(data) ? data : []);
 
@@ -27,7 +27,13 @@ interface LiveSession {
   };
 }
 
-// Spinning digit component for customer view
+interface LiveStreamSettings {
+  is_live: boolean;
+  stream_url?: string;
+  stream_type?: 'youtube' | 'facebook' | 'embed' | 'custom';
+}
+
+// Luxury Spinning digit component
 function SpinningDigit({ 
   finalDigit, 
   isSpinning, 
@@ -65,28 +71,24 @@ function SpinningDigit({
   }, [isSpinning, finalDigit, delay]);
 
   const sizeClasses = size === 'large' 
-    ? 'w-12 h-14 text-2xl sm:w-14 sm:h-16 sm:text-3xl'
-    : 'w-10 h-12 text-xl sm:w-12 sm:h-14 sm:text-2xl';
+    ? 'w-12 h-16 text-2xl sm:w-14 sm:h-18 sm:text-3xl'
+    : 'w-10 h-14 text-xl sm:w-12 sm:h-16 sm:text-2xl';
 
   return (
-    <div className={`${sizeClasses} flex items-center justify-center font-mono font-bold rounded-lg border-2 ${
+    <div className={`${sizeClasses} flex items-center justify-center font-mono font-bold rounded-xl border-2 transition-all duration-300 ${
       isSpinning 
-        ? 'border-amber-500 bg-amber-500/20 text-amber-400 animate-pulse' 
+        ? 'border-amber-500 bg-amber-500/20 text-amber-400 animate-pulse glow-pulse' 
         : finalDigit !== null 
-        ? 'border-yellow-500 bg-gradient-to-b from-yellow-500/30 to-yellow-600/30 text-yellow-400 shadow-lg shadow-yellow-500/20' 
-        : 'border-white/20 bg-white/5 text-white/40'
+        ? 'border-amber-500/50 bg-gradient-to-b from-amber-500/20 to-amber-600/10 text-amber-400 shadow-lg shadow-amber-500/20' 
+        : 'border-neutral-700 bg-neutral-800/50 text-neutral-500'
     }`}>
       {currentDigit}
     </div>
   );
 }
 
-// Live result display for customer
-function LiveResultDisplay({ 
-  session,
-}: { 
-  session: LiveSession;
-}) {
+// Luxury Live result display
+function LiveResultDisplay({ session }: { session: LiveSession }) {
   const isSpinning = session.status === 'spinning';
   const topResult = session.top_result || '';
   const bottomResult = session.bottom_result || '';
@@ -98,7 +100,11 @@ function LiveResultDisplay({
     <div className="space-y-6">
       {/* 6 ตัวบน */}
       <div className="text-center">
-        <p className="text-white/60 text-sm mb-3">รางวัลที่ 1 (6 หลัก)</p>
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Crown className="w-4 h-4 text-amber-400" />
+          <p className="text-amber-400/80 text-sm font-medium">รางวัลที่ 1 (6 หลัก)</p>
+          <Crown className="w-4 h-4 text-amber-400" />
+        </div>
         <div className="flex justify-center gap-1.5 sm:gap-2">
           {sixDigits.map((digit, i) => (
             <SpinningDigit 
@@ -111,11 +117,11 @@ function LiveResultDisplay({
           ))}
         </div>
         {!isSpinning && topResult && (
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 px-3 py-1">
               3 ตัวบน: <span className="font-mono font-bold ml-1">{topResult.slice(-3)}</span>
             </Badge>
-            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 px-3 py-1">
               2 ตัวบน: <span className="font-mono font-bold ml-1">{topResult.slice(-2)}</span>
             </Badge>
           </div>
@@ -123,11 +129,11 @@ function LiveResultDisplay({
       </div>
 
       {/* Divider */}
-      <div className="border-t border-white/10" />
+      <div className="border-t border-amber-500/20" />
 
       {/* 2 ตัวล่าง */}
       <div className="text-center">
-        <p className="text-white/60 text-sm mb-3">2 ตัวล่าง</p>
+        <p className="text-amber-400/80 text-sm mb-3 font-medium">2 ตัวล่าง</p>
         <div className="flex justify-center gap-2">
           {twoDigits.map((digit, i) => (
             <SpinningDigit 
@@ -153,9 +159,16 @@ export default function LivePage() {
     `/api/live-draw?date=${today}`,
     fetcher,
     { 
-      refreshInterval: 2000, // Refresh every 2 seconds for realtime feel
+      refreshInterval: 2000,
       revalidateOnFocus: true,
     }
+  );
+
+  // Fetch live stream settings
+  const { data: streamSettings } = useSWR<LiveStreamSettings>(
+    '/api/live-stream/settings',
+    fetcher,
+    { refreshInterval: 10000 }
   );
 
   // Filter sessions by status
@@ -178,58 +191,110 @@ export default function LivePage() {
     }
   };
 
+  // Get stream embed URL
+  const getStreamEmbedUrl = () => {
+    if (!streamSettings?.stream_url) return null;
+    
+    const url = streamSettings.stream_url;
+    
+    // YouTube
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      const videoId = url.includes('youtu.be') 
+        ? url.split('/').pop() 
+        : new URL(url).searchParams.get('v');
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
+    }
+    
+    // Facebook
+    if (url.includes('facebook.com')) {
+      return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`;
+    }
+    
+    return url;
+  };
+
   return (
-    <div className="min-h-screen bg-[#0A0F1C]">
+    <div className="min-h-screen bg-black premium-bg-pattern">
+      {/* Animated Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-red-500/5 rounded-full blur-[100px]" />
+        <div className="absolute bottom-40 right-0 w-[300px] h-[300px] bg-amber-600/3 rounded-full blur-[80px]" />
+      </div>
+
       {/* Header */}
-      <div className="bg-gradient-to-b from-[#1a1f35] to-[#0A0F1C] border-b border-white/10 sticky top-0 z-10">
+      <div className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-amber-500/20">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => router.back()}
-              className="text-white hover:bg-white/10"
-            >
-              <ArrowLeft className="size-5" />
-            </Button>
-            <h1 className="text-lg font-semibold text-white">ถ่ายทอดสด</h1>
+            <Link href="/c">
+              <Button variant="ghost" size="icon" className="text-amber-400 hover:bg-amber-500/10">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <h1 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Radio className="w-5 h-5 text-red-500" />
+              ถ่ายทอดสด
+            </h1>
           </div>
           <Button 
             variant="ghost" 
             size="icon"
             onClick={() => mutate()}
-            className="text-white hover:bg-white/10"
+            className="text-amber-400 hover:bg-amber-500/10"
           >
-            <RefreshCw className="size-5" />
+            <RefreshCw className="w-5 h-5" />
           </Button>
         </div>
       </div>
 
-      <div className="p-4 space-y-4 pb-24">
-        {/* Banner */}
-        <div className="bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl p-5 text-white">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Radio className="size-10" />
-              {activeSessions.length > 0 && (
-                <span className="absolute -top-1 -right-1 size-3 bg-white rounded-full animate-pulse" />
-              )}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">ถ่ายทอดสดผลหวย</h2>
-              <p className="text-white/80 text-sm">
-                {activeSessions.length > 0 
-                  ? `กำลังออกผล ${activeSessions.length} รายการ`
-                  : 'รับชมการออกรางวัลแบบเรียลไทม์'}
-              </p>
+      <div className="p-4 space-y-4 pb-24 relative z-10">
+        {/* Live Stream Banner */}
+        <div className="glass-card-gold overflow-hidden glow-pulse">
+          <div className="bg-gradient-to-r from-red-600/30 to-pink-600/20 p-5">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
+                  <Tv className="w-6 h-6 text-white" />
+                </div>
+                {(activeSessions.length > 0 || streamSettings?.is_live) && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-black" />
+                )}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">ถ่ายทอดสดผลหวย</h2>
+                <p className="text-neutral-400 text-sm">
+                  {activeSessions.length > 0 
+                    ? `กำลังออกผล ${activeSessions.length} รายการ`
+                    : streamSettings?.is_live 
+                    ? 'กำลังถ่ายทอดสด'
+                    : 'รับชมการออกรางวัลแบบเรียลไทม์'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Live Stream Player */}
+        {streamSettings?.is_live && streamSettings?.stream_url && (
+          <div className="glass-card overflow-hidden">
+            <div className="p-3 border-b border-amber-500/20 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-sm font-medium text-white">LIVE STREAM</span>
+            </div>
+            <div className="aspect-video bg-black">
+              <iframe
+                src={getStreamEmbedUrl() || ''}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="size-8 animate-spin text-amber-400 mb-4" />
-            <p className="text-white/60">กำลังโหลด...</p>
+            <Loader2 className="w-8 h-8 animate-spin text-amber-400 mb-4" />
+            <p className="text-neutral-400">กำลังโหลด...</p>
           </div>
         ) : (
           <>
@@ -237,22 +302,22 @@ export default function LivePage() {
             {activeSessions.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-white flex items-center gap-2">
-                  <span className="size-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   กำลังออกผลสด
                 </h3>
                 {activeSessions.map((session) => (
-                  <Card key={session.id} className="bg-[#0D1321] border-red-500/30 overflow-hidden">
-                    <CardContent className="p-4">
+                  <div key={session.id} className="glass-card-gold overflow-hidden border-red-500/30">
+                    <div className="p-4">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                          <Sparkles className="size-5 text-amber-400" />
+                          <Sparkles className="w-5 h-5 text-amber-400" />
                           <span className="font-bold text-white">{session.lottery?.name || 'หวย'}</span>
                         </div>
                         {getStatusBadge(session.status)}
                       </div>
                       <LiveResultDisplay session={session} />
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -261,23 +326,21 @@ export default function LivePage() {
             {pendingSessions.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-white flex items-center gap-2">
-                  <Clock className="size-4 text-blue-400" />
+                  <Clock className="w-4 h-4 text-blue-400" />
                   รอออกผล
                 </h3>
                 {pendingSessions.map((session) => (
-                  <Card key={session.id} className="bg-[#0D1321] border-white/10">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-white">{session.lottery?.name || 'หวย'}</p>
-                          <p className="text-sm text-white/60">
-                            วันที่ {new Date(session.draw_date).toLocaleDateString('th-TH')}
-                          </p>
-                        </div>
-                        {getStatusBadge(session.status)}
+                  <div key={session.id} className="glass-card p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-white">{session.lottery?.name || 'หวย'}</p>
+                        <p className="text-sm text-neutral-500">
+                          วันที่ {new Date(session.draw_date).toLocaleDateString('th-TH')}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
+                      {getStatusBadge(session.status)}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -286,55 +349,55 @@ export default function LivePage() {
             {completedSessions.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-white flex items-center gap-2">
-                  <Trophy className="size-4 text-green-400" />
+                  <Trophy className="w-4 h-4 text-green-400" />
                   ผลรางวัลวันนี้
                 </h3>
                 {completedSessions.map((session) => (
-                  <Card key={session.id} className="bg-[#0D1321] border-green-500/20">
-                    <CardContent className="p-4">
+                  <div key={session.id} className="glass-card overflow-hidden border-green-500/20">
+                    <div className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <span className="font-bold text-white">{session.lottery?.name || 'หวย'}</span>
                         {getStatusBadge(session.status)}
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-white/5 rounded-lg p-3 text-center">
-                          <p className="text-xs text-white/60 mb-1">รางวัลที่ 1</p>
-                          <p className="text-xl font-mono font-bold text-amber-400">
+                        <div className="bg-neutral-900/80 rounded-xl p-3 text-center border border-amber-500/20">
+                          <p className="text-xs text-neutral-500 mb-1">รางวัลที่ 1</p>
+                          <p className="text-xl font-mono font-bold gold-amount">
                             {session.top_result || '-'}
                           </p>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-3 text-center">
-                          <p className="text-xs text-white/60 mb-1">2 ตัวล่าง</p>
-                          <p className="text-xl font-mono font-bold text-amber-400">
+                        <div className="bg-neutral-900/80 rounded-xl p-3 text-center border border-amber-500/20">
+                          <p className="text-xs text-neutral-500 mb-1">2 ตัวล่าง</p>
+                          <p className="text-xl font-mono font-bold gold-amount">
                             {session.bottom_result || '-'}
                           </p>
                         </div>
                       </div>
                       {session.top_result && (
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge variant="outline" className="border-white/20 text-white/80">
+                          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">
                             3 ตัวบน: <span className="font-mono ml-1">{session.top_result.slice(-3)}</span>
                           </Badge>
-                          <Badge variant="outline" className="border-white/20 text-white/80">
+                          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">
                             2 ตัวบน: <span className="font-mono ml-1">{session.top_result.slice(-2)}</span>
                           </Badge>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
 
             {/* Empty State */}
-            {sessions.length === 0 && (
-              <Card className="bg-[#0D1321] border-white/10">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Radio className="size-16 text-white/20 mb-4" />
-                  <p className="text-white/60">ไม่มีการถ่ายทอดสดในขณะนี้</p>
-                  <p className="text-xs text-white/40 mt-1">กรุณาตรวจสอบกำหนดการออกรางวัล</p>
-                </CardContent>
-              </Card>
+            {sessions.length === 0 && !streamSettings?.is_live && (
+              <div className="glass-card p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-4">
+                  <Radio className="w-8 h-8 text-neutral-600" />
+                </div>
+                <p className="text-white font-medium">ไม่มีการถ่ายทอดสดในขณะนี้</p>
+                <p className="text-xs text-neutral-500 mt-1">กรุณาตรวจสอบกำหนดการออกรางวัล</p>
+              </div>
             )}
           </>
         )}
