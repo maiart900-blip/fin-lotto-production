@@ -61,10 +61,10 @@ export default function AgentDashboard() {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'แดชบอร์ด', href: '/agent/dashboard', active: true },
-    { icon: Ticket, label: 'รายการโพย', href: '/agent/entries' },
+    { icon: Ticket, label: 'รายการโพย', href: '/manual-key/entries' },  // Manual Key only
     { icon: Calculator, label: 'กำไร/ขาดทุน', href: '/agent/profit' },
     { icon: ArrowUpRight, label: 'ส่งยอด', href: '/agent/settlement' },
-    { icon: Users, label: 'พนักงาน', href: '/agent/staff' },
+    { icon: Users, label: 'พนักงาน', href: '/agent-system/members' },  // Fixed route
     { icon: Settings, label: 'ตั้งค่า', href: '/agent/settings' },
   ];
 
