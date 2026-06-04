@@ -23,11 +23,28 @@ export async function GET(request: Request) {
 
     const supabase = await createClient();
 
+    // ตรวจสอบว่า agent นี้เป็น agent หรือ sub_agent
+    const { data: agentInfo } = await supabase
+      .from('agents')
+      .select('id, role, parent_agent_id')
+      .eq('id', agentId)
+      .single();
+
+    // Data Scope Logic:
+    // - Agent (role=agent/agent_key): เห็น own data + sub-agents data
+    // - Sub-Agent (role=sub_agent): เห็นเฉพาะ own data
     let query = supabase
       .from('entries')
       .select('*')
-      .eq('agent_id', agentId)
       .order('created_at', { ascending: false });
+
+    if (agentInfo?.role === 'sub_agent') {
+      // Sub-agent เห็นเฉพาะ entries ที่ตัวเองสร้าง
+      query = query.eq('agent_id', agentId);
+    } else {
+      // Agent เห็น entries ของตัวเอง + sub-agents ทั้งหมด
+      query = query.or(`agent_id.eq.${agentId},parent_agent_id.eq.${agentId}`);
+    }
 
     if (date) {
       const startDate = new Date(date);

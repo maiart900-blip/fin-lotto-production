@@ -53,13 +53,24 @@ export async function GET(request: Request) {
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     }
 
-    // ดึง entries ของเอเย่น
-    const { data: entries } = await supabase
+    // Data Scope Logic:
+    // - Agent (role=agent/agent_key): รวมยอดของตัวเอง + sub-agents ทั้งหมด
+    // - Sub-Agent (role=sub_agent): เฉพาะยอดของตัวเอง
+    let entriesQuery = supabase
       .from('entries')
       .select('*')
-      .eq('agent_id', agentId)
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString());
+
+    if (agent.role === 'sub_agent') {
+      // Sub-agent เห็นเฉพาะ entries ที่ตัวเองสร้าง
+      entriesQuery = entriesQuery.eq('agent_id', agentId);
+    } else {
+      // Agent เห็น entries ของตัวเอง + sub-agents ทั้งหมด
+      entriesQuery = entriesQuery.or(`agent_id.eq.${agentId},parent_agent_id.eq.${agentId}`);
+    }
+
+    const { data: entries } = await entriesQuery;
 
     // ดึง winning entries
     const entryIds = entries?.map(e => e.id) || [];
