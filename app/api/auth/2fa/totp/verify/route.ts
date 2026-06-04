@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { authenticator } from 'otplib';
+import { TOTP } from 'otplib';
 
 // Configure TOTP with extended time window
 // window: 2 = accepts codes from 2 periods before/after (±60 seconds total)
-authenticator.options = {
-  window: 2, // Accept codes ±60 seconds
+const totp = new TOTP({
+  window: 2, // Accept codes ±60 seconds (2 periods before/after)
   step: 30,  // Standard 30-second period
-};
+});
 
 // POST - Verify TOTP code and enable 2FA
 export async function POST(request: Request) {
@@ -50,8 +50,8 @@ export async function POST(request: Request) {
       }, { status: 429 });
     }
 
-    // Verify TOTP code using otplib authenticator (with window: 2)
-    const isValid = authenticator.verify({ token: code, secret: settings.secret_key });
+    // Verify TOTP code using otplib TOTP class (with window: 2)
+    const isValid = totp.verify({ token: code, secret: settings.secret_key });
 
     if (!isValid) {
       // Smart Account Lockout:
