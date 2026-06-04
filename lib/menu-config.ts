@@ -144,13 +144,17 @@ export const memberItems: MenuItem[] = [
 // 4. บัญชีและการเงิน
 export const financeItems: MenuItem[] = [
   { id: 'payment-gateway', title: 'จัดการ Payment Gateway', href: '/payment-gateway', icon: CreditCard, description: 'ตั้งค่าช่องทางชำระเงิน' },
-  { id: 'wallet-manager', title: 'จัดการกระเป๋าเงิน', href: '/wallet-manager', icon: Wallet, description: 'จัดการกระเป๋าเงินระบบ' },
+  { id: 'wallet-manager', title: 'จัดการกระเป๋าเงิน', href: '/wallet-manager', icon: Wallet, description: 'จัดการบัญชีธนาคาร / SCB แม่มณี' },
+  { id: 'finance-transactions', title: 'ประวัติธุรกรรมรวม', href: '/finance/transactions', icon: Receipt, description: 'ประวัติฝาก/ถอน/โอน/ปรับยอด รายวัน/เดือน/ปี' },
+  { id: 'finance-reports', title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart, description: 'รายงานทางการเงิน' },
+];
+
+// 4.1 จัดการกระเป๋าเงิน (Sub-menu ย่อย - ยุบเข้าใน wallet-manager)
+export const walletSubItems: MenuItem[] = [
   { id: 'bank-settings', title: 'ตั้งค่าธนาคาร', href: '/bank-settings', icon: Landmark, description: 'ตั้งค่าบัญชีธนาคาร' },
   { id: 'payment-accounts', title: 'บัญชีรับเงิน', href: '/payment-accounts', icon: QrCode, description: 'จัดการบัญชีรับเงิน' },
   { id: 'withdraw-accounts', title: 'บัญชีถอนเงิน', href: '/withdraw-accounts', icon: ArrowDownToLine, description: 'จัดการบัญชีถอนเงิน' },
   { id: 'scb-maemanee', title: 'SCB แม่มณี', href: '/scb-maemanee', icon: Landmark, description: 'ตั้งค่า SCB แม่มณี' },
-  { id: 'finance-transactions', title: 'ธุรกรรมการเงิน', href: '/finance/transactions', icon: Receipt, description: 'ประวัติฝาก/ถอน/โอน/ปรับยอด' },
-  { id: 'finance-reports', title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart, description: 'รายงานทางการเงิน' },
 ];
 
 // 4.5 ประวัติการเดิมพัน (แยกจากการเงิน)
@@ -298,7 +302,7 @@ export const agentDownlineItems: MenuItem[] = [
   { id: 'agent-members', title: 'ลูกค้าใต้สาย', href: '/agent-members', icon: Users, description: 'จัดการลูกค้าใต้สาย' },
   { id: 'agent-commission', title: 'คอมมิชชั่น', href: '/agent/commission', icon: DollarSign, description: 'ดูคอมมิชชั���น' },
   { id: 'agent-profit-loss', title: 'รายงานแพ้ชนะ', href: '/agent-profit-loss', icon: PieChart, description: 'รายงานแพ้ชนะ' },
-  { id: 'agent-withdraw-history', title: 'ถอนคอมมิชชั่น', href: '/agent-withdraw-history', icon: ArrowDownToLine, description: 'ถอนคอมมิชชั่น' },
+  { id: 'agent-withdraw-history', title: 'ถอนคอมมิชชั่น', href: '/agent-withdraw-history', icon: ArrowDownToLine, description: 'ถอนคอม���ิชชั่น' },
 ];
 
 export const agentBettingItems: MenuItem[] = [
