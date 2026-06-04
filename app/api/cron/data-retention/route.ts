@@ -1,11 +1,17 @@
 /**
  * Data Retention Cron Job
- * รันทุกวันอาทิตย์ 03:00 น. (20:00 UTC)
+ * รันทุกวัน 03:00 น. (20:00 UTC)
  * Archive และ cleanup ข้อมูลเก่าตาม retention policy
+ * 
+ * Retention Policies:
+ * - audit_logs: Delete after 90 days
+ * - lottery_bets (completed): Archive after 180 days
+ * - slip images: Delete after 90 days
  */
 
 import { NextResponse } from 'next/server';
-import { runRetentionCleanup } from '@/lib/data-retention';
+import { dataRetention } from '@/lib/storage/data-retention';
+import { auditLogger } from '@/lib/audit-logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes max
@@ -13,21 +19,32 @@ export const maxDuration = 300; // 5 minutes max
 export async function GET(request: Request) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    console.log('[Data Retention] Starting weekly cleanup...');
+    console.log('[Data Retention] Starting daily cleanup...');
 
-    const result = await runRetentionCleanup('system');
+    const { results, totalRecordsProcessed, totalDuration } = await dataRetention.runFullCleanup();
 
-    console.log('[Data Retention] Cleanup completed:', result);
+    // Log the maintenance action
+    await auditLogger.logSystem('system', {
+      action: 'data_retention',
+      description: `Data retention completed: ${totalRecordsProcessed} records processed in ${totalDuration}ms`,
+      details: results,
+    });
+
+    console.log('[Data Retention] Cleanup completed:', { totalRecordsProcessed, totalDuration });
 
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
-      results: result.results,
+      summary: {
+        totalRecordsProcessed,
+        totalDuration,
+      },
+      results,
     });
   } catch (error) {
     console.error('[Data Retention] Error:', error);
@@ -36,4 +53,10 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// Manual trigger for admins
+export async function POST(request: Request) {
+  // Allow POST for manual triggers
+  return GET(request);
 }
