@@ -187,6 +187,32 @@ export async function calculateAllAgentsCommission(
 /**
  * Distribute commission to agents (credit their wallets)
  */
+/**
+ * Distribute commissions to agents by updating their credit balance.
+ * 
+ * @deprecated THIS FUNCTION IS NOT PRODUCTION READY
+ * 
+ * CRITICAL ISSUES:
+ * 1. Required RPC functions do not exist in database:
+ *    - increment_credit (NOT FOUND)
+ *    - increment_commission (NOT FOUND)
+ * 
+ * 2. The Supabase .update() pattern used here is incorrect:
+ *    - Cannot pass RPC calls as field values in .update()
+ *    - This will fail silently or throw errors
+ * 
+ * REQUIRED FIXES BEFORE USE:
+ * 1. Create Postgres RPC functions:
+ *    - increment_agent_credit(agent_id UUID, amount NUMERIC)
+ *    - increment_agent_commission(agent_id UUID, amount NUMERIC)
+ * 
+ * 2. Rewrite this function to call RPCs separately:
+ *    await supabase.rpc('increment_agent_credit', { agent_id, amount })
+ * 
+ * STATUS: Disabled via /api/commission POST (returns 501 Not Implemented)
+ * 
+ * @see /api/commission/route.ts
+ */
 export async function distributeCommissions(
   results: CommissionResult[],
   adminId: string
@@ -201,11 +227,10 @@ export async function distributeCommissions(
     if (result.totalCommission <= 0) continue;
 
     try {
-      // WARNING: This RPC usage pattern may not work as expected
-      // The .update() method does not accept RPC calls inline
-      // TODO: Verify increment_credit and increment_commission RPCs exist in database
-      // Alternative: Use raw SQL or separate RPC call
-      // For atomic operations, consider: SELECT ... FOR UPDATE pattern
+      // BROKEN CODE - DO NOT USE
+      // The following pattern is incorrect and will not work:
+      // - supabase.rpc() cannot be used as a field value in .update()
+      // - increment_credit and increment_commission RPCs do not exist
       const { error: updateError } = await supabase
         .from('agents')
         .update({
