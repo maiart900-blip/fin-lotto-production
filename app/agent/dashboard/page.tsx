@@ -198,19 +198,19 @@ export default function AgentDashboard() {
                   คีย์หวย
                 </Button>
               </Link>
-              <Link href="/entries">
+              <Link href="/agent/entries">
                 <Button variant="outline" className="w-full">
                   <FileText className="size-4 mr-2" />
                   ดูรายการ
                 </Button>
               </Link>
-              <Link href="/profit">
+              <Link href="/agent/profit">
                 <Button variant="outline" className="w-full">
                   <Calculator className="size-4 mr-2" />
                   สรุปกำไร
                 </Button>
               </Link>
-              <Link href="/settlement">
+              <Link href="/agent/settlement">
                 <Button variant="outline" className="w-full">
                   <ArrowUpRight className="size-4 mr-2" />
                   ส่งยอด
