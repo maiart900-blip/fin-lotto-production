@@ -106,14 +106,23 @@ export async function POST(request: NextRequest) {
     // SECURITY: Auth guard
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
 
     const supabase = await createClient();
     const body = await request.json();
-    const { customer_id, type, amount, note, created_by } = body;
+    const { customer_id, type, amount, note, reason, created_by, audit_metadata } = body;
 
     if (!customer_id || !type || amount === undefined) {
       return NextResponse.json(
         { error: 'ข้อมูลไม่ครบถ้วน' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: Mandatory reason for admin adjustments
+    if ((type === 'admin_add' || type === 'admin_subtract') && !reason) {
+      return NextResponse.json(
+        { error: 'กรุณาระบุเหตุผลในการปรับยอด' },
         { status: 400 }
       );
     }
@@ -144,7 +153,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create transaction record
+    // Build note with reason for audit trail
+    const auditNote = reason 
+      ? `[${reason}] ${note || ''}`.trim()
+      : note;
+
+    // Create transaction record with audit metadata
     const { data: transaction, error: txError } = await supabase
       .from('credit_transactions')
       .insert({
@@ -153,8 +167,10 @@ export async function POST(request: NextRequest) {
         amount: Number(amount),
         balance_before: currentBalance,
         balance_after: newBalance,
-        note,
-        created_by,
+        note: auditNote,
+        created_by: created_by || session.id,
+        // Store audit metadata in note if table doesn't have metadata column
+        // metadata: audit_metadata,
       })
       .select()
       .single();
@@ -176,6 +192,28 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Customer balance update error:', updateError);
       // Don't fail the request, transaction was already created
+    }
+
+    // Log to audit_logs table if exists (silent fail)
+    try {
+      await supabase.from('audit_logs').insert({
+        user_id: session.id,
+        action: type === 'admin_add' ? 'credit_add' : 'credit_subtract',
+        resource_type: 'customer',
+        resource_id: customer_id,
+        metadata: {
+          amount: Number(amount),
+          reason,
+          note,
+          balance_before: currentBalance,
+          balance_after: newBalance,
+          customer_name: customer.name,
+          ...audit_metadata,
+        },
+        created_at: new Date().toISOString(),
+      });
+    } catch {
+      // Ignore audit log errors
     }
 
     return NextResponse.json({

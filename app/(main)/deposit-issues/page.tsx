@@ -139,6 +139,15 @@ export default function DepositIssuesPage() {
   const [creditAmount, setCreditAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
+  // 5-Point Verification State
+  const [verificationChecks, setVerificationChecks] = useState({
+    dateMatch: false,      // วันที่ตรงกัน
+    timeMatch: false,      // เวลาตรงกัน
+    slipValid: false,      // สลิปถูกต้อง
+    nameMatch: false,      // ชื่อตรงกัน
+    phoneMatch: false,     // เบอร์โทรตรงกัน
+  });
+  
   // New states for report form
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -301,11 +310,30 @@ export default function DepositIssuesPage() {
     setResolveAction(action);
     setAdminNote('');
     setCreditAmount(issue.amount.toString());
+    // Reset verification checks when opening
+    setVerificationChecks({
+      dateMatch: false,
+      timeMatch: false,
+      slipValid: false,
+      nameMatch: false,
+      phoneMatch: false,
+    });
     setIsResolveOpen(true);
   };
 
+  // Check if all 5 verifications passed (only for approval)
+  const allVerificationsPassed = Object.values(verificationChecks).every(v => v);
+  const verificationCount = Object.values(verificationChecks).filter(v => v).length;
+
   const handleUpdateStatus = async (newStatus: string) => {
     if (!selectedIssue) return;
+    
+    // SECURITY: For approval, require all 5 verification checks
+    if (newStatus === 'approved' && !allVerificationsPassed) {
+      toast.error(`ต้องยืนยันครบทั้ง 5 ข้อก่อนอนุมัติ (ผ่านแล้ว ${verificationCount}/5)`);
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -318,6 +346,8 @@ export default function DepositIssuesPage() {
           admin_note: adminNote,
           resolved_by: user?.id,
           credit_amount: newStatus === 'approved' ? Number(creditAmount) : undefined,
+          // Include verification audit
+          verification_audit: newStatus === 'approved' ? verificationChecks : undefined,
         }),
       });
 
@@ -736,7 +766,7 @@ export default function DepositIssuesPage() {
 
       {/* Resolve Dialog */}
       <Dialog open={isResolveOpen} onOpenChange={setIsResolveOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {resolveAction === 'approved'
@@ -747,13 +777,86 @@ export default function DepositIssuesPage() {
             </DialogTitle>
             <DialogDescription>
               {resolveAction === 'approved'
-                ? 'ยืนยันการอนุมัติและเพิ่มเครดิตให้ลูกค้า'
+                ? 'ยืนยันการอนุมัติและเพิ่มเครดิตให้ลูกค้า (ต้องตรวจสอบครบ 5 ข้อ)'
                 : resolveAction === 'rejected'
                   ? 'ยืนยันการปฏิเสธคำร้อง'
                   : 'ระบุข้อมูลที่ต้องการเพิ่มเติม'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* 5-Point Verification Checklist - Only for approval */}
+            {resolveAction === 'approved' && (
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="size-4" />
+                  ตรวจสอบ 5 ข้อก่อนอนุมัติ ({verificationCount}/5)
+                </h4>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer hover:bg-blue-100 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={verificationChecks.dateMatch}
+                      onChange={(e) => setVerificationChecks(prev => ({ ...prev, dateMatch: e.target.checked }))}
+                      className="size-4 rounded border-blue-300 text-blue-600"
+                    />
+                    <span className="text-sm">
+                      <strong>1. วันที่ตรงกัน</strong> - วันที่โอนในสลิปตรงกับที่แจ้ง
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer hover:bg-blue-100 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={verificationChecks.timeMatch}
+                      onChange={(e) => setVerificationChecks(prev => ({ ...prev, timeMatch: e.target.checked }))}
+                      className="size-4 rounded border-blue-300 text-blue-600"
+                    />
+                    <span className="text-sm">
+                      <strong>2. เวลาตรงกัน</strong> - เวลาโอนในสลิปตรงกับที่แจ้ง
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer hover:bg-blue-100 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={verificationChecks.slipValid}
+                      onChange={(e) => setVerificationChecks(prev => ({ ...prev, slipValid: e.target.checked }))}
+                      className="size-4 rounded border-blue-300 text-blue-600"
+                    />
+                    <span className="text-sm">
+                      <strong>3. สลิปถูกต้อง</strong> - สลิปไม่ใช่รูปตัด/แก้ไข และจำนวนเงินตรงกัน
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer hover:bg-blue-100 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={verificationChecks.nameMatch}
+                      onChange={(e) => setVerificationChecks(prev => ({ ...prev, nameMatch: e.target.checked }))}
+                      className="size-4 rounded border-blue-300 text-blue-600"
+                    />
+                    <span className="text-sm">
+                      <strong>4. ชื่อตรงกัน</strong> - ชื่อในสลิปตรงกับชื่อที่แจ้ง
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer hover:bg-blue-100 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={verificationChecks.phoneMatch}
+                      onChange={(e) => setVerificationChecks(prev => ({ ...prev, phoneMatch: e.target.checked }))}
+                      className="size-4 rounded border-blue-300 text-blue-600"
+                    />
+                    <span className="text-sm">
+                      <strong>5. เบอร์โทรตรงกัน</strong> - เบอร์โทรตรงกับข้อมูลลูกค้าในระบบ
+                    </span>
+                  </label>
+                </div>
+                {!allVerificationsPassed && (
+                  <p className="text-sm text-amber-600 mt-3 flex items-center gap-1">
+                    <AlertTriangle className="size-3" />
+                    ต้องตรวจสอบครบทุกข้อก่อนกดอนุมัติ
+                  </p>
+                )}
+              </div>
+            )}
+            
             {resolveAction === 'approved' && (
               <div className="space-y-2">
                 <Label>จำนวนเครดิตที่จะเพิ่ม</Label>
@@ -773,7 +876,7 @@ export default function DepositIssuesPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>หมายเหตุ</Label>
+              <Label>หมายเหตุ {resolveAction === 'rejected' && <span className="text-red-500">*</span>}</Label>
               <Textarea
                 value={adminNote}
                 onChange={(e) => setAdminNote(e.target.value)}
@@ -781,7 +884,7 @@ export default function DepositIssuesPage() {
                   resolveAction === 'approved'
                     ? 'หมายเหตุการอนุมัติ (ถ้ามี)'
                     : resolveAction === 'rejected'
-                      ? 'เหตุผลในการปฏิเสธ'
+                      ? 'เหตุผลในการปฏิเสธ (บังคับ)'
                       : 'ข้อมูลที่ต้องการเพิ่มเติม'
                 }
                 rows={3}
@@ -794,7 +897,7 @@ export default function DepositIssuesPage() {
             </Button>
             <Button
               onClick={() => handleUpdateStatus(resolveAction)}
-              disabled={isLoading}
+              disabled={isLoading || (resolveAction === 'approved' && !allVerificationsPassed) || (resolveAction === 'rejected' && !adminNote.trim())}
               className={
                 resolveAction === 'approved'
                   ? 'bg-green-600 hover:bg-green-700'
@@ -803,7 +906,7 @@ export default function DepositIssuesPage() {
                     : ''
               }
             >
-              {isLoading ? 'กำลังดำเนินการ...' : 'ยืนยัน'}
+              {isLoading ? 'กำลังดำเนินการ...' : resolveAction === 'approved' ? `ยืนยันอนุมัติ (${verificationCount}/5)` : 'ยืนยัน'}
             </Button>
           </DialogFooter>
         </DialogContent>
