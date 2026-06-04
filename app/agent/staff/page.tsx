@@ -67,6 +67,7 @@ export default function AgentStaffPage() {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newStaff, setNewStaff] = useState({
     username: '',
     name: '',
@@ -90,7 +91,9 @@ export default function AgentStaffPage() {
   );
 
   // ฟังก์ชันเพิ่มพนักงานใหม่ - ผูก parent_agent_id อัตโนมัติ
-  const handleAddStaff = async () => {
+  const handleAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault(); // ป้องกันหน้ารีเฟรช
+    
     if (!newStaff.username || !newStaff.name || !newStaff.password) {
       toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
@@ -101,6 +104,8 @@ export default function AgentStaffPage() {
       return;
     }
 
+    setIsSubmitting(true);
+    
     try {
       const res = await fetch('/api/agent/staff', {
         method: 'POST',
@@ -111,6 +116,8 @@ export default function AgentStaffPage() {
           account_type: 'staff',
         }),
       });
+
+      const data = await res.json();
 
       if (res.ok) {
         toast.success('เพิ่มพนักงานสำเร็จ');
@@ -124,11 +131,13 @@ export default function AgentStaffPage() {
         });
         mutate(); // refresh data
       } else {
-        const error = await res.json();
-        toast.error(error.message || error.error || 'เกิดข้อผิดพลาด');
+        toast.error(data.message || data.error || 'เกิดข้อผิดพลาด');
       }
     } catch (error) {
+      console.error('[v0] Error adding staff:', error);
       toast.error('เกิดข้อผิดพลาดในการเพิ่มพนักงาน');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -223,64 +232,87 @@ export default function AgentStaffPage() {
                   พนักงานจะถูกผูกเข้ากับสายงานของคุณ ({user?.name || user?.username}) โดยอัตโนมัติ
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>ชื่อผู้ใช้ (Username) *</Label>
-                  <Input
-                    value={newStaff.username}
-                    onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
-                    placeholder="username"
-                  />
+              <form onSubmit={handleAddStaff}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">ชื่อผู้ใช้ (Username) *</Label>
+                    <Input
+                      id="username"
+                      value={newStaff.username}
+                      onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
+                      placeholder="username"
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">ชื่อ-นามสกุล *</Label>
+                    <Input
+                      id="name"
+                      value={newStaff.name}
+                      onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                      placeholder="ชื่อ-นามสกุล"
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">รหัสผ่าน *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={newStaff.password}
+                      onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                      placeholder="รหัสผ่าน"
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">เบอร์โทร</Label>
+                    <Input
+                      id="phone"
+                      value={newStaff.phone}
+                      onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
+                      placeholder="0812345678"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ตำแหน่ง</Label>
+                    <Select
+                      value={newStaff.role}
+                      onValueChange={(value: 'staff' | 'operator') => setNewStaff({ ...newStaff, role: value })}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="staff">พนักงาน (Staff)</SelectItem>
+                        <SelectItem value="operator">ผู้ดูแลระบบ (Operator)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>ชื่อ-นามสกุล *</Label>
-                  <Input
-                    value={newStaff.name}
-                    onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                    placeholder="ชื่อ-นามสกุล"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>รหัสผ่าน *</Label>
-                  <Input
-                    type="password"
-                    value={newStaff.password}
-                    onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
-                    placeholder="รหัสผ่าน"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>เบอร์โทร</Label>
-                  <Input
-                    value={newStaff.phone}
-                    onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
-                    placeholder="0812345678"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>ตำแหน่ง</Label>
-                  <Select
-                    value={newStaff.role}
-                    onValueChange={(value: 'staff' | 'operator') => setNewStaff({ ...newStaff, role: value })}
+                <DialogFooter className="mt-6">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsAddDialogOpen(false)}
+                    disabled={isSubmitting}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="staff">พนักงาน (Staff)</SelectItem>
-                      <SelectItem value="operator">ผู้ดูแลระบบ (Operator)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  ยกเลิก
-                </Button>
-                <Button onClick={handleAddStaff} className="bg-amber-500 hover:bg-amber-600">
-                  เพิ่มพนักงาน
-                </Button>
-              </DialogFooter>
+                    ยกเลิก
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-amber-500 hover:bg-amber-600"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'กำลังบันทึก...' : 'เพิ่มพนักงาน'}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
