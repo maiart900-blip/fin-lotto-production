@@ -104,7 +104,9 @@ export default function CreditAdjustmentsPage() {
   const [adjustType, setAdjustType] = useState<'add' | 'subtract'>('add');
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustNote, setAdjustNote] = useState('');
+  const [adjustReason, setAdjustReason] = useState(''); // Mandatory reason
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requiresApproval, setRequiresApproval] = useState(false); // For large amounts
 
   // Fetch customers for search
   const { data: customersData } = useSWR(
@@ -134,6 +136,12 @@ export default function CreditAdjustmentsPage() {
       return;
     }
 
+    // MANDATORY: Reason is required for all credit adjustments
+    if (!adjustReason.trim()) {
+      toast.error('กรุณาเลือกเหตุผลในการปรับยอด');
+      return;
+    }
+
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount) || amount <= 0) {
       toast.error('กรุณากรอกจำนวนเงินที่ถูกต้อง');
@@ -147,6 +155,13 @@ export default function CreditAdjustmentsPage() {
       return;
     }
 
+    // Large amount warning (> 10,000 baht)
+    if (amount >= 10000 && !requiresApproval) {
+      toast.warning('ยอดเกิน 10,000 บาท ต้องตรวจสอบอีกครั้ง');
+      setRequiresApproval(true);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/credit-transactions', {
@@ -156,8 +171,17 @@ export default function CreditAdjustmentsPage() {
           customer_id: selectedCustomer.id,
           type: adjustType === 'add' ? 'admin_add' : 'admin_subtract',
           amount: adjustType === 'add' ? amount : -amount,
-          note: adjustNote || `ปรับยอดโดย ${user?.displayName || 'Admin'}`,
+          reason: adjustReason, // Mandatory reason for audit
+          note: adjustNote || null,
           created_by: user?.id,
+          // Audit metadata
+          audit_metadata: {
+            operator_name: user?.displayName || user?.username,
+            operator_role: user?.role,
+            ip_address: 'server-side',
+            user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+            timestamp: new Date().toISOString(),
+          },
         }),
       });
 
@@ -172,6 +196,8 @@ export default function CreditAdjustmentsPage() {
       setSelectedCustomer(null);
       setAdjustAmount('');
       setAdjustNote('');
+      setAdjustReason('');
+      setRequiresApproval(false);
       mutateTransactions();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด');
@@ -184,8 +210,21 @@ export default function CreditAdjustmentsPage() {
     setSelectedCustomer(null);
     setAdjustAmount('');
     setAdjustNote('');
+    setAdjustReason('');
     setAdjustType('add');
+    setRequiresApproval(false);
   };
+
+  // Predefined reasons for audit trail
+  const adjustmentReasons = [
+    { value: 'correction', label: 'แก้ไขยอดผิดพลาด' },
+    { value: 'bonus', label: 'โบนัส/โปรโมชั่น' },
+    { value: 'refund', label: 'คืนเงิน' },
+    { value: 'compensation', label: 'ชดเชยความเสียหาย' },
+    { value: 'system_error', label: 'แก้ไขข้อผิดพลาดระบบ' },
+    { value: 'deduction', label: 'หักยอดตามเงื่อนไข' },
+    { value: 'other', label: 'อื่นๆ (ระบุในหมายเหตุ)' },
+  ];
 
   return (
     <div className="space-y-6 p-6">
@@ -402,30 +441,69 @@ export default function CreditAdjustmentsPage() {
 
               {/* Amount */}
               <div className="space-y-2">
-                <Label className="text-gray-700">จำนวนเงิน (บาท)</Label>
+                <Label className="text-gray-700">จำนวนเงิน (บาท) *</Label>
                 <div className="relative">
                   <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
                   <Input
                     type="number"
                     placeholder="0.00"
                     value={adjustAmount}
-                    onChange={(e) => setAdjustAmount(e.target.value)}
+                    onChange={(e) => {
+                      setAdjustAmount(e.target.value);
+                      setRequiresApproval(false); // Reset approval when amount changes
+                    }}
                     className="pl-10 text-lg bg-white text-black border-gray-300"
                   />
                 </div>
+                {parseFloat(adjustAmount) >= 10000 && (
+                  <p className="text-sm text-amber-600 flex items-center gap-1">
+                    <ArrowUpCircle className="size-3" />
+                    ยอดเกิน 10,000 บาท ต้องยืนยันอีกครั้ง
+                  </p>
+                )}
+              </div>
+
+              {/* Mandatory Reason Selection */}
+              <div className="space-y-2">
+                <Label className="text-gray-700">เหตุผลในการปรับยอด * <span className="text-red-500">(บังคับ)</span></Label>
+                <Select value={adjustReason} onValueChange={setAdjustReason}>
+                  <SelectTrigger className="bg-white border-gray-300">
+                    <SelectValue placeholder="เลือกเหตุผล..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {adjustmentReasons.map((reason) => (
+                      <SelectItem key={reason.value} value={reason.value}>
+                        {reason.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Note */}
               <div className="space-y-2">
-                <Label className="text-gray-700">หมายเหตุ</Label>
+                <Label className="text-gray-700">หมายเหตุเพิ่มเติม {adjustReason === 'other' && <span className="text-red-500">* (บังคับเมื่อเลือก อื่นๆ)</span>}</Label>
                 <Textarea
-                  placeholder="เหตุผลในการปรับยอด..."
+                  placeholder="รายละเอียดเพิ่มเติม..."
                   value={adjustNote}
                   onChange={(e) => setAdjustNote(e.target.value)}
                   rows={2}
                   className="bg-white text-black border-gray-300"
+                  required={adjustReason === 'other'}
                 />
               </div>
+
+              {/* Large Amount Confirmation */}
+              {requiresApproval && (
+                <div className="p-3 rounded-lg bg-amber-100 border border-amber-300">
+                  <p className="text-amber-800 font-medium text-sm">
+                    ยืนยันการปรับยอดเกิน 10,000 บาท?
+                  </p>
+                  <p className="text-amber-700 text-xs mt-1">
+                    กดปุ่มยืนยันอีกครั้งเพื่อดำเนินการ
+                  </p>
+                </div>
+              )}
 
               {/* Preview */}
               {adjustAmount && !isNaN(parseFloat(adjustAmount)) && (
@@ -448,13 +526,18 @@ export default function CreditAdjustmentsPage() {
             </Button>
             <Button
               onClick={handleAdjustCredit}
-              disabled={isSubmitting || !adjustAmount}
+              disabled={isSubmitting || !adjustAmount || !adjustReason || (adjustReason === 'other' && !adjustNote.trim())}
               className={adjustType === 'add' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="size-4 mr-2 animate-spin" />
                   กำลังบันทึก...
+                </>
+              ) : requiresApproval ? (
+                <>
+                  {adjustType === 'add' ? <Plus className="size-4 mr-2" /> : <Minus className="size-4 mr-2" />}
+                  ยืนยันการปรับยอด
                 </>
               ) : (
                 <>
