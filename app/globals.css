@@ -51,9 +51,9 @@
   --secondary: #1a1a1a;
   --secondary-foreground: #F5F5F5;
   
-  /* Muted */
+  /* Muted - FIXED: Brighter text for dark backgrounds */
   --muted: #2a2a2a;
-  --muted-foreground: #888888;
+  --muted-foreground: #B0B0B0;
   
   /* Accent - Gold Glow */
   --accent: rgba(212, 175, 55, 0.15);
@@ -2002,3 +2002,242 @@ input, textarea, select, button:active {
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.3), transparent);
 }
+
+/* ================================
+   TEXT CONTRAST UTILITIES
+   High visibility on dark backgrounds
+   ================================ */
+
+/* Body Text - Bright for dark backgrounds */
+.text-bright {
+  color: #E5E5E5 !important;
+}
+
+.text-bright-muted {
+  color: #B0B0B0 !important;
+}
+
+/* Table Headers - High visibility */
+.text-table-header {
+  color: #FFFFFF !important;
+  font-weight: 600;
+}
+
+.text-table-header-gold {
+  color: #D4AF37 !important;
+  font-weight: 600;
+}
+
+/* Table Body Text - Clear on dark rows */
+.text-table-body {
+  color: #E0E0E0 !important;
+}
+
+/* Important Labels */
+.text-label-bright {
+  color: #F5F5F5 !important;
+}
+
+/* Description/Helper Text - Brighter than default muted */
+.text-description {
+  color: #A0A0A0 !important;
+}
+
+/* Disabled but visible */
+.text-disabled-visible {
+  color: #888888 !important;
+}
+
+/* Force white text */
+.text-force-white {
+  color: #FFFFFF !important;
+}
+
+/* Force bright foreground */
+.text-force-bright {
+  color: #F0F0F0 !important;
+}
+
+/* ================================
+   DARK THEME TABLE OVERRIDES
+   Ensure text is always visible
+   ================================ */
+
+/* Dark Table Styling */
+.dark-table {
+  background: #0a0a0a;
+}
+
+.dark-table thead {
+  background: #121212;
+}
+
+.dark-table thead th {
+  color: #D4AF37 !important;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.dark-table tbody tr {
+  background: #0a0a0a;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.dark-table tbody tr:nth-child(even) {
+  background: #0f0f0f;
+}
+
+.dark-table tbody td {
+  color: #E0E0E0;
+}
+
+.dark-table tbody tr:hover {
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.dark-table tbody tr:hover td {
+  color: #FFFFFF;
+}
+
+/* ================================
+   INPUT/FORM DARK THEME
+   Visible text in disabled states
+   ================================ */
+
+/* Dark Input */
+.input-dark {
+  background: #1a1a1a !important;
+  border-color: #2a2a2a !important;
+  color: #F0F0F0 !important;
+}
+
+.input-dark::placeholder {
+  color: #707070 !important;
+}
+
+.input-dark:disabled {
+  background: #0f0f0f !important;
+  color: #909090 !important;
+  opacity: 1 !important;
+}
+
+/* Dark Select */
+.select-dark {
+  background: #1a1a1a !important;
+  color: #F0F0F0 !important;
+}
+
+.select-dark:disabled {
+  color: #909090 !important;
+  opacity: 1 !important;
+}
+
+/* Dark Textarea */
+.textarea-dark {
+  background: #1a1a1a !important;
+  color: #F0F0F0 !important;
+}
+
+.textarea-dark:disabled {
+  color: #909090 !important;
+  opacity: 1 !important;
+}
+
+/* ================================
+   HOVER STATES - MAINTAIN VISIBILITY
+   ================================ */
+
+/* Hover text remains bright */
+.hover-text-bright:hover {
+  color: #FFFFFF !important;
+}
+
+.hover-text-gold:hover {
+  color: #D4AF37 !important;
+}
+
+/* Button hover - text stays visible */
+.btn-hover-visible:hover {
+  color: #FFFFFF !important;
+}
+
+/* Row hover - text enhancement */
+.row-hover-bright:hover {
+  color: #FFFFFF !important;
+}
+
+.row-hover-bright:hover * {
+  color: inherit;
+}
+
+/* ================================
+   CARD DARK THEME
+   ================================ */
+
+.card-dark {
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+}
+
+.card-dark .card-header {
+  color: #FFFFFF;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.card-dark .card-title {
+  color: #F5F5F5;
+}
+
+.card-dark .card-description {
+  color: #A0A0A0;
+}
+
+.card-dark .card-content {
+  color: #E0E0E0;
+}
+
+/* ================================
+   BADGE DARK THEME
+   ================================ */
+
+.badge-dark-outline {
+  background: transparent;
+  border: 1px solid #4a4a4a;
+  color: #C0C0C0;
+}
+
+.badge-dark-solid {
+  background: #2a2a2a;
+  color: #E0E0E0;
+}
+
+/* ================================
+   GLOBAL DARK THEME OVERRIDES
+   Auto-apply to common patterns
+   ================================ */
+
+/* Ensure muted text is readable on dark backgrounds */
+.dark .text-muted-foreground,
+[data-theme="dark"] .text-muted-foreground {
+  color: #B0B0B0;
+}
+
+/* Ensure placeholder text is visible */
+.dark input::placeholder,
+.dark textarea::placeholder,
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #707070;
+}
+
+/* Ensure disabled inputs are readable */
+.dark input:disabled,
+.dark textarea:disabled,
+.dark select:disabled,
+[data-theme="dark"] input:disabled,
+[data-theme="dark"] textarea:disabled,
+[data-theme="dark"] select:disabled {
+  color: #909090;
+  opacity: 1;
+}
+
