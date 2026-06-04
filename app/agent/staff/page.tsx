@@ -36,6 +36,8 @@ import {
   UserPlus,
   Edit,
   Trash2,
+  ClipboardList,
+  DollarSign,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -46,13 +48,13 @@ export default function AgentStaffPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  // ดึงข้อมูล sub-agents/staff
+  // ดึงข้อมูล sub-agents/staff - ต้อง filter เฉพาะใต้สายของ agent นี้
   const { data: staffData, mutate } = useSWR(
-    '/api/admin/agents?level=sub_agent',
+    user?.id ? `/api/agent/team?agent_id=${user.id}` : null,
     fetcher
   );
 
-  const staff = staffData?.agents || [];
+  const staff = staffData?.members || staffData?.agents || [];
 
   const filteredStaff = staff.filter((s: any) => 
     s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -64,7 +66,9 @@ export default function AgentStaffPage() {
     { icon: Ticket, label: 'รายการโพย', href: '/agent/entries' },
     { icon: Calculator, label: 'กำไร/ขาดทุน', href: '/agent/profit' },
     { icon: ArrowUpRight, label: 'ส่งยอด', href: '/agent/settlement' },
-    { icon: Users, label: 'พนักงาน', href: '/agent/staff', active: true },
+    { icon: Users, label: 'จัดการพนักงาน', href: '/agent/staff', active: true },
+    { icon: ClipboardList, label: 'รายงานเข้างาน', href: '/agent/attendance' },
+    { icon: DollarSign, label: 'สรุปเงินเดือน', href: '/agent/salary' },
     { icon: Settings, label: 'ตั้งค่า', href: '/agent/settings' },
   ];
 
