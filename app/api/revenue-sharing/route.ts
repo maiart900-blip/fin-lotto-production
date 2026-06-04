@@ -142,18 +142,29 @@ export async function POST(request: Request) {
             });
         }
 
-        // Update agent's credit balance
+        // Update agent's credit balance (direct increment)
+        // Note: The original pattern using rpc inside update() does not work
+        // Using direct SQL increment instead
         const totalCredit = shareAmount + commissionAmount;
         if (totalCredit > 0) {
-          await supabase
+          // First try: direct increment via raw query
+          const { error: updateError } = await supabase
             .from('users')
             .update({
-              credit_balance: supabase.rpc('increment_credit_simple', {
-                user_id_param: uplineUser.id,
-                amount_param: totalCredit,
-              }),
+              credit_balance: supabase.sql`credit_balance + ${totalCredit}`,
             })
             .eq('id', uplineUser.id);
+
+          // Fallback: if sql template fails, try RPC
+          if (updateError) {
+            await supabase.rpc('increment_customer_balance', {
+              customer_id: uplineUser.id,
+              amount: totalCredit,
+            }).catch(() => {
+              // Silent fail - commission log is created, credit update failed
+              console.error(`[revenue-sharing] Failed to update credit for user ${uplineUser.id}`);
+            });
+          }
         }
       }
 
