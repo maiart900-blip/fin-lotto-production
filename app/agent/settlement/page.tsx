@@ -18,6 +18,7 @@ import {
   CheckCircle,
   Clock,
   DollarSign,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -29,9 +30,9 @@ export default function AgentSettlementPage() {
   const { toast } = useToast();
   const today = new Date().toISOString().split('T')[0];
 
-  // ดึงข้อมูลยอดส่ง
+  // ดึงข้อมูลยอดส่ง - ต้องส่ง agent_id
   const { data: settlementData, mutate } = useSWR(
-    `/api/agent/settlement?period=daily`,
+    user?.id ? `/api/agent/settlement?agent_id=${user.id}&period=daily` : null,
     fetcher,
     { refreshInterval: 60000 }
   );
@@ -44,7 +45,9 @@ export default function AgentSettlementPage() {
     { icon: Ticket, label: 'รายการโพย', href: '/agent/entries' },
     { icon: Calculator, label: 'กำไร/ขาดทุน', href: '/agent/profit' },
     { icon: ArrowUpRight, label: 'ส่งยอด', href: '/agent/settlement', active: true },
-    { icon: Users, label: 'พนักงาน', href: '/agent/staff' },
+    { icon: Users, label: 'จัดการพนักงาน', href: '/agent/staff' },
+    { icon: ClipboardList, label: 'รายงานเข้างาน', href: '/agent/attendance' },
+    { icon: DollarSign, label: 'สรุปเงินเดือน', href: '/agent/salary' },
     { icon: Settings, label: 'ตั้งค่า', href: '/agent/settings' },
   ];
 

@@ -21,6 +21,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -64,7 +65,9 @@ export default function AgentDashboard() {
     { icon: Ticket, label: 'รายการโพย', href: '/agent/entries' },
     { icon: Calculator, label: 'กำไร/ขาดทุน', href: '/agent/profit' },
     { icon: ArrowUpRight, label: 'ส่งยอด', href: '/agent/settlement' },
-    { icon: Users, label: 'พนักงาน', href: '/agent/staff' },
+    { icon: Users, label: 'จัดการพนักงาน', href: '/agent/staff' },
+    { icon: ClipboardList, label: 'รายงานเข้างาน', href: '/agent/attendance' },
+    { icon: DollarSign, label: 'สรุปเงินเดือน', href: '/agent/salary' },
     { icon: Settings, label: 'ตั้งค่า', href: '/agent/settings' },
   ];
 
