@@ -2588,3 +2588,132 @@ input, textarea, select, button:active {
 .border-glow-animated {
   animation: border-glow 3s ease-in-out infinite;
 }
+
+/* ================================
+   PWA STANDALONE MODE OPTIMIZATION
+   Full Screen Mobile Experience
+   ================================ */
+
+/* Hide browser UI in standalone mode */
+@media all and (display-mode: standalone) {
+  /* Full screen without URL bar */
+  html, body {
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Safe area insets for notched devices */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Optimize bottom navigation for mobile */
+  .mobile-nav-bottom {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+  
+  /* Full height viewport */
+  .pwa-full-height {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Disable pull-to-refresh */
+  .no-pull-refresh {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Fullscreen mode (when launched from home screen) */
+@media all and (display-mode: fullscreen) {
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  /* Status bar background for notched phones */
+  .status-bar-bg {
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    height: env(safe-area-inset-top);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+  }
+}
+
+/* Mobile touch optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Remove hover effects on touch devices */
+  .no-hover-touch:hover {
+    transform: none;
+    box-shadow: inherit;
+  }
+  
+  /* Smooth scrolling */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Disable text selection on interactive elements */
+  .touch-action-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Fix for iOS viewport height */
+  .ios-full-height {
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Fix iOS keyboard push */
+  input, textarea, select {
+    font-size: 16px; /* Prevents zoom on focus */
+  }
+}
+
+/* Chunk Load Error Prevention */
+.chunk-error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* PWA Install Prompt Banner */
+.pwa-install-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  border-top: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  z-index: 9998;
+  transform: translateY(100%);
+  transition: transform 0.3s ease-out;
+}
+
+.pwa-install-banner.visible {
+  transform: translateY(0);
+}
+

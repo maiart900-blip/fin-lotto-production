@@ -15,8 +15,9 @@ export const viewport: Viewport = {
   themeColor: '#000000', // Pure Black for Premium Midnight Gold theme
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover', // Full screen on notched devices
 };
 
 export const metadata: Metadata = {
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
   creator: 'FIN LOTTO R+',
   publisher: 'FIN LOTTO R+',
   generator: 'Next.js',
-  manifest: '/manifest.json',
+  manifest: '/api/manifest', // Dynamic manifest endpoint
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://finlottop.com'),
   alternates: {
     canonical: '/',
