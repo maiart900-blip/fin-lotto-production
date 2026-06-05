@@ -29,6 +29,9 @@ import {
   Crown,
   Copy,
   Check,
+  Moon,
+  Gem,
+  Cloud,
 } from 'lucide-react';
 import useSWR from 'swr';
 import { BannerCarousel } from '@/components/customer/banner-carousel';
@@ -291,7 +294,7 @@ export default function CustomerDashboard() {
               <Zap className="w-4 h-4 text-amber-400" />
             </div>
             <div>
-              <h2 className="font-bold text-white text-base">ระบบเว็บออโต้</h2>
+              <h2 className="font-bold text-white text-base">ร��บบเว็บออโต้</h2>
               <p className="text-[10px] text-neutral-500">ฝาก-ถอนอัตโนมัติ ไม่ต้องผ่านเอเย่นต์</p>
             </div>
           </div>
@@ -332,15 +335,39 @@ export default function CustomerDashboard() {
                 <div className="flex-1">
                   <h3 className="text-white font-semibold">แทงหวยคีย์</h3>
                   <p className="text-xs text-neutral-400 mt-0.5">สำหรับลูกค้าที่ซื้อผ่านระบบเอเย่นต์</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px]">4-Tier Commission</span>
-                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px]">Manual Key</span>
-                  </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-cyan-500/50 group-hover:text-cyan-400" />
               </div>
             </div>
           </Link>
+          
+          {/* Mystical Features - ดูดวง เลขเด่น ทำนายฝัน */}
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            <Link href="/c/fortune">
+              <div className="glass-card p-3 hover:scale-[1.02] transition-all group text-center border-purple-500/20 hover:border-purple-500/40 hover:shadow-purple-500/20 hover:shadow-lg">
+                <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-purple-500/30 to-violet-600/30 border border-purple-500/40 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Gem className="w-5 h-5 text-purple-400" />
+                </div>
+                <span className="text-white text-xs font-medium">ดูดวง</span>
+              </div>
+            </Link>
+            <Link href="/c/lucky-numbers">
+              <div className="glass-card p-3 hover:scale-[1.02] transition-all group text-center border-amber-500/20 hover:border-amber-500/40 hover:shadow-amber-500/20 hover:shadow-lg">
+                <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-amber-500/30 to-yellow-600/30 border border-amber-500/40 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Star className="w-5 h-5 text-amber-400" />
+                </div>
+                <span className="text-white text-xs font-medium">เลขเด่น</span>
+              </div>
+            </Link>
+            <Link href="/c/dream-interpret">
+              <div className="glass-card p-3 hover:scale-[1.02] transition-all group text-center border-blue-500/20 hover:border-blue-500/40 hover:shadow-blue-500/20 hover:shadow-lg">
+                <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-blue-500/30 to-indigo-600/30 border border-blue-500/40 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Moon className="w-5 h-5 text-blue-400" />
+                </div>
+                <span className="text-white text-xs font-medium">ทำนายฝัน</span>
+              </div>
+            </Link>
+          </div>
         </div>
 
         {/* Quick Menu - Premium */}
