@@ -15,6 +15,23 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const customerId = searchParams.get('customer_id');
     const type = searchParams.get('type');
+    
+    // NEW: Date-time range filtering
+    const startDate = searchParams.get('start_date');
+    const endDate = searchParams.get('end_date');
+    const transactionType = searchParams.get('transaction_type');
+    const searchQuery = searchParams.get('search');
+    
+    // Lazy loading: require at least one filter to prevent loading all data
+    const hasFilters = customerId || startDate || endDate || transactionType || searchQuery;
+    if (!hasFilters) {
+      // Return empty with message for lazy loading
+      return NextResponse.json({ 
+        data: [], 
+        message: 'กรุณาเลือกตัวกรองและกดค้นหาข้อมูล',
+        requiresFilter: true 
+      });
+    }
 
     // SECURITY: If customer_id specified, verify access
     if (customerId) {
@@ -26,7 +43,7 @@ export async function GET(request: NextRequest) {
       });
       
       if (!accessCheck.allowed) {
-        return NextResponse.json([]);
+        return NextResponse.json({ data: [], message: 'ไม่มีสิทธิ์เข้าถึงข้อมูล' });
       }
     }
 
@@ -63,7 +80,7 @@ export async function GET(request: NextRequest) {
         if (customerIds.length > 0) {
           query = query.in('customer_id', customerIds);
         } else {
-          return NextResponse.json([]);
+          return NextResponse.json({ data: [], message: 'ไม่พบข้อมูล' });
         }
       } else if (scope.isTenantOwner && scope.tenantId) {
         // Get customers in tenant
@@ -76,28 +93,49 @@ export async function GET(request: NextRequest) {
         if (customerIds.length > 0) {
           query = query.in('customer_id', customerIds);
         } else {
-          return NextResponse.json([]);
+          return NextResponse.json({ data: [], message: 'ไม่พบข้อมูล' });
         }
       }
       // Super admin sees all
     }
 
+    // Type filter (legacy)
     if (type) {
       query = query.eq('type', type);
+    }
+    
+    // NEW: Transaction type filter (betting, deposit, withdraw, etc.)
+    if (transactionType && transactionType !== 'all') {
+      if (transactionType === 'bet') {
+        query = query.in('type', ['bet', 'bet_win', 'bet_lose', 'bet_refund']);
+      } else if (transactionType === 'deposit') {
+        query = query.in('type', ['deposit', 'admin_add', 'bonus', 'topup']);
+      } else if (transactionType === 'withdraw') {
+        query = query.in('type', ['withdraw', 'admin_subtract', 'deduction']);
+      } else {
+        query = query.eq('type', transactionType);
+      }
+    }
+    
+    // NEW: Date range filter
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+    if (endDate) {
+      query = query.lte('created_at', endDate);
     }
 
     const { data, error } = await query;
 
     if (error) {
       console.error('[v0] Credit transactions fetch error:', error);
-      // Return empty array on error
-      return NextResponse.json([]);
+      return NextResponse.json({ data: [], message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
     }
 
-    return NextResponse.json(data || []);
+    return NextResponse.json({ data: data || [], total: data?.length || 0 });
   } catch (error) {
     console.error('[v0] Credit transactions GET error:', error);
-    return NextResponse.json([]);
+    return NextResponse.json({ data: [], message: 'เกิดข้อผิดพลาด' });
   }
 }
 
@@ -225,7 +263,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Credit transactions POST error:', error);
     return NextResponse.json(
-      { error: 'เกิดข้อผิดพลาดในการปรับยอดเครดิต' },
+      { error: 'เกิดข้อผิดพลาดในการปรับ��อดเครดิต' },
       { status: 500 }
     );
   }
