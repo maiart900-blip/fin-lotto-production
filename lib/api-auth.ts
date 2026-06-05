@@ -26,6 +26,8 @@ export interface AuthenticatedUser {
   user_type: UserType;
   source_table: SourceTable;
   is_active: boolean;
+  // Tenant context
+  tenant_id?: string | null;
   // For hierarchy-based access
   parent_id?: string | null;
   agent_level?: string | null;

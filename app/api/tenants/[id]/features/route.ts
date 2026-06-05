@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireSuperAdmin } from '@/lib/admin-auth';
+import { requireSuperAdmin } from '@/lib/api-auth';
 import { clearFeatureCache } from '@/lib/tenant-features';
 import { auditLogger } from '@/lib/audit-logger';
 
