@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import useSWR from 'swr';
 import {
   LayoutDashboard,
-  PenLine,
   List,
   Users,
   User,
@@ -19,7 +18,6 @@ import {
   UsersRound,
   Handshake,
   Gift,
-  Ticket,
   DollarSign,
   Trophy,
   Wallet,
@@ -56,9 +54,7 @@ import {
   Clock,
   Receipt,
   Upload,
-  Keyboard,
   Zap,
-  GitBranch,
   FileBarChart,
   Send,
   Globe,
@@ -117,28 +113,7 @@ const attendanceItem = {
 };
 
 // =====================================================
-// GROUP 2: ระบบหวยคีย์ (รวมเอเย่นต์ Manual Key ไว้ที่นี่)
-// =====================================================
-
-const lotteryKeySystemItems = [
-  { id: 'admin-key', title: 'คีย์หวย (หน้ารับแทง)', href: '/admin/key', icon: PenLine },
-  { id: 'entries', title: 'รายการโพยทั้งหมด', href: '/entries', icon: List },
-  { id: 'lotteries', title: 'จัดการหวย (เปิด-ปิดงวด)', href: '/lotteries', icon: Ticket },
-  { id: 'results', title: 'ผลหวย (กรอกผลรางวัล)', href: '/results', icon: Trophy },
-  { id: 'prize-payout', title: 'จ่ายรางวัลลูกค้าคีย์', href: '/prize-payout', icon: DollarSign },
-  { id: 'betting-history', title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: History },
-];
-
-// เอเย่นต์คีย์หวย (Manual Key Agent Hierarchy)
-// ระบบนี้ใช้สำหรับหวยคีย์มือเท่านั้น ไม่เกี่ยวกับเว็บออโต้
-const agentHierarchyItems = [
-  { id: 'agent-system', title: 'สายงานเอเย่นต์คีย์หวย', href: '/agent-system', icon: GitBranch },
-  { id: 'agent-system-commission', title: 'คอมมิชชั่นเอเย่นต์', href: '/agent-system/commission', icon: DollarSign },
-  { id: 'agent-tree', title: 'ต้นไม้สายงาน (4-Tier)', href: '/agent-system/tree', icon: Network },
-];
-
-// =====================================================
-// GROUP 3: ระบบเว็บออโต้ (ไม่มีเอเย่นต์)
+// GROUP 2: ระบบเว็บออโต้ (100% Auto System)
 // =====================================================
 
 const autoWebSystemItems = [
@@ -155,7 +130,7 @@ const autoWebSystemItems = [
 ];
 
 // =====================================================
-// GROUP 4: ธุรกรรมการเงิน
+// GROUP 3: ธุรกรรมการเงิน
 // =====================================================
 
 const financeTransactionItems = [
@@ -323,37 +298,16 @@ interface MenuSection {
 
 // Main menu sections - reorganized according to blueprint
 const menuSections: MenuSection[] = [
-  // === GROUP 2: ระบบหวยคีย์ ===
-  { 
-    title: 'ระบบหวยคีย์', 
-    icon: Ticket, 
-    items: lotteryKeySystemItems, 
-    defaultOpen: true, 
-    adminOnly: true, 
-    staffVisible: true, 
-    memberVisible: true 
-  },
-  
-  // === GROUP 2.1: เอเย่นต์คีย์หวย (Manual Key Only) ===
-  { 
-    title: 'เอเย่นต์คีย์หวย', 
-    icon: GitBranch, 
-    items: agentHierarchyItems, 
-    defaultOpen: false, 
-    adminOnly: true,
-    agentVisible: true,
-  },
-  
-  // === GROUP 3: ระบบเว็บออโต้ (ไม่มีเอเย่นต์) ===
+  // === GROUP 2: ระบบเว็บออโต้ (100% Auto System) ===
   { 
     title: 'ระบบเว็บออโต้', 
     icon: Zap, 
     items: autoWebSystemItems, 
-    defaultOpen: false, 
+    defaultOpen: true, 
     adminOnly: true 
   },
   
-  // === GROUP 4: ธุรกรรมการเงิน ===
+  // === GROUP 3: ธุรกรรมการเงิน ===
   { 
     title: 'ธุรกรรมการเงิน', 
     icon: Wallet, 
@@ -364,7 +318,7 @@ const menuSections: MenuSection[] = [
     memberVisible: true 
   },
   
-  // === GROUP 5.1: จัดการลูกค้า ===
+  // === GROUP 4: จัดการลูกค้า ===
   { 
     title: 'จัดการลูกค้า', 
     icon: Users, 
@@ -374,7 +328,7 @@ const menuSections: MenuSection[] = [
     staffVisible: true 
   },
   
-  // === GROUP 5.2: ศูนย์แอดมิน (สิทธิ์การใช้งาน) ===
+  // === GROUP 5: ศูนย์แอดมิน (สิทธิ์การใช้งาน) ===
   { 
     title: 'ศูนย์แอดมิน', 
     icon: Headphones, 
@@ -383,7 +337,7 @@ const menuSections: MenuSection[] = [
     adminOnly: true, 
   },
   
-  // === GROUP 5.3: จัดการพนักงาน ===
+  // === GROUP 6: จัดการพนักงาน ===
   { 
     title: 'จัดการพนักงาน', 
     icon: UsersRound, 
@@ -392,7 +346,7 @@ const menuSections: MenuSection[] = [
     adminOnly: true, 
   },
   
-  // === GROUP 6: รายงานสรุปผล ===
+  // === GROUP 7: รายงานสรุปผล ===
   { 
     title: 'รายงานสรุปผล', 
     icon: BarChart3, 
