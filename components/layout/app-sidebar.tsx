@@ -358,7 +358,7 @@ const menuSections: MenuSection[] = [
     staffVisible: true 
   },
   
-  // === GROUP 7: ตั้งค่า & ความปลอดภัย ===
+  // === GROUP 8: ตั้งค่า & ความปลอดภัย ===
   { 
     title: 'ตั้งค่าเว็บ', 
     icon: Settings, 
@@ -405,7 +405,7 @@ const menuSections: MenuSection[] = [
     agentOnly: true 
   },
   { 
-    title: 'คีย์หวย', 
+    title: 'รายการเดิมพัน', 
     icon: Ticket, 
     items: agentBettingItems, 
     defaultOpen: false, 
