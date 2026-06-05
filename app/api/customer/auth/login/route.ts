@@ -9,20 +9,23 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   
   try {
-    const { phone, password, tenantId } = await request.json();
+    const { phone, password, tenantId, username, email } = await request.json();
 
-    if (!phone || !password) {
+    // Accept phone, username, or email
+    const loginIdentifier = phone || username || email;
+
+    if (!loginIdentifier || !password) {
       return NextResponse.json(
-        { error: 'กรุณากรอกเบอร์โทรและรหัสผ่าน' },
+        { error: 'กรุณากรอกชื่อผู้ใช้/อีเมล/เบอร์โทร และรหัสผ่าน' },
         { status: 400 }
       );
     }
 
     // Normalize phone number (remove leading 0 for comparison)
-    const normalizedPhone = phone.startsWith('0') ? phone : '0' + phone;
-    const phoneWithoutZero = phone.startsWith('0') ? phone.substring(1) : phone;
+    const normalizedPhone = loginIdentifier.startsWith('0') ? loginIdentifier : '0' + loginIdentifier;
+    const phoneWithoutZero = loginIdentifier.startsWith('0') ? loginIdentifier.substring(1) : loginIdentifier;
 
-    // Helper function to find customer by phone OR username
+    // Helper function to find customer by phone, username, OR email
     const findCustomer = async (searchValue: string) => {
       // Try to find by phone first
       const { data: byPhone } = await supabase
@@ -42,11 +45,20 @@ export async function POST(request: NextRequest) {
       
       if (byUsername) return byUsername;
 
+      // Try to find by email (case insensitive)
+      const { data: byEmail } = await supabase
+        .from('customers')
+        .select('*')
+        .ilike('email', searchValue)
+        .maybeSingle();
+      
+      if (byEmail) return byEmail;
+
       return null;
     };
 
-    // Find customer by phone or username (try multiple formats)
-    let customer = await findCustomer(phone);
+    // Find customer by phone, username, or email (try multiple formats)
+    let customer = await findCustomer(loginIdentifier);
     
     // Try with normalized phone if not found
     if (!customer) {
