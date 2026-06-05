@@ -32,6 +32,10 @@ import {
   Building2,
   Clock,
   Eye,
+  Megaphone,
+  History,
+  User,
+  FileText,
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -42,7 +46,7 @@ interface FeatureConfig {
   label: string;
   description: string;
   icon: React.ReactNode;
-  category: 'master' | 'payment' | 'bot' | 'search';
+  category: 'master' | 'payment' | 'bot' | 'search' | 'marketing';
 }
 
 const FEATURE_CONFIGS: Omit<FeatureConfig, 'is_enabled'>[] = [
@@ -127,6 +131,35 @@ const FEATURE_CONFIGS: Omit<FeatureConfig, 'is_enabled'>[] = [
     icon: <Search className="size-5" />,
     category: 'search',
   },
+  // Marketing Settings (NEW)
+  {
+    feature_key: 'tenant_marketing_settings',
+    label: 'ตั้งค่าแบรนด์หน้าร้าน',
+    description: 'อนุญาตให้เว็บลูกตั้งค่าเทิร์นโอเวอร์, ลิงก์ไลน์, และป๊อปอัพโปรโมชั่นด้วยตนเอง',
+    icon: <Megaphone className="size-5" />,
+    category: 'marketing',
+  },
+  {
+    feature_key: 'tenant_turnover_settings',
+    label: 'ตั้งค่าเทิร์นโอเวอร์',
+    description: 'สิทธิ์กำหนดเงื่อนไขบังคับทำยอดก่อนถอน',
+    icon: <Settings className="size-5" />,
+    category: 'marketing',
+  },
+  {
+    feature_key: 'tenant_support_settings',
+    label: 'ตั้งค่าลิงก์ซัพพอร์ต',
+    description: 'สิทธิ์เปลี่ยน Line @, เบอร์โทร, อีเมลติดต่อ',
+    icon: <FileText className="size-5" />,
+    category: 'marketing',
+  },
+  {
+    feature_key: 'tenant_announcement_settings',
+    label: 'ตั้งค่าประกาศป๊อปอัพ',
+    description: 'สิทธิ์สร้างและจัดการประกาศหน้าร้าน',
+    icon: <Globe className="size-5" />,
+    category: 'marketing',
+  },
 ];
 
 const CATEGORY_LABELS = {
@@ -134,6 +167,7 @@ const CATEGORY_LABELS = {
   payment: { title: 'ระบบเกทเวย์การเงิน (Payment Gateway)', icon: <CreditCard className="size-5" /> },
   bot: { title: 'บอทออโต้อ่านสลิป (Auto Slip Bot)', icon: <Bot className="size-5" /> },
   search: { title: 'ระบบค้นหาขั้นสูง', icon: <Search className="size-5" /> },
+  marketing: { title: 'ตั้งค่าแบรนด์และการตลาดหน้าร้าน', icon: <Megaphone className="size-5" /> },
 };
 
 export default function TenantAutoConfigPage({ params }: { params: Promise<{ id: string }> }) {
@@ -149,8 +183,15 @@ export default function TenantAutoConfigPage({ params }: { params: Promise<{ id:
     fetcher
   );
   
+  // Fetch audit logs for this tenant's feature changes
+  const { data: auditLogsData } = useSWR(
+    `/api/audit-logs?entity_type=tenant_features&tenant_id=${tenantId}&limit=20`,
+    fetcher
+  );
+  
   const tenant = tenantData?.tenant;
   const features = featuresData?.features || [];
+  const auditLogs = auditLogsData?.data || [];
   
   // Get feature status
   const getFeatureStatus = (featureKey: string): boolean => {
@@ -340,7 +381,7 @@ export default function TenantAutoConfigPage({ params }: { params: Promise<{ id:
         </Card>
         
         {/* Feature Categories */}
-        {(['master', 'payment', 'bot', 'search'] as const).map((category) => (
+        {(['master', 'payment', 'bot', 'search', 'marketing'] as const).map((category) => (
           <Card
             key={category}
             className="bg-gradient-to-br from-black/60 to-neutral-900/60 border border-neutral-800/50 backdrop-blur-sm"
@@ -351,6 +392,7 @@ export default function TenantAutoConfigPage({ params }: { params: Promise<{ id:
                   category === 'master' ? 'bg-amber-500/20 text-amber-400' :
                   category === 'payment' ? 'bg-blue-500/20 text-blue-400' :
                   category === 'bot' ? 'bg-purple-500/20 text-purple-400' :
+                  category === 'marketing' ? 'bg-pink-500/20 text-pink-400' :
                   'bg-emerald-500/20 text-emerald-400'
                 }`}>
                   {CATEGORY_LABELS[category].icon}
@@ -362,6 +404,7 @@ export default function TenantAutoConfigPage({ params }: { params: Promise<{ id:
                     {category === 'payment' && 'ท่อ API เชื่อมต่อระบบการเงิน'}
                     {category === 'bot' && 'ระบบบอทตรวจสอบสลิปอัตโนมัติ'}
                     {category === 'search' && 'เครื่องมือค้นหาและรายงานขั้นสูง'}
+                    {category === 'marketing' && 'สิทธิ์ให้เว็บลูกตั้งค่าการตลาดเอง'}
                   </CardDescription>
                 </div>
               </div>
@@ -371,6 +414,102 @@ export default function TenantAutoConfigPage({ params }: { params: Promise<{ id:
             </CardContent>
           </Card>
         ))}
+        
+        {/* Audit Log Table */}
+        <Card className="bg-gradient-to-br from-black/60 to-neutral-900/60 border border-neutral-800/50 backdrop-blur-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400">
+                <History className="size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg text-white">ประวัติการเปลี่ยนแปลงฟีเจอร์</CardTitle>
+                <CardDescription className="text-neutral-500">
+                  บันทึกการสับสวิตช์โดย Super Admin (20 รายการล่าสุด)
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {auditLogs.length === 0 ? (
+              <div className="text-center py-8 text-neutral-500">
+                <History className="size-12 mx-auto mb-3 opacity-30" />
+                <p>ยังไม่มีประวัติการเปลี่ยนแปลง</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-neutral-800">
+                      <th className="text-left py-3 px-4 text-amber-400 font-semibold">วันที่/เวลา</th>
+                      <th className="text-left py-3 px-4 text-amber-400 font-semibold">ผู้ดำเนินการ</th>
+                      <th className="text-left py-3 px-4 text-amber-400 font-semibold">ฟีเจอร์</th>
+                      <th className="text-left py-3 px-4 text-amber-400 font-semibold">การเปลี่ยนแปลง</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogs.map((log: {
+                      id: string;
+                      created_at: string;
+                      user?: { display_name?: string; username?: string };
+                      user_id?: string;
+                      changes?: { feature_key?: string; previous_state?: boolean; new_state?: boolean };
+                    }) => {
+                      const featureKey = log.changes?.feature_key || '-';
+                      const featureConfig = FEATURE_CONFIGS.find(f => f.feature_key === featureKey);
+                      const prevState = log.changes?.previous_state;
+                      const newState = log.changes?.new_state;
+                      
+                      return (
+                        <tr key={log.id} className="border-b border-neutral-800/50 hover:bg-neutral-800/30">
+                          <td className="py-3 px-4 text-neutral-300 font-mono text-xs">
+                            {new Date(log.created_at).toLocaleDateString('th-TH', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                            })}{' '}
+                            {new Date(log.created_at).toLocaleTimeString('th-TH', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                            })}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-full bg-amber-500/20">
+                                <User className="size-3 text-amber-400" />
+                              </div>
+                              <span className="text-neutral-200">
+                                {log.user?.display_name || log.user?.username || log.user_id?.slice(0, 8) || 'System'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              {featureConfig?.icon}
+                              <span className="text-neutral-300">{featureConfig?.label || featureKey}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <Badge className={`${prevState ? 'bg-emerald-500/20 text-emerald-400' : 'bg-neutral-700 text-neutral-400'} text-xs`}>
+                                {prevState === undefined ? 'ใหม่' : prevState ? 'เปิด' : 'ปิด'}
+                              </Badge>
+                              <span className="text-neutral-500">→</span>
+                              <Badge className={`${newState ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'} text-xs`}>
+                                {newState ? 'เปิด' : 'ปิด'}
+                              </Badge>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         
         {/* Action Buttons */}
         <Card className="bg-gradient-to-br from-black/60 to-neutral-900/60 border border-neutral-800/50 backdrop-blur-sm">
