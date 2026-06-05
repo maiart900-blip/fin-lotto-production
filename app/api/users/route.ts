@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
+import { requireAdmin } from '@/lib/api-auth';
 
 /**
  * Users API - ADMIN ONLY
@@ -17,12 +18,6 @@ export async function GET(request: NextRequest) {
     const sessionCookie = cookieStore.get('session')?.value;
     const lotterySession = cookieStore.get('lottery_session')?.value;
     
-    console.log('[v0] Users GET cookies:', { 
-      adminId: !!adminId, 
-      session: !!sessionCookie,
-      lottery: !!lotterySession 
-    });
-    
     let userId: string | null = null;
     let userRole: string | null = null;
     
@@ -37,8 +32,8 @@ export async function GET(request: NextRequest) {
         const session = JSON.parse(decodeURIComponent(sessionCookie));
         userId = session.userId || session.id;
         userRole = session.role;
-      } catch (e) {
-        console.log('[v0] Failed to parse session cookie');
+      } catch {
+        // Session parse failed
       }
     }
     // Try lottery_session
@@ -47,12 +42,10 @@ export async function GET(request: NextRequest) {
         const session = JSON.parse(lotterySession);
         userId = session.id;
         userRole = session.role;
-      } catch (e) {
-        console.log('[v0] Failed to parse lottery_session cookie');
+      } catch {
+        // Lottery session parse failed
       }
     }
-    
-    console.log('[v0] Users GET resolved:', { userId, userRole });
     
     // Verify user exists and has admin role
     if (userId) {
@@ -73,25 +66,23 @@ export async function GET(request: NextRequest) {
             .order('created_at', { ascending: false });
           
           if (error) {
-            console.error('[v0] Users GET db error:', error.message);
+            console.error('Users GET db error:', error.message);
             return NextResponse.json({ error: error.message }, { status: 500 });
           }
           
-          console.log('[v0] Users GET success, count:', data?.length);
           return NextResponse.json(data || []);
         }
       }
     }
     
     // Not authenticated or not admin
-    console.log('[v0] Users GET: Unauthorized');
     return NextResponse.json(
       { success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' },
       { status: 401 }
     );
     
   } catch (err) {
-    console.error('[v0] Users GET exception:', err);
+    console.error('Users GET exception:', err);
     return NextResponse.json(
       { error: 'Server error' },
       { status: 500 }
@@ -138,6 +129,22 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Validate username format (alphanumeric, 3-50 chars)
+    if (!/^[a-zA-Z0-9_]{3,50}$/.test(username)) {
+      return NextResponse.json(
+        { error: 'ชื่อผู้ใช้ต้องเป็นตัวอักษรภาษาอังกฤษ ตัวเลข หรือ _ เท่านั้น (3-50 ตัวอักษร)' },
+        { status: 400 }
+      );
+    }
+
+    // Validate password (min 6 chars)
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' },
+        { status: 400 }
+      );
+    }
     
     const supabase = await createClient();
     
@@ -167,6 +174,7 @@ export async function POST(request: Request) {
       parent_id: parent_id || null,
       hierarchy_level: hierarchy_level || 0,
       credit_balance: 0,
+      is_active: true,
     };
 
     // Add optional fields if provided
@@ -186,18 +194,27 @@ export async function POST(request: Request) {
       .single();
     
     if (error) {
-      console.error('[v0] Users POST insert error:', error.message);
+      console.error('Users POST insert error:', error.message, error.code);
+      
+      // Handle specific Supabase errors
+      if (error.code === '23505') {
+        return NextResponse.json(
+          { error: 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว' },
+          { status: 400 }
+        );
+      }
+      
       return NextResponse.json(
-        { error: error.message || 'Failed to create user' },
+        { error: 'ไม่สามารถสร้างผู้ใช้ได้: ' + error.message },
         { status: 500 }
       );
     }
     
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Users POST exception:', err);
+    console.error('Users POST exception:', err);
     return NextResponse.json(
-      { error: 'เกิดข้อผิดพลาดในการสร้างผู้ใช้' },
+      { error: 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง' },
       { status: 500 }
     );
   }
