@@ -234,23 +234,23 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-slate-900/50 border-slate-700/50">
+      <Card className="bg-black/90 border-slate-800">
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="ค้นหาตามชื่อผู้ใช้ หรือรายละเอียด..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-slate-800/50 border-slate-600"
+                className="pl-10 bg-black/80 border-slate-700 text-white placeholder:text-slate-500"
               />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full md:w-40 bg-slate-800/50 border-slate-600">
+              <SelectTrigger className="w-full md:w-40 bg-black/80 border-slate-700 text-white">
                 <SelectValue placeholder="หมวดหมู่" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-black border-slate-700">
                 <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
                 <SelectItem value="auth">การเข้าสู่ระบบ</SelectItem>
                 <SelectItem value="financial">การเงิน</SelectItem>
@@ -260,10 +260,10 @@ export default function AuditLogsPage() {
               </SelectContent>
             </Select>
             <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="w-full md:w-48 bg-slate-800/50 border-slate-600">
+              <SelectTrigger className="w-full md:w-48 bg-black/80 border-slate-700 text-white">
                 <SelectValue placeholder="เลือก Action" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-black border-slate-700">
                 <SelectItem value="all">ทั้งหมด</SelectItem>
                 {actions.map((action: string) => (
                   <SelectItem key={action} value={action}>
@@ -277,33 +277,33 @@ export default function AuditLogsPage() {
       </Card>
 
       {/* Table */}
-      <Card className="bg-slate-900/50 border-slate-700/50">
+      <Card className="bg-black/90 border-slate-800">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-700">
-                <TableHead className="text-slate-400">เวลา</TableHead>
-                <TableHead className="text-slate-400">Action</TableHead>
-                <TableHead className="text-slate-400">ตาราง</TableHead>
-                <TableHead className="text-slate-400">ผู้ใช้</TableHead>
-                <TableHead className="text-slate-400">IP Address</TableHead>
-                <TableHead className="text-slate-400">รายละเอียด</TableHead>
-                <TableHead className="text-right text-slate-400">ดู</TableHead>
+              <TableRow className="border-slate-700 hover:bg-transparent">
+                <TableHead className="text-white font-semibold">เวลา</TableHead>
+                <TableHead className="text-white font-semibold">Action</TableHead>
+                <TableHead className="text-white font-semibold">ตาราง</TableHead>
+                <TableHead className="text-white font-semibold">ผู้ใช้</TableHead>
+                <TableHead className="text-white font-semibold">IP Address</TableHead>
+                <TableHead className="text-white font-semibold">รายละเอียด</TableHead>
+                <TableHead className="text-right text-white font-semibold">ดู</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredLogs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-slate-400">
                     ไม่พบรายการ
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredLogs.map((log: AuditLog) => (
-                  <TableRow key={log.id} className="border-slate-700/50 hover:bg-slate-800/30">
-                    <TableCell className="text-sm text-slate-400 whitespace-nowrap">
+                  <TableRow key={log.id} className="border-slate-800 hover:bg-slate-900/50">
+                    <TableCell className="text-sm text-white whitespace-nowrap">
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
+                        <Calendar className="h-3 w-3 text-slate-400" />
                         {formatDate(log.created_at)}
                       </div>
                     </TableCell>
@@ -312,33 +312,33 @@ export default function AuditLogsPage() {
                         {log.action}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-mono text-sm text-slate-300">{log.table_name || '-'}</TableCell>
+                    <TableCell className="font-mono text-sm text-white">{log.table_name || '-'}</TableCell>
                     <TableCell>
                       {log.user ? (
                         <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-slate-500" />
-                          <span className="text-slate-200">{log.user.display_name || log.user.username}</span>
+                          <User className="h-4 w-4 text-slate-400" />
+                          <span className="text-white">{log.user.display_name || log.user.username}</span>
                         </div>
                       ) : log.customer ? (
                         <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-slate-500" />
-                          <span className="text-slate-200">{log.customer.name}</span>
+                          <User className="h-4 w-4 text-slate-400" />
+                          <span className="text-white">{log.customer.name}</span>
                         </div>
                       ) : (
                         <span className="text-slate-500">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-400">
+                    <TableCell className="font-mono text-xs text-white">
                       {log.ip_address || '-'}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate text-slate-300">
+                    <TableCell className="max-w-xs truncate text-white">
                       {log.description || '-'}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="hover:bg-slate-700"
+                        className="hover:bg-slate-800 text-white"
                         onClick={() => {
                           setSelectedLog(log);
                           setIsDetailOpen(true);
@@ -403,7 +403,7 @@ export default function AuditLogsPage() {
                   <p className="font-mono">{selectedLog.table_name || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">เวลา</p>
+                  <p className="text-sm text-slate-500">เว��า</p>
                   <p>{formatDate(selectedLog.created_at)}</p>
                 </div>
                 <div>

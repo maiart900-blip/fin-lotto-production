@@ -236,8 +236,8 @@ export default function RiskManagementPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">ควบคุมความเสี่ยง</h1>
-        <p className="text-muted-foreground">ตรวจสอบเลขที่มียอดแทงสูงและความเสี่ยงในการขาดทุน</p>
+        <h1 className="text-2xl font-bold text-amber-400">ควบคุมความเสี่ยง</h1>
+        <p className="text-amber-300/80">ตรวจสอบเลขที่มียอดแทงสูงและความเสี่ยงในการขาดทุน</p>
       </div>
 
       {/* Summary Cards */}
@@ -382,25 +382,25 @@ export default function RiskManagementPage() {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>เลข</TableHead>
-                      <TableHead>ประเภท</TableHead>
-                      <TableHead className="text-right">จำนวนโพย</TableHead>
-                      <TableHead className="text-right">ยอดรับ</TableHead>
-                      <TableHead className="text-right">จ่ายถ้าถูก</TableHead>
-                      <TableHead className="text-right">กำไร/ขาดทุน</TableHead>
-                      <TableHead className="text-center">ระดับความเสี่ยง</TableHead>
-                      <TableHead className="text-center">จัดการ</TableHead>
+                    <TableRow className="border-slate-700">
+                      <TableHead className="text-black font-bold">เลข</TableHead>
+                      <TableHead className="text-black font-bold">ประเภท</TableHead>
+                      <TableHead className="text-right text-black font-bold">จำนวนโพย</TableHead>
+                      <TableHead className="text-right text-black font-bold">ยอดรับ</TableHead>
+                      <TableHead className="text-right text-black font-bold">จ่ายถ้าถูก</TableHead>
+                      <TableHead className="text-right text-black font-bold">กำไร/ขาดทุน</TableHead>
+                      <TableHead className="text-center text-black font-bold">ระดับความเสี่ยง</TableHead>
+                      <TableHead className="text-center text-black font-bold">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {riskNumbers.slice(0, 50).map((num, idx) => (
                       <TableRow key={idx} className={num.risk_level === 'danger' ? 'bg-red-500/10' : num.risk_level === 'warning' ? 'bg-orange-500/10' : ''}>
-                        <TableCell className="font-mono font-bold text-lg">{num.number}</TableCell>
-                        <TableCell>{getEntryTypeLabel(num.entry_type)}</TableCell>
-                        <TableCell className="text-right">{num.bet_count}</TableCell>
-                        <TableCell className="text-right text-green-600">฿{formatMoney(num.total_amount)}</TableCell>
-                        <TableCell className="text-right text-red-600">฿{formatMoney(num.potential_payout)}</TableCell>
+                        <TableCell className="font-mono font-bold text-lg text-black">{num.number}</TableCell>
+                        <TableCell className="text-black font-medium">{getEntryTypeLabel(num.entry_type)}</TableCell>
+                        <TableCell className="text-right text-black font-medium">{num.bet_count}</TableCell>
+                        <TableCell className="text-right text-green-600 font-bold">฿{formatMoney(num.total_amount)}</TableCell>
+                        <TableCell className="text-right text-red-600 font-bold">฿{formatMoney(num.potential_payout)}</TableCell>
                         <TableCell className={`text-right font-bold ${num.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {num.profit_loss >= 0 ? '+' : ''}฿{formatMoney(num.profit_loss)}
                         </TableCell>
