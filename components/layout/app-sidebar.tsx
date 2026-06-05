@@ -341,7 +341,7 @@ const menuSections: MenuSection[] = [
   
   // === GROUP 6: จัดการพนักงาน ===
   { 
-    title: 'จัดกา���พนักงาน', 
+    title: 'จัดการพนักงาน', 
     icon: UsersRound, 
     items: staffManagementItems, 
     defaultOpen: false, 
@@ -423,7 +423,7 @@ const menuSections: MenuSection[] = [
   
   // === MEMBER/STAFF MENUS ===
   { 
-    title: 'ศูนย์แอดมิน', 
+    title: 'เมนูสมาชิก', 
     icon: User, 
     items: memberAdminItems, 
     defaultOpen: false, 
