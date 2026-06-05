@@ -225,6 +225,67 @@
 /* ================================
    PREMIUM SCROLLBAR
    ================================ */
+
+/* ================================
+   THAI TYPOGRAPHY FIX
+   Proper line-height and font rendering
+   for Thai vowels/tone marks (สระลอย)
+   ================================ */
+html {
+  font-family: var(--font-prompt), 'Prompt', 'Sarabun', 'Kanit', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+/* Thai text specific adjustments */
+:lang(th),
+[lang="th"],
+.thai-text {
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+  word-spacing: 0.05em;
+}
+
+/* Fix for overlapping Thai vowels and tone marks */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.5;
+}
+
+/* Card content with Thai text */
+.card-content-thai,
+[data-thai-content="true"] {
+  line-height: 1.75;
+}
+
+/* Table cells with Thai text */
+td, th {
+  line-height: 1.6;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+/* Small text with Thai characters */
+.text-xs, .text-sm {
+  line-height: 1.7;
+}
+
+/* Labels and badges */
+.badge, [class*="badge"] {
+  line-height: 1.5;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+/* ================================
+   END THAI TYPOGRAPHY FIX
+   ================================ */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
