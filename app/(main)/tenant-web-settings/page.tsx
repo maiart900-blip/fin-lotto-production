@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from '@/components/session-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,12 +53,12 @@ interface TenantSettings {
 }
 
 export default function TenantWebSettingsPage() {
-  const { session } = useSession();
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<TenantSettings | null>(null);
 
   const { data, error, isLoading, mutate } = useSWR(
-    session?.tenant_id ? `/api/tenant-settings?tenant_id=${session.tenant_id}` : null,
+    user?.tenant_id ? `/api/tenant-settings?tenant_id=${user.tenant_id}` : null,
     fetcher
   );
 
@@ -69,7 +69,7 @@ export default function TenantWebSettingsPage() {
   }, [data]);
 
   const handleSave = async () => {
-    if (!settings || !session?.tenant_id) return;
+    if (!settings || !user?.tenant_id) return;
 
     setSaving(true);
     try {
@@ -77,7 +77,7 @@ export default function TenantWebSettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenant_id: session.tenant_id,
+          tenant_id: user.tenant_id,
           ...settings,
         }),
       });
