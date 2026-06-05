@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { PromoPopup } from '@/components/customer/promo-popup';
+import { InstallAppButton } from '@/components/customer/install-app-button';
 
 interface CustomerUser {
   id: string;
@@ -339,6 +340,14 @@ export default function CustomerLayout({
                   </Link>
                 );
               })}
+            </div>
+
+            {/* Install App Button - Premium Gold Design */}
+            <div className="p-3 border-t border-white/5">
+              <p className="px-3 py-2 text-xs font-medium text-[#64748B] uppercase tracking-wider">
+                ดาวน์โหลด
+              </p>
+              <InstallAppButton variant="menu" />
             </div>
 
             {/* Support Section */}
