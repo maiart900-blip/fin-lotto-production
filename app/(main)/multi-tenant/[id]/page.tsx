@@ -51,6 +51,8 @@ import {
   RefreshCw,
   Calendar,
   FileText,
+  Crown,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -214,6 +216,12 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
           <RefreshCw className="size-4 mr-2" />
           รีเฟรช
         </Button>
+        <Link href={`/multi-tenant/${tenantId}/auto-config`}>
+          <Button className="bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold hover:from-amber-400 hover:to-amber-500">
+            <Crown className="size-4 mr-2" />
+            ตั้งค่าระบบออโต้
+          </Button>
+        </Link>
       </div>
 
       {/* Stats Cards */}
