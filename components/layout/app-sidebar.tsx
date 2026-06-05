@@ -59,6 +59,8 @@ import {
   Send,
   Globe,
   Radio,
+  PenLine,
+  Ticket,
 } from 'lucide-react';
 
 import {
@@ -249,10 +251,10 @@ const agentDownlineItems = [
 ];
 
 const agentBettingItems = [
-  { id: 'manual-key', title: 'ภาพรวมคีย์หวย', href: '/manual-key', icon: Keyboard },
-  { id: 'manual-key-entry', title: 'คีย์โพย', href: '/admin/key', icon: PenLine },
-  { id: 'manual-key-entries', title: 'รายการคีย์หวย', href: '/manual-key/entries', icon: List },
-  { id: 'manual-key-customers', title: 'ลูกค้าคีย์หวย', href: '/manual-key/customers', icon: Users },
+  { id: 'manual-key', title: 'ภาพรวมระบบ', href: '/manual-key', icon: BarChart3 },
+  { id: 'manual-key-entry', title: 'รายการเดิมพัน', href: '/admin/key', icon: List },
+  { id: 'manual-key-entries', title: 'ประวัติการเดิมพัน', href: '/manual-key/entries', icon: History },
+  { id: 'manual-key-customers', title: 'ลูกค้าในระบบ', href: '/manual-key/customers', icon: Users },
   { id: 'results', title: 'ผลหวย', href: '/results', icon: Trophy },
 ];
 
@@ -339,7 +341,7 @@ const menuSections: MenuSection[] = [
   
   // === GROUP 6: จัดการพนักงาน ===
   { 
-    title: 'จัดการพนักงาน', 
+    title: 'จัดกา���พนักงาน', 
     icon: UsersRound, 
     items: staffManagementItems, 
     defaultOpen: false, 
@@ -412,8 +414,8 @@ const menuSections: MenuSection[] = [
   
   // === SUB-AGENT MENUS ===
   { 
-    title: 'เมนูเฉพาะระดับ (Manual Key)', 
-    icon: Keyboard, 
+    title: 'เมนูระดับย่อย', 
+    icon: User, 
     items: subAgentKeyItems, 
     defaultOpen: true, 
     subAgentOnly: true 
