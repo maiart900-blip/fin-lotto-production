@@ -6,6 +6,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenant_id');
     const accountType = searchParams.get('account_type') || 'deposit';
+    const includeDeleted = searchParams.get('include_deleted') === 'true';
     
     const supabase = await createClient();
     let query = supabase
@@ -21,6 +22,11 @@ export async function GET(request: Request) {
     // Filter by account type
     if (accountType) {
       query = query.eq('account_type', accountType);
+    }
+    
+    // Filter out soft-deleted accounts unless explicitly requested
+    if (!includeDeleted) {
+      query = query.is('deleted_at', null);
     }
 
     const { data, error } = await query;
@@ -203,17 +209,24 @@ export async function DELETE(request: Request) {
 
     const supabase = await createClient();
 
-    const { error } = await supabase
+    // SOFT DELETE: Instead of deleting, mark as deleted
+    // This preserves foreign key relationships with topup_requests
+    const { data, error } = await supabase
       .from('payment_accounts')
-      .delete()
-      .eq('id', id);
+      .update({
+        is_active: false,
+        deleted_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
     if (error) {
-      console.error('[v0] Payment accounts DELETE error:', error.message);
+      console.error('[v0] Payment accounts SOFT DELETE error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: 'บัญชีถูกปิดใช้งานเรียบร้อย (Soft Delete)' });
   } catch (err) {
     console.error('[v0] Payment accounts DELETE exception:', err);
     return NextResponse.json({ error: 'Failed to delete payment account' }, { status: 500 });
