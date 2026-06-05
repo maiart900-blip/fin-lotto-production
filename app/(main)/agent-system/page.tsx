@@ -16,9 +16,10 @@ import {
   RefreshCw, Loader2, Zap, Keyboard, GitBranch, Filter, 
   CheckCircle, XCircle, MoreHorizontal, UserX, Key,
   ChevronRight, ChevronDown, Eye, Network, Crown, Building2,
-  ShieldCheck, Copy, QrCode
+  ShieldCheck, Copy, QrCode, CreditCard, AlertTriangle
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useThreeStageConfirm } from '@/components/ui/premium-confirm-modal';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -109,6 +110,15 @@ export default function AgentSystemPage() {
   } | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  
+  // 3-Stage Confirmation Hook
+  const { openConfirm, ConfirmModal } = useThreeStageConfirm();
+  
+  // Credit Adjustment Modal States
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [creditAction, setCreditAction] = useState<'add' | 'deduct'>('add');
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditNote, setCreditNote] = useState('');
 
   const { data: agentsResponse, mutate, isLoading, error } = useSWR<{ agents: Agent[], summary: Record<string, number> }>(
     '/api/admin/agents',
@@ -407,25 +417,95 @@ export default function AgentSystemPage() {
     }
   };
 
-  // Toggle active status
+  // Toggle active status with 3-stage confirmation
   const handleToggleStatus = async (agent: Agent) => {
-    try {
-      const res = await fetch('/api/admin/agents', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_id: agent.id,
-          action: agent.is_active ? 'suspend' : 'activate',
-        }),
-      });
-      
-      if (res.ok) {
-        toast.success(agent.is_active ? 'ระงับเอเย่นต์แล้ว' : 'เปิดใช้งานเอเย่นต์แล้ว');
+    const isActivating = agent.is_active === false;
+    
+    openConfirm({
+      title: isActivating ? 'เปิดใช้งานเอเย่นต์' : 'ระงับเอเย่นต์',
+      description: `ต้องการ${isActivating ? 'เปิดใช้งาน' : 'ระงับ'}เอเย่นต์นี้หรือไม่?`,
+      items: [
+        { label: 'ชื่อเอเย่นต์', value: agent.name || agent.username },
+        { label: 'ระดับ', value: AGENT_LEVELS[agent.agent_level]?.label || agent.agent_level },
+        { label: 'เครดิตคงเหลือ', value: `฿${(agent.credit_balance || 0).toLocaleString()}` },
+        { label: 'การดำเนินการ', value: isActivating ? 'เปิดใช้งาน' : 'ระงับ', highlight: true, type: isActivating ? 'add' : 'deduct' },
+      ],
+      warningMessage: !isActivating ? 'เอเย่นต์ที่ถูกระงับจะไม่สามารถรับยอดใหม่ได้' : undefined,
+      confirmText: isActivating ? 'ยืนยันเปิดใช้งาน' : 'ยืนยันระงับ',
+      successMessage: isActivating ? 'เปิดใช้งานเอเย่นต์สำเร็จ' : 'ระงับเอเย่นต์สำเร็จ',
+      onConfirm: async () => {
+        const res = await fetch('/api/admin/agents', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: agent.id,
+            action: isActivating ? 'activate' : 'suspend',
+          }),
+        });
+        
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'เกิดข้อผิดพลาด');
+        }
+        
         mutate();
-      }
-    } catch {
-      toast.error('เกิดข้อผิดพลาด');
+      },
+    });
+  };
+  
+  // Credit adjustment with 3-stage confirmation
+  const handleCreditAdjustment = (agent: Agent, action: 'add' | 'deduct') => {
+    setSelectedAgent(agent);
+    setCreditAction(action);
+    setCreditAmount('');
+    setCreditNote('');
+    setShowCreditModal(true);
+  };
+  
+  const confirmCreditAdjustment = () => {
+    if (!selectedAgent || !creditAmount) return;
+    
+    const amount = parseFloat(creditAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('กรุณากรอกจำนวนเงินที่ถูกต้อง');
+      return;
     }
+    
+    setShowCreditModal(false);
+    
+    openConfirm({
+      title: creditAction === 'add' ? 'เติมเครดิต' : 'ตัดเครดิต',
+      description: 'กรุณาตรวจสอบข้อมูลก่อนยืนยัน',
+      items: [
+        { label: 'เอเย่นต์', value: selectedAgent.name || selectedAgent.username },
+        { label: 'เครดิตปัจจุบัน', value: `฿${(selectedAgent.credit_balance || 0).toLocaleString()}` },
+        { label: creditAction === 'add' ? 'เติมเครดิต' : 'ตัดเครดิต', value: `฿${amount.toLocaleString()}`, highlight: true, type: creditAction },
+        { label: 'เครดิตหลังทำรายการ', value: `฿${((selectedAgent.credit_balance || 0) + (creditAction === 'add' ? amount : -amount)).toLocaleString()}`, highlight: true },
+        ...(creditNote ? [{ label: 'หมายเหตุ', value: creditNote }] : []),
+      ],
+      warningMessage: creditAction === 'deduct' ? 'การตัดเครดิตไม่สามารถย้อนกลับได้ กรุณาตรวจสอบให้แน่ใจ' : undefined,
+      confirmText: creditAction === 'add' ? 'ยืนยันเติมเครดิต' : 'ยืนยันตัดเครดิต',
+      successMessage: creditAction === 'add' ? 'เติมเครดิตสำเร็จ' : 'ตัดเครดิตสำเร็จ',
+      onConfirm: async () => {
+        const res = await fetch('/api/admin/agents/credit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: selectedAgent.id,
+            action: creditAction,
+            amount: amount,
+            note: creditNote,
+          }),
+        });
+        
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'เกิดข้อผิดพลาด');
+        }
+        
+        mutate();
+      },
+    });
   };
 
   return (
@@ -708,7 +788,7 @@ export default function AgentSystemPage() {
                               <MoreHorizontal className="size-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem onClick={() => {
                               setSelectedAgent(agent);
                               setNewCommissionRate(String(agent.commission_rate || 0));
@@ -720,9 +800,25 @@ export default function AgentSystemPage() {
                               ตั้งค่า
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            {/* Credit Actions - Premium Gold Buttons */}
+                            <DropdownMenuItem 
+                              onClick={() => handleCreditAdjustment(agent, 'add')}
+                              className="text-emerald-500 focus:text-emerald-500 focus:bg-emerald-500/10"
+                            >
+                              <Plus className="size-4 mr-2" />
+                              เติมเครดิต
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleCreditAdjustment(agent, 'deduct')}
+                              className="text-amber-500 focus:text-amber-500 focus:bg-amber-500/10"
+                            >
+                              <DollarSign className="size-4 mr-2" />
+                              ตัดเครดิต
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               onClick={() => handleToggleStatus(agent)}
-                              className={agent.is_active !== false ? 'text-red-600' : 'text-green-600'}
+                              className={agent.is_active !== false ? 'text-red-600 focus:text-red-600 focus:bg-red-500/10' : 'text-green-600 focus:text-green-600 focus:bg-green-500/10'}
                             >
                               {agent.is_active !== false ? (
                                 <>
@@ -1166,6 +1262,69 @@ export default function AgentSystemPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Credit Adjustment Modal - Stage 1 */}
+      <Dialog open={showCreditModal} onOpenChange={setShowCreditModal}>
+        <DialogContent className="sm:max-w-md bg-gradient-to-b from-[#0a0a0a] to-[#141414] border-2 border-amber-500/30">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-400">
+              <CreditCard className="size-5" />
+              {creditAction === 'add' ? 'เติมเครดิต' : 'ตัดเครดิต'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="p-3 rounded-lg bg-black/40 border border-amber-500/20">
+              <p className="text-sm text-neutral-400">เอเย่นต์</p>
+              <p className="font-semibold text-white">{selectedAgent?.name || selectedAgent?.username}</p>
+              <p className="text-xs text-amber-400 mt-1">
+                เครดิตปัจจุบัน: ฿{(selectedAgent?.credit_balance || 0).toLocaleString()}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-amber-200">จำนวนเงิน (บาท)</Label>
+              <Input
+                type="number"
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+                placeholder="0.00"
+                className="text-xl font-bold bg-black/40 border-amber-500/30 text-white"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-amber-200">หมายเหตุ (ไม่บังคับ)</Label>
+              <Input
+                value={creditNote}
+                onChange={(e) => setCreditNote(e.target.value)}
+                placeholder="ระบุเหตุผล..."
+                className="bg-black/40 border-amber-500/30 text-white"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowCreditModal(false)} className="border-neutral-700">
+              ยกเลิก
+            </Button>
+            <Button 
+              onClick={confirmCreditAdjustment}
+              disabled={!creditAmount || parseFloat(creditAmount) <= 0}
+              className={`${
+                creditAction === 'add' 
+                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' 
+                  : 'bg-gradient-to-r from-red-500 to-red-600'
+              } text-white font-bold`}
+            >
+              {creditAction === 'add' ? 'เติมเครดิต' : 'ตัดเครดิต'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* 3-Stage Confirmation Modal */}
+      <ConfirmModal />
     </div>
   );
 }
