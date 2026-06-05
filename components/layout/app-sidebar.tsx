@@ -723,9 +723,8 @@ export function AppSidebar() {
         </Button>
         
         <div className="mt-3 pt-3 border-t border-gray-800 text-center">
-          <p className="text-[10px] text-amber-500/50 uppercase tracking-widest">FIN LOTTO R+</p>
-          <p className="text-[10px] text-gray-600">Premium Admin v2.0</p>
-          <p className="text-[9px] text-gray-700">Build: dfa3999-2026-06-04</p>
+          <p className="text-[10px] text-amber-500/50 uppercase tracking-widest">FIN LOTTO P+</p>
+          <p className="text-[10px] text-gray-600">v1.0.0</p>
         </div>
       </SidebarFooter>
     </Sidebar>
