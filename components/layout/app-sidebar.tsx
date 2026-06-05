@@ -165,7 +165,7 @@ const customerManagementItems = [
 
 // 5.2 ศูนย์แอดมิน (พนักงานภายใน + สิทธิ์การใช้งาน)
 const adminCenterItems = [
-  { id: 'users', title: 'ศูนย์ปฏิบัติการ/ศูนย์แอดมิน', href: '/users', icon: Headphones },
+  { id: 'users', title: 'ศูนย์ปฏิบัติการ', href: '/users', icon: Headphones },
   { id: 'roles-permissions', title: 'สิทธิ์การใช้งาน', href: '/roles-permissions', icon: Shield },
 ];
 
