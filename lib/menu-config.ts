@@ -234,7 +234,7 @@ export const reportItems: MenuItem[] = [
 // 12. จัดการพนักงาน
 export const staffManagementItems: MenuItem[] = [
   { id: 'staff-performance', title: 'ผลงานพนักงาน', href: '/staff-performance', icon: Target, description: 'ดูผลงานและค่าคอมมิชชั่นพนักงาน' },
-  { id: 'admin-attendance-report', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock, description: 'รายงานการเข้างาน' },
+  { id: 'admin-attendance-report', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock, description: '��ายงานการเข้างาน' },
   { id: 'admin-performance', title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck, description: 'ตรวจสอบผลการทำงาน' },
   { id: 'payroll', title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet, description: 'สรุปเงินเดือนพนักงาน' },
   { id: 'payroll-settings', title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings, description: 'ตั้งค่าระบบเงินเดือน' },
@@ -244,6 +244,7 @@ export const staffManagementItems: MenuItem[] = [
 
 // 13. ตั้งค่าเว็บ
 export const webSettingsItems: MenuItem[] = [
+  { id: 'tenant-web-settings', title: 'ตั้งค่าเว็บลูก', href: '/tenant-web-settings', icon: Settings, description: 'ตั้งค่าการตลาดและหน้าร้าน' },
   { id: 'web-theme', title: 'ตั้งค่าธีม', href: '/web-theme', icon: Palette, description: 'ปรับแต่งธีมเว็บไซต์' },
   { id: 'manage-images', title: 'จัดการรูปภาพ', href: '/manage-images', icon: Image, description: 'จัดการรูปภาพในระบบ' },
   { id: 'desktop-settings', title: 'ตั้งค่าหน้าเว็บ', href: '/desktop-settings', icon: MonitorSmartphone, description: 'ตั้งค่าหน้าเว็บ' },
