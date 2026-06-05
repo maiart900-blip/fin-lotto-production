@@ -20,7 +20,6 @@ import {
   Sparkles,
   Gamepad2,
   Dices,
-  Key,
   Zap,
   Shield,
   Gift,
@@ -91,11 +90,6 @@ export default function CustomerDashboard() {
     { icon: Gamepad2, label: 'คาสิโน', href: '/c/casino', color: 'from-red-500 to-pink-600', description: 'บาคาร่า รูเล็ต' },
     { icon: Sparkles, label: 'สล็อต', href: '/c/slots', color: 'from-purple-500 to-violet-600', description: 'เกมสล็อตออนไลน์' },
     { icon: Trophy, label: 'กีฬา', href: '/c/arcade', color: 'from-green-500 to-emerald-600', description: 'แทงบอลออนไลน์' },
-  ];
-
-  // Manual Key System (Agent-based lottery)
-  const keySystemItems = [
-    { icon: Key, label: 'หวยคีย์', href: '/c/agent/key-lottery', color: 'from-cyan-500 to-blue-600', description: 'ผ่านเอเย่นต์' },
   ];
 
   // Quick Action Items
@@ -294,7 +288,7 @@ export default function CustomerDashboard() {
               <Zap className="w-4 h-4 text-amber-400" />
             </div>
             <div>
-              <h2 className="font-bold text-white text-base">ร��บบเว็บออโต้</h2>
+              <h2 className="font-bold text-white text-base">ระบบเว็บออโต้</h2>
               <p className="text-[10px] text-neutral-500">ฝาก-ถอนอัตโนมัติ ไม่ต้องผ่านเอเย่นต์</p>
             </div>
           </div>
@@ -314,60 +308,128 @@ export default function CustomerDashboard() {
           </div>
         </div>
 
-        {/* Section: Manual Key System (Agent-based) */}
-        <div className="space-y-3">
+        {/* ======================================
+            PREMIUM MYSTICAL FEATURES
+            Fortune, Lucky Numbers, Dream Interpretation
+            ====================================== */}
+        
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center">
-              <Key className="w-4 h-4 text-cyan-400" />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/30 to-violet-600/30 border border-purple-500/40 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-purple-400" />
             </div>
             <div>
-              <h2 className="font-bold text-white text-base">ระบบหวยคีย์</h2>
-              <p className="text-[10px] text-neutral-500">ซื้อผ่านสายงานเอเย่นต์</p>
+              <h2 className="font-bold text-white text-base">เสริมดวงโชคลาภ</h2>
+              <p className="text-[10px] text-neutral-500">ทำนายเลขเด็ด ดูดวง หาเลขจากฝัน</p>
             </div>
           </div>
           
-          <Link href="/c/agent/key-lottery">
-            <div className="glass-card p-4 hover:scale-[1.01] transition-all group border-cyan-500/20 hover:border-cyan-500/40">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-cyan-500/30">
-                  <Key className="w-7 h-7 text-white" />
+          {/* Premium Dream Interpretation Card with Search */}
+          <Link href="/c/dream-interpret">
+            <div className="relative overflow-hidden rounded-2xl border-2 border-indigo-500/50 bg-gradient-to-br from-indigo-900/40 via-purple-900/30 to-blue-900/40 p-5 hover:scale-[1.02] transition-all group shadow-lg shadow-indigo-500/20">
+              {/* Animated glow effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity animate-pulse" />
+              
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-500/40 group-hover:scale-110 transition-transform">
+                    <Moon className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-lg">ทำนายฝัน</h3>
+                    <p className="text-indigo-300 text-xs">พิมพ์ความฝันเพื่อหาเลขเด็ด</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-white font-semibold">แทงหวยคีย์</h3>
-                  <p className="text-xs text-neutral-400 mt-0.5">สำหรับลูกค้าที่ซื้อผ่านระบบเอเย่นต์</p>
+                
+                {/* Interactive Search Preview */}
+                <div className="relative">
+                  <div className="flex items-center gap-2 bg-black/50 rounded-xl px-4 py-3 border border-indigo-500/30 group-hover:border-indigo-400/50 transition-all">
+                    <Cloud className="w-5 h-5 text-indigo-400" />
+                    <span className="text-neutral-400 text-sm flex-1">ฝันว่า... พิมพ์ความฝันที่นี่</span>
+                    <ChevronRight className="w-5 h-5 text-indigo-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                  <div className="absolute -bottom-2 left-4 right-4 h-4 bg-gradient-to-t from-indigo-500/10 to-transparent blur-sm" />
                 </div>
-                <ChevronRight className="w-5 h-5 text-cyan-500/50 group-hover:text-cyan-400" />
               </div>
             </div>
           </Link>
           
-          {/* Mystical Features - ดูดวง เลขเด่น ทำนายฝัน */}
-          <div className="grid grid-cols-3 gap-2 mt-3">
-            <Link href="/c/fortune">
-              <div className="glass-card p-3 hover:scale-[1.02] transition-all group text-center border-purple-500/20 hover:border-purple-500/40 hover:shadow-purple-500/20 hover:shadow-lg">
-                <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-purple-500/30 to-violet-600/30 border border-purple-500/40 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  <Gem className="w-5 h-5 text-purple-400" />
+          {/* Lucky Numbers Card with Live Numbers */}
+          <Link href="/c/lucky-numbers">
+            <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/50 bg-gradient-to-br from-amber-900/40 via-yellow-900/30 to-orange-900/40 p-5 hover:scale-[1.02] transition-all group shadow-lg shadow-amber-500/20">
+              {/* Animated glow effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity animate-pulse" />
+              
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center shadow-xl shadow-amber-500/40 group-hover:scale-110 transition-transform">
+                      <Star className="w-8 h-8 text-white animate-spin" style={{ animationDuration: '4s' }} />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-lg">เลขเด่นวันนี้</h3>
+                      <p className="text-amber-300 text-xs">เลขมาแรง อัปเดตทุกวัน</p>
+                    </div>
+                  </div>
+                  <div className="px-3 py-1 rounded-full bg-green-500/20 border border-green-500/40">
+                    <span className="text-green-400 text-xs font-bold animate-pulse">LIVE</span>
+                  </div>
                 </div>
-                <span className="text-white text-xs font-medium">ดูดวง</span>
-              </div>
-            </Link>
-            <Link href="/c/lucky-numbers">
-              <div className="glass-card p-3 hover:scale-[1.02] transition-all group text-center border-amber-500/20 hover:border-amber-500/40 hover:shadow-amber-500/20 hover:shadow-lg">
-                <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-amber-500/30 to-yellow-600/30 border border-amber-500/40 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  <Star className="w-5 h-5 text-amber-400" />
+                
+                {/* Live Lucky Numbers Display */}
+                <div className="flex gap-2 justify-center">
+                  {['08', '15', '23', '42', '69'].map((num, i) => (
+                    <div 
+                      key={i} 
+                      className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center font-bold text-black text-lg shadow-lg shadow-amber-500/30 animate-bounce"
+                      style={{ animationDelay: `${i * 0.1}s`, animationDuration: '2s' }}
+                    >
+                      {num}
+                    </div>
+                  ))}
                 </div>
-                <span className="text-white text-xs font-medium">เลขเด่น</span>
+                <p className="text-center text-amber-300/70 text-[10px] mt-3">* กดเพื่อดูเลขเด่นทั้งหมด</p>
               </div>
-            </Link>
-            <Link href="/c/dream-interpret">
-              <div className="glass-card p-3 hover:scale-[1.02] transition-all group text-center border-blue-500/20 hover:border-blue-500/40 hover:shadow-blue-500/20 hover:shadow-lg">
-                <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-blue-500/30 to-indigo-600/30 border border-blue-500/40 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  <Moon className="w-5 h-5 text-blue-400" />
+            </div>
+          </Link>
+          
+          {/* Fortune/Horoscope Card with Zodiac Preview */}
+          <Link href="/c/fortune">
+            <div className="relative overflow-hidden rounded-2xl border-2 border-purple-500/50 bg-gradient-to-br from-purple-900/40 via-violet-900/30 to-pink-900/40 p-5 hover:scale-[1.02] transition-all group shadow-lg shadow-purple-500/20">
+              {/* Animated glow effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity animate-pulse" />
+              
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-xl shadow-purple-500/40 group-hover:scale-110 transition-transform">
+                      <Gem className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-lg">ดูดวงวันนี้</h3>
+                      <p className="text-purple-300 text-xs">ดวงโชคลาภ สีมงคล เลขนำโชค</p>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-white text-xs font-medium">ทำนายฝัน</span>
+                
+                {/* Lucky Preview Badges */}
+                <div className="flex flex-wrap gap-2">
+                  <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/40 flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-yellow-400" />
+                    <span className="text-yellow-300 text-xs font-medium">สีมงคล: เหลือง</span>
+                  </div>
+                  <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-violet-500/20 border border-purple-500/40 flex items-center gap-2">
+                    <Star className="w-4 h-4 text-purple-400" />
+                    <span className="text-purple-300 text-xs font-medium">เลขนำโชค: 9, 36</span>
+                  </div>
+                  <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/40 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-green-400" />
+                    <span className="text-green-300 text-xs font-medium">ดวงการเงิน: ดีมาก</span>
+                  </div>
+                </div>
               </div>
-            </Link>
-          </div>
+            </div>
+          </Link>
         </div>
 
         {/* Quick Menu - Premium */}
