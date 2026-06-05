@@ -191,6 +191,7 @@ export const manualKeyItems: MenuItem[] = [
 // 8. สายงานเอเย่นต์
 export const agentSystemItems: MenuItem[] = [
   { id: 'agent-system', title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound, description: 'จัดการเอเย่นต์ทั้งหมด' },
+  { id: 'agent-system-tree', title: 'โครงสร้างทีมเอเย่นต์ (4-Tier)', href: '/agent-system/tree', icon: GitBranch, description: 'แผนผังสายงานเอเย่นต์แบบลดหลั่น 4 ชั้น' },
   { id: 'agent-system-members', title: 'จัดการแมมเบอร์', href: '/agent-system/members', icon: Users, description: 'จัดการแมมเบอร์ในระบบ' },
   { id: 'agent-system-commission', title: 'คอมมิชชั่น', href: '/agent-system/commission', icon: DollarSign, description: 'ตั้งค่าคอมมิชชั่น' },
   { id: 'agent-system-bank', title: 'ตั้งค่าธนาคาร', href: '/agent-system/bank-settings', icon: Building2, description: 'ตั้งค่าธนาคารเอเย่นต์' },
@@ -234,7 +235,7 @@ export const staffManagementItems: MenuItem[] = [
   { id: 'payroll', title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet, description: 'สรุปเงินเดือนพนักงาน' },
   { id: 'payroll-settings', title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings, description: 'ตั้งค่าระบบเงินเดือน' },
   { id: 'ot-report', title: 'รายงานโอที', href: '/payroll/ot-report', icon: Clock, description: 'รายงานการทำโอที' },
-  { id: 'admin-sales-report', title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3, description: 'รายงานยอดขายแอดม���น' },
+  { id: 'admin-sales-report', title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3, description: 'รายงานยอดขายแอดม�����น' },
 ];
 
 // 13. ตั้งค่าเว็บ
@@ -300,7 +301,7 @@ export const agentOperationItems: MenuItem[] = [
 ];
 
 export const agentDownlineItems: MenuItem[] = [
-  { id: 'agent-members', title: 'ลูกค้าใต้สาย', href: '/agent-members', icon: Users, description: 'จัดการลูกค้าใต้สาย' },
+  { id: 'agent-members', title: 'ลูกค้าใต้สาย', href: '/agent-members', icon: Users, description: 'จัดการลูกค้าใ���้สาย' },
   { id: 'agent-commission', title: 'คอมมิชชั่น', href: '/agent/commission', icon: DollarSign, description: 'ดูคอมมิชชั���น' },
   { id: 'agent-profit-loss', title: 'รายงานแพ้ชนะ', href: '/agent-profit-loss', icon: PieChart, description: 'รายงานแพ้ชนะ' },
   { id: 'agent-withdraw-history', title: 'ถอนคอมมิชชั่น', href: '/agent-withdraw-history', icon: ArrowDownToLine, description: 'ถอนคอม���ิชชั่น' },
