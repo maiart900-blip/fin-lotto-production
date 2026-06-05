@@ -41,10 +41,10 @@ interface Agent {
 }
 
 const LEVEL_COLORS = [
-  { bg: 'from-amber-500 to-amber-600', text: 'text-amber-400', border: 'border-amber-500/30', label: 'Master' },
-  { bg: 'from-purple-500 to-purple-600', text: 'text-purple-400', border: 'border-purple-500/30', label: 'Senior' },
-  { bg: 'from-blue-500 to-blue-600', text: 'text-blue-400', border: 'border-blue-500/30', label: 'Agent' },
-  { bg: 'from-green-500 to-green-600', text: 'text-green-400', border: 'border-green-500/30', label: 'Sub-Agent' },
+  { bg: 'from-amber-500 to-amber-600', text: 'text-amber-400', border: 'border-amber-500/30', label: 'Master', cardBg: 'bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30' },
+  { bg: 'from-purple-500 to-purple-600', text: 'text-purple-400', border: 'border-purple-500/30', label: 'Senior', cardBg: 'bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/30' },
+  { bg: 'from-blue-500 to-blue-600', text: 'text-blue-400', border: 'border-blue-500/30', label: 'Agent', cardBg: 'bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/30' },
+  { bg: 'from-green-500 to-green-600', text: 'text-green-400', border: 'border-green-500/30', label: 'Sub-Agent', cardBg: 'bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/30' },
 ];
 
 function AgentNode({ agent, depth = 0, isLast = false }: { agent: Agent; depth?: number; isLast?: boolean }) {
@@ -52,7 +52,15 @@ function AgentNode({ agent, depth = 0, isLast = false }: { agent: Agent; depth?:
   const hasChildren = agent.children && agent.children.length > 0;
   const levelConfig = LEVEL_COLORS[Math.min(depth, LEVEL_COLORS.length - 1)];
 
-  const formatMoney = (n: number) => new Intl.NumberFormat('th-TH').format(n);
+  const formatMoney = (n: number | undefined | null) => {
+    if (n === undefined || n === null || isNaN(n)) return '0';
+    return new Intl.NumberFormat('th-TH').format(n);
+  };
+  
+  const formatPercent = (n: number | undefined | null) => {
+    if (n === undefined || n === null || isNaN(n)) return '0';
+    return n.toString();
+  };
 
   return (
     <div className="relative">
@@ -128,21 +136,21 @@ function AgentNode({ agent, depth = 0, isLast = false }: { agent: Agent; depth?:
               <div className="text-center">
                 <div className="flex items-center gap-1 text-amber-400">
                   <DollarSign className="h-3 w-3" />
-                  <span className="font-bold">{formatMoney(agent.credit_limit - agent.credit_used)}</span>
+                  <span className="font-bold">{formatMoney((agent.credit_limit || 0) - (agent.credit_used || 0))}</span>
                 </div>
                 <p className="text-xs text-slate-500">วงเงินคงเหลือ</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center gap-1 text-purple-400">
                   <Percent className="h-3 w-3" />
-                  <span className="font-bold">{agent.commission_rate}%</span>
+                  <span className="font-bold">{formatPercent(agent.commission_rate)}%</span>
                 </div>
                 <p className="text-xs text-slate-500">คอมมิชชั่น</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center gap-1 text-blue-400">
                   <Percent className="h-3 w-3" />
-                  <span className="font-bold">{agent.position_taking}%</span>
+                  <span className="font-bold">{formatPercent(agent.position_taking)}%</span>
                 </div>
                 <p className="text-xs text-slate-500">PT</p>
               </div>
@@ -240,51 +248,61 @@ export default function AgentTreePage() {
         </Button>
       </div>
 
-      {/* Stats */}
+      {/* Stats - Premium Dark Theme */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
+        <Card className="bg-black/80 border-amber-500/30 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-amber-400 mb-1">
-              <Crown className="h-4 w-4" />
-              <span className="text-xs">Master</span>
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600">
+                <Crown className="h-4 w-4 text-black" />
+              </div>
+              <span className="text-xs font-medium">Master</span>
             </div>
             <p className="text-2xl font-bold text-amber-300">{countByLevel(agentTree, 1)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+        <Card className="bg-black/80 border-purple-500/30 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-purple-400 mb-1">
-              <Shield className="h-4 w-4" />
-              <span className="text-xs">Senior</span>
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <Shield className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-xs font-medium">Senior</span>
             </div>
             <p className="text-2xl font-bold text-purple-300">{countByLevel(agentTree, 2)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+        <Card className="bg-black/80 border-blue-500/30 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-blue-400 mb-1">
-              <Building2 className="h-4 w-4" />
-              <span className="text-xs">Agent</span>
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+                <Building2 className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-xs font-medium">Agent</span>
             </div>
             <p className="text-2xl font-bold text-blue-300">{countByLevel(agentTree, 3)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+        <Card className="bg-black/80 border-green-500/30 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-green-400 mb-1">
-              <User className="h-4 w-4" />
-              <span className="text-xs">Sub-Agent</span>
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-green-500 to-green-600">
+                <User className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-xs font-medium">Sub-Agent</span>
             </div>
             <p className="text-2xl font-bold text-green-300">{countByLevel(agentTree, 4)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-slate-500/10 to-slate-600/5 border-slate-500/20">
+        <Card className="bg-black/80 border-slate-500/30 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-slate-400 mb-1">
-              <Users className="h-4 w-4" />
-              <span className="text-xs">รวมทั้งหมด</span>
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600">
+                <Users className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-xs font-medium">รวมทั้งหมด</span>
             </div>
-            <p className="text-2xl font-bold text-slate-300">{countAgents(agentTree)}</p>
+            <p className="text-2xl font-bold text-white">{countAgents(agentTree)}</p>
           </CardContent>
         </Card>
       </div>
@@ -341,26 +359,26 @@ export default function AgentTreePage() {
         </CardContent>
       </Card>
 
-      {/* Legend */}
-      <Card className="bg-slate-900/50 border-slate-800">
+      {/* Legend - Premium Dark Theme */}
+      <Card className="bg-black/80 border-amber-500/20 backdrop-blur-sm">
         <CardContent className="pt-6">
-          <h3 className="text-sm font-medium text-white mb-4">คำอธิบาย</h3>
+          <h3 className="text-sm font-medium text-amber-400 mb-4">คำอธิบายระดับสายงาน</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {LEVEL_COLORS.map((level, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className={cn('p-2 rounded-lg bg-gradient-to-br', level.bg)}>
+              <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-black/50 border border-slate-800">
+                <div className={cn('p-2.5 rounded-lg bg-gradient-to-br shadow-lg', level.bg)}>
                   {index === 0 ? (
-                    <Crown className="h-4 w-4 text-black" />
+                    <Crown className="h-5 w-5 text-black" />
                   ) : index === 1 ? (
-                    <Shield className="h-4 w-4 text-white" />
+                    <Shield className="h-5 w-5 text-white" />
                   ) : index === 2 ? (
-                    <Building2 className="h-4 w-4 text-white" />
+                    <Building2 className="h-5 w-5 text-white" />
                   ) : (
-                    <User className="h-4 w-4 text-white" />
+                    <User className="h-5 w-5 text-white" />
                   )}
                 </div>
                 <div>
-                  <p className={cn('font-medium', level.text)}>{level.label}</p>
+                  <p className={cn('font-bold text-base', level.text)}>{level.label}</p>
                   <p className="text-xs text-slate-500">ระดับ {index + 1}</p>
                 </div>
               </div>
