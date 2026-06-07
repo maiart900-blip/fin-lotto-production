@@ -56,13 +56,13 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[v0] Error fetching manual-key customers:', error);
+      console.error('Error fetching manual-key customers:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ customers: data || [], total: data?.length || 0 });
   } catch (error) {
-    console.error('[v0] GET manual-key customers error:', error);
+    console.error('GET manual-key customers error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[v0] Error creating manual-key customer:', error);
+      console.error('Error creating manual-key customer:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       message: 'สร้างลูกค้าคีย์หวยสำเร็จ',
     });
   } catch (error) {
-    console.error('[v0] POST manual-key customers error:', error);
+    console.error('POST manual-key customers error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

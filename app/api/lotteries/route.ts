@@ -178,7 +178,7 @@ export async function POST(request: Request) {
       message: `สร้างหวย "${lottery.name}" สำเร็จ พร้อมอัตราจ่ายมาตรฐาน`,
     });
   } catch (err) {
-    console.error('[v0] Lottery POST exception:', err);
+    console.error('Lottery POST exception:', err);
     return NextResponse.json({ error: 'ไม่สามารถสร้างหวยได้' }, { status: 500 });
   }
 }
@@ -205,7 +205,7 @@ async function notifySubSites(supabase: any, lottery: any) {
     
     await supabase.from('tenant_alerts').insert(alerts);
   } catch (err) {
-    console.error('[v0] Notify sub-sites error:', err);
+    console.error('Notify sub-sites error:', err);
   }
 }
 
@@ -251,7 +251,7 @@ export async function PUT(request: Request) {
       .single();
     
     if (error) {
-      console.error('[v0] Lottery update error:', error);
+      console.error('Lottery update error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
@@ -261,7 +261,7 @@ export async function PUT(request: Request) {
       message: `อัปเดตหวย "${lottery.name}" สำเร็จ`,
     });
   } catch (err) {
-    console.error('[v0] Lottery PUT exception:', err);
+    console.error('Lottery PUT exception:', err);
     return NextResponse.json({ error: 'ไม่สามารถอัปเดตหวยได้' }, { status: 500 });
   }
 }

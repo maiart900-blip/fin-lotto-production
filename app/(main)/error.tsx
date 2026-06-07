@@ -14,7 +14,7 @@ export default function MainError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[v0] Main Error:', error);
+    console.error('Main Error:', error);
   }, [error]);
 
   return (

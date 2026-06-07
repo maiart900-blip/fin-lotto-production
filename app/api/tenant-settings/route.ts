@@ -45,19 +45,19 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (insertError) {
-        console.error('[v0] Create tenant settings error:', insertError);
+        console.error('Create tenant settings error:', insertError);
         return NextResponse.json({ error: 'Failed to create settings' }, { status: 500 });
       }
 
       settings = newSettings;
     } else if (error) {
-      console.error('[v0] Fetch tenant settings error:', error);
+      console.error('Fetch tenant settings error:', error);
       return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
     }
 
     return NextResponse.json({ settings });
   } catch (error) {
-    console.error('[v0] Tenant settings GET error:', error);
+    console.error('Tenant settings GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[v0] Update tenant settings error:', error);
+      console.error('Update tenant settings error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -128,7 +128,7 @@ export async function PUT(request: NextRequest) {
       message: 'บันทึกการตั้งค่าสำเร็จ' 
     });
   } catch (error) {
-    console.error('[v0] Tenant settings PUT error:', error);
+    console.error('Tenant settings PUT error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

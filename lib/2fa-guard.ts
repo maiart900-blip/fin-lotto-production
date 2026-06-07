@@ -86,7 +86,7 @@ export async function generate2FASecret(username: string): Promise<{ secret: str
 // - Browser automation delays
 // - User entering code near period boundary
 export async function verify2FACode(secret: string, code: string): Promise<boolean> {
-  console.log('[v0] verify2FACode called with secret length:', secret?.length, 'code:', code);
+  console.log('verify2FACode called with secret length:', secret?.length, 'code:', code);
   
   try {
     const OTPAuth = await getOTPAuth();
@@ -100,19 +100,19 @@ export async function verify2FACode(secret: string, code: string): Promise<boole
     
     // Generate current valid token for debugging
     const currentToken = totp.generate();
-    console.log('[v0] Current valid token:', currentToken, 'Input code:', code);
+    console.log('Current valid token:', currentToken, 'Input code:', code);
     
     // validate returns null if invalid, or delta (time difference) if valid
     // window: 2 allows 2 periods before/after (±60 seconds)
     // This prevents false negatives when code is entered near period boundary
     const delta = totp.validate({ token: code, window: 2 });
-    console.log('[v0] TOTP validate delta:', delta, '(null=invalid, number=valid, window=2)');
+    console.log('TOTP validate delta:', delta, '(null=invalid, number=valid, window=2)');
     
     const isValid = delta !== null;
-    console.log('[v0] verify2FACode result:', isValid);
+    console.log('verify2FACode result:', isValid);
     return isValid;
   } catch (error) {
-    console.error('[v0] verify2FACode error:', error);
+    console.error('verify2FACode error:', error);
     return false;
   }
 }

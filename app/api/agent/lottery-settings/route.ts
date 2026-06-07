@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       .order('name');
 
     if (lotteriesError) {
-      console.error('[v0] lottery query error:', lotteriesError);
+      console.error('lottery query error:', lotteriesError);
       return NextResponse.json({ error: lotteriesError.message, agent }, { status: 500 });
     }
 

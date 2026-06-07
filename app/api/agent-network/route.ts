@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     const { data: agents, error } = await query;
     
     if (error) {
-      console.error('[v0] Agent network GET error:', error);
+      console.error('Agent network GET error:', error);
       return NextResponse.json([]);
     }
     
@@ -140,7 +140,7 @@ export async function GET(request: Request) {
     
     return NextResponse.json([...adminWithStats, ...agentsWithStats]);
   } catch (err) {
-    console.error('[v0] Agent network GET exception:', err);
+    console.error('Agent network GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -183,13 +183,13 @@ export async function POST(request: Request) {
       .single();
     
     if (error) {
-      console.error('[v0] Agent settings upsert error:', error);
+      console.error('Agent settings upsert error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Agent network POST exception:', err);
+    console.error('Agent network POST exception:', err);
     return NextResponse.json({ error: 'Failed to save agent settings' }, { status: 500 });
   }
 }
@@ -222,13 +222,13 @@ export async function PUT(request: Request) {
       .single();
     
     if (error) {
-      console.error('[v0] Agent parent update error:', error);
+      console.error('Agent parent update error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Agent network PUT exception:', err);
+    console.error('Agent network PUT exception:', err);
     return NextResponse.json({ error: 'Failed to update agent' }, { status: 500 });
   }
 }

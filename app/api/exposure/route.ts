@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const { data: entries, error } = await query;
     
     if (error) {
-      console.error('[v0] Exposure GET error:', error.message);
+      console.error('Exposure GET error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
@@ -125,7 +125,7 @@ export async function GET(request: Request) {
       limits: limits || [],
     });
   } catch (err) {
-    console.error('[v0] Exposure GET exception:', err);
+    console.error('Exposure GET exception:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

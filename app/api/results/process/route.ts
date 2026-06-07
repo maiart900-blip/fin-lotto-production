@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       'run_top': 3, 'run_bot': 3,
     };
     
-    console.log('[v0] Payout rates:', { ...defaultRates, ...rateMap });
+    console.log('Payout rates:', { ...defaultRates, ...rateMap });
 
     const normalizedDrawDate = normalizeDate(result.draw_date);
     const drawDateStart = `${normalizedDrawDate}T00:00:00`;
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
 
     // ===== PROCESS ENTRIES TABLE =====
     // Exclude legacy_orphan entries (archived entries without customer linkage)
-    console.log('[v0] Checking entries table (excluding legacy orphans)...');
+    console.log('Checking entries table (excluding legacy orphans)...');
     const { data: entries, error: entriesError } = await supabase
       .from('entries')
       .select('*')
@@ -201,10 +201,10 @@ export async function POST(request: NextRequest) {
       .or('legacy_orphan.is.null,legacy_orphan.eq.false'); // Exclude archived orphans
 
     if (entriesError) {
-      console.error('[v0] Error fetching entries:', entriesError);
+      console.error('Error fetching entries:', entriesError);
     }
 
-    console.log('[v0] Found entries:', entries?.length || 0);
+    console.log('Found entries:', entries?.length || 0);
     totalEntriesChecked = entries?.length || 0;
 
     // Check each entry for winning
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (isWinner && rate > 0) {
-        console.log('[v0] Winner found (entries):', { number: entry.number, bet_type: entry.bet_type, amount: entry.amount, rate, payout: entry.amount * rate });
+        console.log('Winner found (entries):', { number: entry.number, bet_type: entry.bet_type, amount: entry.amount, rate, payout: entry.amount * rate });
         winners.push({
           source: 'entries',
           entry_id: entry.id,
@@ -267,7 +267,7 @@ export async function POST(request: NextRequest) {
     });
 
     // ===== PROCESS BETS + BET_ITEMS TABLES =====
-    console.log('[v0] Checking bets table...');
+    console.log('Checking bets table...');
     const { data: bets, error: betsError } = await supabase
       .from('bets')
       .select(`
@@ -280,10 +280,10 @@ export async function POST(request: NextRequest) {
       .in('status', ['pending', 'confirmed', 'active', 'waiting_result']);
 
     if (betsError) {
-      console.error('[v0] Error fetching bets:', betsError);
+      console.error('Error fetching bets:', betsError);
     }
 
-    console.log('[v0] Found bets:', bets?.length || 0);
+    console.log('Found bets:', bets?.length || 0);
 
     // Check each bet_item for winning
     bets?.forEach(bet => {
@@ -373,7 +373,7 @@ export async function POST(request: NextRequest) {
           }
           
           if (isWinner && rate > 0) {
-            console.log('[v0] Winner found (bet_items):', { 
+            console.log('Winner found (bet_items):', { 
               bet_id: bet.id,
               item_id: item.id,
               number, 
@@ -398,15 +398,15 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    console.log('[v0] Total checked - entries:', totalEntriesChecked, 'bet_items:', totalBetItemsChecked);
-    console.log('[v0] Total winners found:', winners.length);
+    console.log('Total checked - entries:', totalEntriesChecked, 'bet_items:', totalBetItemsChecked);
+    console.log('Total winners found:', winners.length);
 
     // ===== UPDATE DATABASE =====
     
     // Update winning entries in entries table - อัปเดตทีละ entry เพื่อใส่ payout_amount ถูกต้อง
     const entryWinners = winners.filter(w => w.source === 'entries');
     for (const winner of entryWinners) {
-      console.log('[v0] Updating entry:', { id: winner.entry_id, payout: winner.payout, rate: winner.rate });
+      console.log('Updating entry:', { id: winner.entry_id, payout: winner.payout, rate: winner.rate });
       const { error: updateError } = await supabase
         .from('entries')
         .update({ 
@@ -418,7 +418,7 @@ export async function POST(request: NextRequest) {
         .eq('id', winner.entry_id);
       
       if (updateError) {
-        console.error('[v0] Error updating entry:', updateError);
+        console.error('Error updating entry:', updateError);
       }
     }
 
@@ -427,7 +427,7 @@ export async function POST(request: NextRequest) {
       const winnerEntryIds = entryWinners.map(w => w.entry_id);
       const loserEntryIds = entries.filter(e => !winnerEntryIds.includes(e.id)).map(e => e.id);
       if (loserEntryIds.length > 0) {
-        console.log('[v0] Updating losing entries:', loserEntryIds.length);
+        console.log('Updating losing entries:', loserEntryIds.length);
         await supabase
           .from('entries')
           .update({ 
@@ -496,7 +496,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[v0] Customer payouts:', customerPayouts);
+    console.log('Customer payouts:', customerPayouts);
 
     for (const [customerId, payout] of Object.entries(customerPayouts)) {
       // Get current balance
@@ -529,7 +529,7 @@ export async function POST(request: NextRequest) {
             balance_after: newBalance,
           });
           
-        console.log('[v0] Paid customer:', { customerId, name: customer.name, payout, newBalance });
+        console.log('Paid customer:', { customerId, name: customer.name, payout, newBalance });
       }
     }
 
@@ -571,9 +571,9 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (updateError) {
-      console.error('[v0] Error updating lottery_results:', updateError);
+      console.error('Error updating lottery_results:', updateError);
     } else {
-      console.log('[v0] Updated lottery_results:', {
+      console.log('Updated lottery_results:', {
         id: updatedResult.id,
         status: updatedResult.status,
         is_processed: updatedResult.is_processed,
@@ -582,7 +582,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('[v0] Process complete:', {
+    console.log('Process complete:', {
       result_id: result.id,
       lottery_name: result.lottery?.name,
       draw_date: result.draw_date,
@@ -616,7 +616,7 @@ export async function POST(request: NextRequest) {
       })),
     });
   } catch (error: any) {
-    console.error('[v0] Error processing winners:', error?.message || error);
+    console.error('Error processing winners:', error?.message || error);
     return NextResponse.json({ 
       error: 'เกิดข้อผิดพลาดในการคำนวณผู้ถูกรางวัล', 
       detail: error?.message 

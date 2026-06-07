@@ -143,7 +143,7 @@ export default function MasterCreditPage() {
       const customersData = await customersRes.json();
       setCustomers(Array.isArray(customersData) ? customersData : []);
     } catch (error) {
-      console.error('[v0] Fetch data error:', error);
+      console.error('Fetch data error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -203,7 +203,7 @@ export default function MasterCreditPage() {
         toast.error(result.error || 'โอนเครดิตไม่สำเร็จ');
       }
     } catch (error) {
-      console.error('[v0] Transfer error:', error);
+      console.error('Transfer error:', error);
       toast.error('เกิดข้อผิดพลาดในการโอนเครดิต');
     } finally {
       setIsTransferring(false);

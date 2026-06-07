@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       pathname: blob.pathname,
     });
   } catch (error) {
-    console.error('[v0] Upload slip error:', error);
+    console.error('Upload slip error:', error);
     return NextResponse.json({ error: 'อัพโหลดไม่สำเร็จ กรุณาลองใหม่' }, { status: 500 });
   }
 }

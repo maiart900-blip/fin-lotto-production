@@ -101,7 +101,7 @@ export async function GET(request: Request) {
     const entries = (allEntries || []).filter(e => !demoUserIds.includes(e.customer_id));
 
     if (entriesError) {
-      console.error('[v0] Profit-loss entries error:', entriesError.message);
+      console.error('Profit-loss entries error:', entriesError.message);
       return NextResponse.json({ entries: [], results: [], winnings: [], lotteries: [], summary: getEmptySummary() });
     }
 
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
     const { data: results, error: resultsError } = await resultsQuery;
 
     if (resultsError) {
-      console.error('[v0] Profit-loss results error:', resultsError.message);
+      console.error('Profit-loss results error:', resultsError.message);
     }
 
     // Fetch winning entries
@@ -134,7 +134,7 @@ export async function GET(request: Request) {
     const { data: winnings, error: winningsError } = await winningsQuery;
 
     if (winningsError) {
-      console.error('[v0] Profit-loss winnings error:', winningsError.message);
+      console.error('Profit-loss winnings error:', winningsError.message);
     }
 
     // Fetch all lotteries for filter
@@ -262,7 +262,7 @@ export async function GET(request: Request) {
       summary,
     });
   } catch (error) {
-    console.error('[v0] Profit-loss exception:', error);
+    console.error('Profit-loss exception:', error);
     return NextResponse.json({
       entries: [],
       results: [],

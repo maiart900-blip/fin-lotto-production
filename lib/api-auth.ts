@@ -59,7 +59,7 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     // Check for main 'session' cookie (used by login flow)
     const mainSessionCookie = cookieStore.get('session')?.value;
     
-    console.log('[v0] Auth cookies:', { adminId: !!adminId, adminRole, customerId: !!customerId, sessionCookie: !!sessionCookie, mainSessionCookie: !!mainSessionCookie });
+    console.log('Auth cookies:', { adminId: !!adminId, adminRole, customerId: !!customerId, sessionCookie: !!sessionCookie, mainSessionCookie: !!mainSessionCookie });
     
     let userId: string | null = null;
     let userRole: UserRole = 'customer';
@@ -89,7 +89,7 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
       }
     }
     
-    console.log('[v0] Resolved auth:', { userId, userRole });
+    console.log('Resolved auth:', { userId, userRole });
     
     if (!userId) {
       return { authenticated: false, user: null, error: 'No session found' };
@@ -107,7 +107,7 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
         .eq('id', userId)
         .single();
       
-      console.log('[v0] User lookup:', { found: !!user, error: userError?.message });
+      console.log('User lookup:', { found: !!user, error: userError?.message });
       
       if (user && user.is_active) {
         return {

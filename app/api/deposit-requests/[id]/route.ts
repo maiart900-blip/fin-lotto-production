@@ -24,7 +24,7 @@ export async function GET(
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('[v0] Error fetching deposit request:', error);
+    console.error('Error fetching deposit request:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -54,7 +54,7 @@ export async function PATCH(
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('[v0] Error updating deposit request:', error);
+    console.error('Error updating deposit request:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

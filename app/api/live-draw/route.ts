@@ -24,13 +24,13 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[v0] Live draw GET error:', error.message);
+      console.error('Live draw GET error:', error.message);
       return NextResponse.json([]);
     }
 
     return NextResponse.json(data || []);
   } catch (error) {
-    console.error('[v0] Live draw GET exception:', error);
+    console.error('Live draw GET exception:', error);
     return NextResponse.json([]);
   }
 }

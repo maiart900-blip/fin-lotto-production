@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     const { data: bets, error, count } = await query;
     
     if (error) {
-      console.error('[v0] Error fetching auto slips:', error);
+      console.error('Error fetching auto slips:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
@@ -214,7 +214,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[v0] Auto slips API error:', error);
+    console.error('Auto slips API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

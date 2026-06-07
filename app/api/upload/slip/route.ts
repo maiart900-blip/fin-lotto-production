@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[v0] Slip upload error:', error);
+    console.error('Slip upload error:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }

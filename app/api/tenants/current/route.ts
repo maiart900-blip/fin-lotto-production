@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     
     return NextResponse.json(tenant);
   } catch (error) {
-    console.error('[v0] Get current tenant error:', error);
+    console.error('Get current tenant error:', error);
     return NextResponse.json(defaultMasterTenant);
   }
 }

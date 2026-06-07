@@ -26,7 +26,7 @@ export async function GET() {
       .limit(1);
 
     if (checkError) {
-      console.error('[v0] Check admin error:', checkError);
+      console.error('Check admin error:', checkError);
       return NextResponse.json({ 
         error: 'Database error', 
         details: checkError.message 
@@ -62,7 +62,7 @@ export async function GET() {
       .single();
 
     if (createError) {
-      console.error('[v0] Create admin error:', createError);
+      console.error('Create admin error:', createError);
       return NextResponse.json({ 
         error: 'Failed to create admin', 
         details: createError.message 
@@ -82,7 +82,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[v0] Seed admin error:', error);
+    console.error('Seed admin error:', error);
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : 'Failed to seed admin' 
     }, { status: 500 });
@@ -240,7 +240,7 @@ export async function PUT() {
       },
     });
   } catch (error) {
-    console.error('[v0] Force seed admin error:', error);
+    console.error('Force seed admin error:', error);
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : 'Failed to seed admin' 
     }, { status: 500 });

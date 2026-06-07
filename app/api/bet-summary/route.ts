@@ -294,7 +294,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
     
   } catch (error: any) {
-    console.error('[v0] Bet summary error:', error);
+    console.error('Bet summary error:', error);
     return NextResponse.json({ 
       error: error.message || 'Failed to get bet summary',
       totalAmount: 0,

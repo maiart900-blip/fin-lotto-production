@@ -85,7 +85,7 @@ export default function RiskManagementPage() {
     try {
       const res = await fetch('/api/lotteries');
       if (!res.ok) {
-        console.error('[v0] Failed to fetch lotteries:', res.status);
+        console.error('Failed to fetch lotteries:', res.status);
         return;
       }
       const data = await res.json();
@@ -93,7 +93,7 @@ export default function RiskManagementPage() {
         setLotteries(data);
       }
     } catch (err) {
-      console.error('[v0] Error fetching lotteries:', err);
+      console.error('Error fetching lotteries:', err);
     }
   };
 
@@ -205,7 +205,7 @@ export default function RiskManagementPage() {
       });
       
     } catch (err) {
-      console.error('[v0] Error fetching risk data:', err);
+      console.error('Error fetching risk data:', err);
       setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setLoading(false);

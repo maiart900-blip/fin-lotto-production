@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ alerts, summary });
   } catch (error) {
-    console.error('[v0] Risk alerts GET error:', error);
+    console.error('Risk alerts GET error:', error);
     return NextResponse.json({ alerts: [], summary: { critical: 0, high: 0, medium: 0, low: 0 } });
   }
 }
@@ -89,13 +89,13 @@ export async function PUT(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('[v0] Risk alert update error:', error);
+      console.error('Risk alert update error:', error);
       return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[v0] Risk alerts PUT error:', error);
+    console.error('Risk alerts PUT error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -143,13 +143,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[v0] Risk alert create error:', error);
+      console.error('Risk alert create error:', error);
       return NextResponse.json({ error: 'Failed to create alert' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, alert: data });
   } catch (error) {
-    console.error('[v0] Risk alerts POST error:', error);
+    console.error('Risk alerts POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

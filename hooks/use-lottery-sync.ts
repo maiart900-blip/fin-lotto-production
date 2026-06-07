@@ -64,7 +64,7 @@ export function useLotterySync(options?: {
       dedupingInterval: 5000,
       errorRetryCount: 3,
       onError: (err) => {
-        console.error('[v0] Lottery sync error:', err);
+        console.error('Lottery sync error:', err);
       },
     }
   );

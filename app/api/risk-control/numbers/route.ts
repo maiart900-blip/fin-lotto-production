@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     const { data: betItems, error } = await query;
     
     if (error) {
-      console.error('[v0] Risk control query error:', error);
+      console.error('Risk control query error:', error);
       throw error;
     }
     
@@ -219,7 +219,7 @@ export async function GET(request: NextRequest) {
       manualKeyTotal: numbers.reduce((sum, n) => sum + n.sources.manual_key, 0),
     };
     
-    console.log('[v0] Risk control numbers:', {
+    console.log('Risk control numbers:', {
       numberType,
       sourceType,
       lotteryId,
@@ -240,7 +240,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('[v0] Risk control error:', error);
+    console.error('Risk control error:', error);
     return NextResponse.json({ 
       error: error.message,
       numbers: [],

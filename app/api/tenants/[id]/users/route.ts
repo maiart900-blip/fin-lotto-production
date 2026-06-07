@@ -22,7 +22,7 @@ export async function GET(
     
     return NextResponse.json(users || []);
   } catch (error) {
-    console.error('[v0] Get tenant users error:', error);
+    console.error('Get tenant users error:', error);
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
 }
@@ -87,7 +87,7 @@ export async function PUT(
       user: updatedUser,
     });
   } catch (error) {
-    console.error('[v0] Update tenant user error:', error);
+    console.error('Update tenant user error:', error);
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
@@ -150,7 +150,7 @@ export async function POST(
       user: newUser,
     });
   } catch (error) {
-    console.error('[v0] Create tenant user error:', error);
+    console.error('Create tenant user error:', error);
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
   }
 }

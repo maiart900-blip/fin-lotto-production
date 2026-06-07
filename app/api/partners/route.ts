@@ -12,7 +12,7 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[v0] Partners GET error:', error.message);
+      console.error('Partners GET error:', error.message);
       return NextResponse.json({ partners: [], summary: {} });
     }
 
@@ -40,7 +40,7 @@ export async function GET() {
       }
     });
   } catch (err) {
-    console.error('[v0] Partners GET exception:', err);
+    console.error('Partners GET exception:', err);
     return NextResponse.json({ partners: [], summary: {} });
   }
 }
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Partners POST exception:', err);
+    console.error('Partners POST exception:', err);
     return NextResponse.json({ error: 'Failed to create partner' }, { status: 500 });
   }
 }
@@ -106,7 +106,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Partners PUT exception:', err);
+    console.error('Partners PUT exception:', err);
     return NextResponse.json({ error: 'Failed to update partner' }, { status: 500 });
   }
 }
@@ -133,7 +133,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[v0] Partners DELETE exception:', err);
+    console.error('Partners DELETE exception:', err);
     return NextResponse.json({ error: 'Failed to delete partner' }, { status: 500 });
   }
 }

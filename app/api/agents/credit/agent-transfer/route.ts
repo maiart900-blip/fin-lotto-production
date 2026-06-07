@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[v0] Agent credit transfer error:', error);
+    console.error('Agent credit transfer error:', error);
     return NextResponse.json(
       { error: 'Failed to process credit transfer' },
       { status: 500 }
@@ -340,7 +340,7 @@ export async function GET(request: NextRequest) {
       subAgents: subAgents || [],
     });
   } catch (error) {
-    console.error('[v0] Get sub-agents error:', error);
+    console.error('Get sub-agents error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch sub-agents' },
       { status: 500 }

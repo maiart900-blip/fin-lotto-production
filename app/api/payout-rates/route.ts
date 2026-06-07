@@ -23,13 +23,13 @@ export async function GET(request: Request) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[v0] Payout rates GET error:', error.message);
+      console.error('Payout rates GET error:', error.message);
       return NextResponse.json([]);
     }
 
     return NextResponse.json(data || []);
   } catch (error) {
-    console.error('[v0] Payout rates GET exception:', error);
+    console.error('Payout rates GET exception:', error);
     return NextResponse.json([]);
   }
 }

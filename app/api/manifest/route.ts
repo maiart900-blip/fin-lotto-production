@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[v0] Error generating manifest:', error);
+    console.error('Error generating manifest:', error);
     
     // Fallback to default manifest
     const fallbackManifest = {

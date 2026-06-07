@@ -96,7 +96,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[v0] Partner API error:', error);
+    console.error('Partner API error:', error);
     return NextResponse.json({ 
       isPartner: false,
       sharePercent: 0,
@@ -143,7 +143,7 @@ export async function POST() {
     
     return NextResponse.json({ success: true, message: 'สมัครเป็น partner สำเร็จ' });
   } catch (error) {
-    console.error('[v0] Partner POST error:', error);
+    console.error('Partner POST error:', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }

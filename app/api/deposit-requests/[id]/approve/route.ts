@@ -57,7 +57,7 @@ export async function POST(
       .single();
 
     if (updateError) {
-      console.error('[v0] Update deposit request error:', updateError);
+      console.error('Update deposit request error:', updateError);
       return NextResponse.json({ error: 'Failed to update deposit request' }, { status: 500 });
     }
 
@@ -68,7 +68,7 @@ export async function POST(
       transactionId: walletResult.transactionId,
     });
   } catch (error) {
-    console.error('[v0] Error approving deposit:', error);
+    console.error('Error approving deposit:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

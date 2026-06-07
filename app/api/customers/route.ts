@@ -92,14 +92,14 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
     
     if (error) {
-      console.error('[v0] Customers GET error:', error.message);
+      console.error('Customers GET error:', error.message);
       return NextResponse.json([]);
     }
     
     // Strip sensitive fields (password_hash) but keep all operational fields
     return NextResponse.json(stripSensitiveFieldsArray(data || []));
   } catch (err) {
-    console.error('[v0] Customers GET exception:', err);
+    console.error('Customers GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -150,14 +150,14 @@ export async function POST(request: Request) {
       .single();
     
     if (error) {
-      console.error('[v0] Supabase error:', error.message);
+      console.error('Supabase error:', error.message);
       throw error;
     }
     
     // Strip sensitive fields but keep all operational data
     return NextResponse.json(stripSensitiveFields(data));
   } catch (err: any) {
-    console.error('[v0] POST /api/customers error:', err?.message || err);
+    console.error('POST /api/customers error:', err?.message || err);
     return NextResponse.json({ error: 'Failed to create customer', details: err?.message }, { status: 500 });
   }
 }
@@ -190,7 +190,7 @@ export async function PUT(request: Request) {
       .single();
     
     if (error) {
-      console.error('[v0] Customer PUT error:', error.message);
+      console.error('Customer PUT error:', error.message);
       throw error;
     }
     

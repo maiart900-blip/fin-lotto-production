@@ -76,15 +76,15 @@ export default function ManualKeyCustomersPage() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[v0] Error fetching manual-key customers:', error);
+        console.error('Error fetching manual-key customers:', error);
         return;
       }
 
-      console.log('[v0] Manual-key customers fetched:', data?.length);
+      console.log('Manual-key customers fetched:', data?.length);
       setCustomers(data || []);
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('[v0] Fetch customers error:', error);
+      console.error('Fetch customers error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -191,19 +191,19 @@ export default function ManualKeyCustomersPage() {
         user_type: 'customer',
       };
 
-      console.log('[v0] Creating manual-key customer:', insertData);
+      console.log('Creating manual-key customer:', insertData);
 
       const { data, error } = await supabase.from('customers').insert(insertData).select().single();
 
       if (error) throw error;
 
-      console.log('[v0] Manual-key customer created:', data);
+      console.log('Manual-key customer created:', data);
       toast.success('เพิ่มลูกค้าคีย์หวยสำเร็จ');
       setNewCustomer({ name: '', phone: '', line_id: '' });
       setIsAddDialogOpen(false);
       fetchCustomers();
     } catch (error) {
-      console.error('[v0] Add customer error:', error);
+      console.error('Add customer error:', error);
       toast.error('เกิดข้อผิดพลาด');
     } finally {
       setIsSaving(false);

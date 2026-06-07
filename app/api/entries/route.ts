@@ -137,7 +137,7 @@ export async function POST(request: Request) {
       // This is a manual key entry (not from logged-in customer)
       // Check if we have customer identification
       if (!finalCustomerId && !customer_name) {
-        console.warn('[v0] Manual entry rejected: no customer_id or customer_name provided');
+        console.warn('Manual entry rejected: no customer_id or customer_name provided');
         return NextResponse.json({ 
           error: 'กรุณาเลือกลูกค้าก่อนส่งโพย',
           code: 'CUSTOMER_REQUIRED',
@@ -177,7 +177,7 @@ export async function POST(request: Request) {
             .single();
           
           if (createError) {
-            console.error('[v0] Failed to create customer for manual entry:', createError);
+            console.error('Failed to create customer for manual entry:', createError);
             return NextResponse.json({ 
               error: 'ไม่สามารถสร้างข้อมูลลูกค้าได้',
               code: 'CUSTOMER_CREATE_FAILED'
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
           }
           
           resolvedCustomerId = newCustomer.id;
-          console.log('[v0] Created new customer for manual entry:', { id: resolvedCustomerId, name: customer_name });
+          console.log('Created new customer for manual entry:', { id: resolvedCustomerId, name: customer_name });
         }
       }
       
@@ -285,7 +285,7 @@ export async function POST(request: Request) {
         
         // แจ้งเตือนถ้ามีรายการถูกปฏิเสธ
         if (rejectedEntries.length > 0) {
-          console.log('[v0] Rejected entries:', rejectedEntries);
+          console.log('Rejected entries:', rejectedEntries);
         }
       }
     }
@@ -353,7 +353,7 @@ export async function POST(request: Request) {
       .select('*');
     
     if (error) {
-      console.error('[v0] Insert entries error:', error);
+      console.error('Insert entries error:', error);
       // If entries fail, refund credit
       if (userId && !body.skipRefund) {
         const { data: user } = await supabase
@@ -462,7 +462,7 @@ export async function POST(request: Request) {
               .eq('id', entry.id);
           }
         } catch (commErr) {
-          console.error('[v0] Commission calculation error for entry:', entry.id, commErr);
+          console.error('Commission calculation error for entry:', entry.id, commErr);
         }
       }
     }
@@ -530,9 +530,9 @@ export async function POST(request: Request) {
           }),
         });
         
-        console.log(`[v0] Synced ${data.length} entries to parent site`);
+        console.log(`Synced ${data.length} entries to parent site`);
       } catch (syncError) {
-        console.error('[v0] Failed to sync to parent site:', syncError);
+        console.error('Failed to sync to parent site:', syncError);
         // ไม่ fail request เพราะ local save สำเร็จแล้ว
       }
     }

@@ -14,7 +14,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         event.message.includes('Failed to fetch dynamically imported module')
       ) {
         event.preventDefault();
-        console.warn('[v0] ChunkLoadError detected, attempting recovery...');
+        console.warn('ChunkLoadError detected, attempting recovery...');
         
         // Show user-friendly message
         toast.error('กำลังอัปเดตแอป กรุณารอสักครู่...', {
@@ -44,7 +44,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         event.reason?.message?.includes('Failed to fetch')
       ) {
         event.preventDefault();
-        console.warn('[v0] Dynamic import failed, recovering...');
+        console.warn('Dynamic import failed, recovering...');
         
         toast.error('กำลังโหลดใหม่...', { duration: 2000 });
         
@@ -59,7 +59,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     // Register service worker for offline support
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       navigator.serviceWorker.register('/sw.js').catch(err => {
-        console.warn('[v0] Service worker registration failed:', err);
+        console.warn('Service worker registration failed:', err);
       });
     }
 
@@ -69,7 +69,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     
     if (isStandalone) {
       document.documentElement.classList.add('pwa-standalone');
-      console.log('[v0] Running in PWA standalone mode');
+      console.log('Running in PWA standalone mode');
     }
 
     // Handle app visibility change (for cache refresh)

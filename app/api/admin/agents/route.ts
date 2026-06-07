@@ -165,7 +165,7 @@ export async function GET(request: Request) {
     
     return NextResponse.json({ agents: mappedAgents, summary, levels: AGENT_LEVELS });
   } catch (error) {
-    console.error('[v0] Agents exception:', error);
+    console.error('Agents exception:', error);
     return NextResponse.json({ 
       agents: [], 
       summary: {}, 
@@ -229,7 +229,7 @@ export async function POST(request: Request) {
     // Use currentAgentId as upline if agent is creating sub-agent and no upline specified
     const upline_id = requestedUplineId || (isCreatorAgent ? currentAgentId : null);
     
-    console.log('[v0] Creating agent - upline detection:', { 
+    console.log('Creating agent - upline detection:', { 
       requestedUplineId, 
       isCreatorAgent, 
       currentAgentId, 
@@ -304,7 +304,7 @@ export async function POST(request: Request) {
         }
       }
       
-      console.log('[v0] Agent hierarchy:', { uplineLevel: upline?.level, newLevel: hierarchyLevel, masterAgentId });
+      console.log('Agent hierarchy:', { uplineLevel: upline?.level, newLevel: hierarchyLevel, masterAgentId });
     }
     
     // Determine system_type
@@ -343,7 +343,7 @@ export async function POST(request: Request) {
     const agentRole = agent_level || (determinedSystemType === 'manual_key' ? 'agent_key' : 'agent');
     const defaultRate = AGENT_LEVELS[agentRole as keyof typeof AGENT_LEVELS]?.defaultRate || 5;
     
-    console.log('[v0] Creating agent:', {
+    console.log('Creating agent:', {
       target_table: 'agents',
       insert_payload: {
         code: username,
@@ -390,11 +390,11 @@ export async function POST(request: Request) {
       .single();
     
     if (createError) {
-      console.error('[v0] Create agent error:', createError);
+      console.error('Create agent error:', createError);
       return NextResponse.json({ error: 'สร้างเอเย่นต์ไม่สำเร็จ: ' + createError.message }, { status: 500 });
     }
     
-    console.log('[v0] Agent created successfully:', { id: newAgent.id, code: newAgent.code });
+    console.log('Agent created successfully:', { id: newAgent.id, code: newAgent.code });
     
     // AUTO-POPULATE: Insert agent into agent_permissions table for visibility control
     // Every new agent automatically appears in "ตั้งค่าการมองเห็นเอเย่นต์" menu
@@ -415,10 +415,10 @@ export async function POST(request: Request) {
       );
     
     if (permError) {
-      console.error('[v0] Agent permissions auto-populate error:', permError);
+      console.error('Agent permissions auto-populate error:', permError);
       // Non-fatal - continue even if permissions fail
     } else {
-      console.log('[v0] Agent permissions auto-populated for', newAgent.id);
+      console.log('Agent permissions auto-populated for', newAgent.id);
     }
     
     return NextResponse.json({ 
@@ -443,7 +443,7 @@ export async function POST(request: Request) {
     });
     
   } catch (error) {
-    console.error('[v0] Agent POST exception:', error);
+    console.error('Agent POST exception:', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }
@@ -509,7 +509,7 @@ export async function PUT(request: Request) {
     
     return NextResponse.json({ error: 'ไม่มีการดำเนินการ' }, { status: 400 });
   } catch (error) {
-    console.error('[v0] Agent PUT exception:', error);
+    console.error('Agent PUT exception:', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }

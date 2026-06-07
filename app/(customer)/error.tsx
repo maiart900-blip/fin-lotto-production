@@ -14,7 +14,7 @@ export default function CustomerError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[v0] Customer Error:', error);
+    console.error('Customer Error:', error);
   }, [error]);
 
   return (

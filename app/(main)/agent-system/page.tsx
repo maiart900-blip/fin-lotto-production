@@ -26,7 +26,7 @@ const fetcher = async (url: string) => {
   const data = await res.json();
   
   // Log for debugging
-  console.log('[v0] Agent fetch response:', { 
+  console.log('Agent fetch response:', { 
     status: res.status, 
     agentsCount: data?.agents?.length,
     error: data?.error,
@@ -354,7 +354,7 @@ export default function AgentSystemPage() {
             const qrUrl = await QRCode.toDataURL(data.twoFactor.otpauthUrl);
             setQrCodeDataUrl(qrUrl);
           } catch {
-            console.error('[v0] Failed to generate QR code');
+            console.error('Failed to generate QR code');
           }
           setIsGeneratingQR(false);
           setShow2FAModal(true);

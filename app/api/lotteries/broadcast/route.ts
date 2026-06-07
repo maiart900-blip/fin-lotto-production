@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       message: `Notified ${tenantsToNotify.length} sub-sites`,
     });
   } catch (err) {
-    console.error('[v0] Lottery broadcast error:', err);
+    console.error('Lottery broadcast error:', err);
     return NextResponse.json({ 
       success: false, 
       error: 'Broadcast failed' 
@@ -139,7 +139,7 @@ export async function GET() {
       syncEnabled: tenants?.filter(t => t.sync_lottery_status).length || 0,
     });
   } catch (err) {
-    console.error('[v0] Broadcast status error:', err);
+    console.error('Broadcast status error:', err);
     return NextResponse.json({ success: false, error: 'Failed to get status' }, { status: 500 });
   }
 }

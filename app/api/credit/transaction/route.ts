@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
 
       if (txError) {
         // Log but don't fail - balance was updated successfully
-        console.error('[v0] Failed to record transaction:', txError);
+        console.error('Failed to record transaction:', txError);
       }
 
       return {
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('[v0] Credit transaction error:', error);
+    console.error('Credit transaction error:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -251,7 +251,7 @@ export async function GET(request: NextRequest) {
       transactions: data || [],
     });
   } catch (error) {
-    console.error('[v0] Fetch transactions error:', error);
+    console.error('Fetch transactions error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch transactions' },
       { status: 500 }

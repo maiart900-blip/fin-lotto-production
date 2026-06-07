@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       alert_id: alert?.id,
     });
   } catch (error) {
-    console.error('[v0] Error report failed:', error);
+    console.error('Error report failed:', error);
     return NextResponse.json({ error: 'Failed to report error' }, { status: 500 });
   }
 }
@@ -87,7 +87,7 @@ export async function GET() {
     
     return NextResponse.json(alerts || []);
   } catch (error) {
-    console.error('[v0] Get alerts error:', error);
+    console.error('Get alerts error:', error);
     return NextResponse.json({ error: 'Failed to fetch alerts' }, { status: 500 });
   }
 }

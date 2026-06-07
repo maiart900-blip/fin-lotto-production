@@ -23,13 +23,13 @@ export async function GET() {
       .limit(20);
     
     if (error) {
-      console.error('[v0] Customer topup GET error:', error.message);
+      console.error('Customer topup GET error:', error.message);
       return NextResponse.json([]);
     }
     
     return NextResponse.json(data || []);
   } catch (err) {
-    console.error('[v0] Customer topup GET exception:', err);
+    console.error('Customer topup GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
         );
       }
     } catch (hashErr) {
-      console.error('[v0] Slip hash generation error:', hashErr);
+      console.error('Slip hash generation error:', hashErr);
       // Continue without hash - don't block the transaction
     }
     
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
     }
     
     if (error) {
-      console.error('[v0] Customer topup POST error:', error.message);
+      console.error('Customer topup POST error:', error.message);
       return NextResponse.json(
         { error: 'ไม่สามารถสร้างคำขอเติมเงินได้' },
         { status: 500 }
@@ -182,7 +182,7 @@ export async function POST(request: Request) {
     
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Customer topup POST exception:', err);
+    console.error('Customer topup POST exception:', err);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาด' },
       { status: 500 }

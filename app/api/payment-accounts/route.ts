@@ -32,13 +32,13 @@ export async function GET(request: Request) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[v0] Payment accounts GET error:', error.message);
+      console.error('Payment accounts GET error:', error.message);
       return NextResponse.json([]);
     }
 
     return NextResponse.json(data || []);
   } catch (err) {
-    console.error('[v0] Payment accounts GET exception:', err);
+    console.error('Payment accounts GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -125,13 +125,13 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('[v0] Payment accounts POST error:', error.message);
+      console.error('Payment accounts POST error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Payment accounts POST exception:', err);
+    console.error('Payment accounts POST exception:', err);
     return NextResponse.json({ error: 'Failed to create payment account' }, { status: 500 });
   }
 }
@@ -187,13 +187,13 @@ export async function PUT(request: Request) {
       .single();
 
     if (error) {
-      console.error('[v0] Payment accounts PUT error:', error.message);
+      console.error('Payment accounts PUT error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Payment accounts PUT exception:', err);
+    console.error('Payment accounts PUT exception:', err);
     return NextResponse.json({ error: 'Failed to update payment account' }, { status: 500 });
   }
 }
@@ -222,13 +222,13 @@ export async function DELETE(request: Request) {
       .single();
 
     if (error) {
-      console.error('[v0] Payment accounts SOFT DELETE error:', error.message);
+      console.error('Payment accounts SOFT DELETE error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, message: 'บัญชีถูกปิดใช้งานเรียบร้อย (Soft Delete)' });
   } catch (err) {
-    console.error('[v0] Payment accounts DELETE exception:', err);
+    console.error('Payment accounts DELETE exception:', err);
     return NextResponse.json({ error: 'Failed to delete payment account' }, { status: 500 });
   }
 }

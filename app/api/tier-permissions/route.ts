@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest) {
     try {
       body = await request.json();
     } catch (parseError) {
-      console.error('[v0] Failed to parse request body:', parseError);
+      console.error('Failed to parse request body:', parseError);
       return NextResponse.json(
         { error: 'Invalid JSON in request body' },
         { status: 400 }
@@ -72,7 +72,7 @@ export async function PUT(request: NextRequest) {
     
     const { permissions } = body;
     
-    console.log('[v0] Received permissions:', JSON.stringify(permissions, null, 2));
+    console.log('Received permissions:', JSON.stringify(permissions, null, 2));
     
     if (!permissions || !Array.isArray(permissions)) {
       return NextResponse.json(
@@ -115,7 +115,7 @@ export async function PUT(request: NextRequest) {
       can_delete: Boolean(p.can_delete),
     }));
     
-    console.log('[v0] Clean permissions to upsert:', JSON.stringify(cleanPermissions.slice(0, 3), null, 2));
+    console.log('Clean permissions to upsert:', JSON.stringify(cleanPermissions.slice(0, 3), null, 2));
     
     // Upsert permissions one by one to avoid batch issues
     const errors: string[] = [];
@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest) {
         });
       
       if (error) {
-        console.error('[v0] Error upserting permission:', perm, error);
+        console.error('Error upserting permission:', perm, error);
         errors.push(`${perm.tier}/${perm.menu_id}: ${error.message}`);
       } else {
         successCount++;
@@ -137,7 +137,7 @@ export async function PUT(request: NextRequest) {
     }
     
     if (errors.length > 0) {
-      console.error('[v0] Some permissions failed to save:', errors);
+      console.error('Some permissions failed to save:', errors);
       if (successCount === 0) {
         return NextResponse.json(
           { error: `Failed to save permissions: ${errors[0]}` },
@@ -154,7 +154,7 @@ export async function PUT(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[v0] Tier permissions PUT error:', error);
+    console.error('Tier permissions PUT error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

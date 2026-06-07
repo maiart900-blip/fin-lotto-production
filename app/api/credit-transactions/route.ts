@@ -128,13 +128,13 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[v0] Credit transactions fetch error:', error);
+      console.error('Credit transactions fetch error:', error);
       return NextResponse.json({ data: [], message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
     }
 
     return NextResponse.json({ data: data || [], total: data?.length || 0 });
   } catch (error) {
-    console.error('[v0] Credit transactions GET error:', error);
+    console.error('Credit transactions GET error:', error);
     return NextResponse.json({ data: [], message: 'เกิดข้อผิดพลาด' });
   }
 }
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (txError) {
-      console.error('[v0] Credit transaction insert error:', txError);
+      console.error('Credit transaction insert error:', txError);
       return NextResponse.json(
         { error: 'ไม่สามารถบันทึกรายการได้' },
         { status: 500 }

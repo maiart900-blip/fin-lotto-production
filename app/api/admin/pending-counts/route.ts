@@ -74,7 +74,7 @@ export async function GET() {
 
     return NextResponse.json(counts);
   } catch (error) {
-    console.error('[v0] Pending counts error:', error);
+    console.error('Pending counts error:', error);
     return NextResponse.json({
       topupPending: 0,
       withdrawPending: 0,

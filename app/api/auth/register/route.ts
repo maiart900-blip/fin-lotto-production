@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       .maybeSingle();
     
     if (checkError) {
-      console.error('[v0] Register check error:', checkError);
+      console.error('Register check error:', checkError);
       return NextResponse.json(
         { error: 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูล' },
         { status: 500 }
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       .single();
 
     if (insertError) {
-      console.error('[v0] Register insert error:', insertError);
+      console.error('Register insert error:', insertError);
       return NextResponse.json(
         { error: 'ไม่สามารถสร้างบัญชีได้ กรุณาลองใหม่อีกครั้ง' },
         { status: 500 }
@@ -149,7 +149,7 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    console.error('[v0] Register error:', error);
+    console.error('Register error:', error);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาด กรุณาลองใหม่' },
       { status: 500 }

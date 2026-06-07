@@ -160,7 +160,7 @@ export default function CustomerWithdrawPage() {
         toast.error(data.error || 'เกิดข้อผิดพลาด');
       }
     } catch (error) {
-      console.error('[v0] Withdraw error:', error);
+      console.error('Withdraw error:', error);
       toast.error('เกิดข้อผิดพลาด');
     } finally {
       setIsSubmitting(false);

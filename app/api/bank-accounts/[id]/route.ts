@@ -33,7 +33,7 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error('[v0] Bank account update error:', error);
+      console.error('Bank account update error:', error);
       return NextResponse.json(
         { error: 'ไม่สามารถแก้ไขบัญชีได้' },
         { status: 500 }
@@ -45,7 +45,7 @@ export async function PATCH(
       account: data,
     });
   } catch (error) {
-    console.error('[v0] Bank account PATCH error:', error);
+    console.error('Bank account PATCH error:', error);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาด' },
       { status: 500 }
@@ -87,7 +87,7 @@ export async function DELETE(
       .eq('id', id);
 
     if (error) {
-      console.error('[v0] Bank account delete error:', error);
+      console.error('Bank account delete error:', error);
       return NextResponse.json(
         { error: 'ไม่สามารถลบบัญชีได้' },
         { status: 500 }
@@ -104,7 +104,7 @@ export async function DELETE(
       },
     });
   } catch (error) {
-    console.error('[v0] Bank account DELETE error:', error);
+    console.error('Bank account DELETE error:', error);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาด' },
       { status: 500 }

@@ -77,7 +77,7 @@ export async function checkTenantFeatureAccess(
     .maybeSingle();
   
   if (error) {
-    console.error('[v0] Feature check error:', error);
+    console.error('Feature check error:', error);
     // Default to allowed if check fails (for backwards compatibility)
     return true;
   }
@@ -107,7 +107,7 @@ export async function requireFeatureAccess(
   const hasAccess = await checkTenantFeatureAccess(tenantId, requiredFeature);
   
   if (!hasAccess) {
-    console.log(`[v0] Feature access denied: tenant=${tenantId}, feature=${requiredFeature}, route=${pathname}`);
+    console.log(`Feature access denied: tenant=${tenantId}, feature=${requiredFeature}, route=${pathname}`);
     
     // Return 403 Forbidden with Thai message
     return NextResponse.json(
@@ -136,7 +136,7 @@ export async function getTenantEnabledFeatures(tenantId: string): Promise<Set<st
     .eq('tenant_id', tenantId);
   
   if (error) {
-    console.error('[v0] Error fetching tenant features:', error);
+    console.error('Error fetching tenant features:', error);
     return new Set();
   }
   
@@ -167,7 +167,7 @@ export async function checkMultipleFeatures(
     .in('feature_key', featureKeys);
   
   if (error) {
-    console.error('[v0] Error checking multiple features:', error);
+    console.error('Error checking multiple features:', error);
     // Default all to true on error
     return featureKeys.reduce((acc, key) => ({ ...acc, [key]: true }), {});
   }

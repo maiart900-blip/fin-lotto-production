@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[v0] Withdraw requests fetch error:', error);
+      console.error('Withdraw requests fetch error:', error);
       // Return empty data instead of throwing
       return NextResponse.json({ 
         requests: [], 
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ requests: data || [], summary });
   } catch (error) {
-    console.error('[v0] Error fetching withdraw requests:', error);
+    console.error('Error fetching withdraw requests:', error);
     // Return empty data on error - don't throw 500
     return NextResponse.json({ 
       requests: [], 

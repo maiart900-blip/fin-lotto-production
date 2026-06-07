@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       .eq('lottery_id', body.lottery_id);
 
     if (error) {
-      console.error('[v0] check blocked numbers error:', error.message);
+      console.error('check blocked numbers error:', error.message);
       // Return all OK if can't fetch - don't block betting
       return NextResponse.json({
         results: body.numbers.map(n => ({
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ results });
   } catch (error) {
-    console.error('[v0] check blocked numbers exception:', error);
+    console.error('check blocked numbers exception:', error);
     // Return all OK if error - don't block betting
     return NextResponse.json({
       results: [],

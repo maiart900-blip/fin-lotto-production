@@ -83,7 +83,7 @@ export async function GET(request: Request) {
       synced_at: new Date().toISOString(),
     });
   } catch (err) {
-    console.error('[v0] Master sync error:', err);
+    console.error('Master sync error:', err);
     return NextResponse.json({ 
       success: false, 
       error: 'ไม่สามารถดึงข้อมูลจากเว็บแม่ได้' 
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       synced_at: new Date().toISOString(),
     });
   } catch (err) {
-    console.error('[v0] Master push error:', err);
+    console.error('Master push error:', err);
     return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
   }
 }

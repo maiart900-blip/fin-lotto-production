@@ -34,7 +34,7 @@ export async function GET(
     
     return NextResponse.json(data);
   } catch (error) {
-    console.error('[v0] Withdraw request GET error:', error);
+    console.error('Withdraw request GET error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -221,7 +221,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     
   } catch (error) {
-    console.error('[v0] Withdraw request PATCH error:', error);
+    console.error('Withdraw request PATCH error:', error);
     if (error instanceof Error && error.message === 'Permission denied') {
       return NextResponse.json({ error: 'ไม่มีสิทธิ์ดำเนินการ' }, { status: 403 });
     }

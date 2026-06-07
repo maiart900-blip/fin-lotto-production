@@ -186,7 +186,7 @@ export async function GET(
       topNumbers,
     });
   } catch (error) {
-    console.error('[v0] Member detail error:', error);
+    console.error('Member detail error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

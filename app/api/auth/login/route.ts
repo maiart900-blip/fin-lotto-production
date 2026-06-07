@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     // If rate limit check fails, continue with login (fail open)
-    console.error('[v0] Rate limit check failed:', error);
+    console.error('Rate limit check failed:', error);
     rateLimitResult = { success: true, limit: 5, remaining: 5, reset: Date.now() / 1000 + 60 };
   }
   
@@ -529,7 +529,7 @@ export async function POST(request: Request) {
       { status: 401 }
     );
   } catch (err) {
-    console.error('[v0] Login error:', err);
+    console.error('Login error:', err);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาด กรุณาลองใหม่' },
       { status: 500 }

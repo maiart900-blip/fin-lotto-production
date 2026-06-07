@@ -178,7 +178,7 @@ export async function GET() {
     });
     
   } catch (error) {
-    console.error('[v0] Debug data-scope error:', error);
+    console.error('Debug data-scope error:', error);
     return NextResponse.json({
       error: 'Failed to get data scope',
       message: error instanceof Error ? error.message : 'Unknown error',

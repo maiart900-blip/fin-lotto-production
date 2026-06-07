@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const { data: entries, error } = await query;
 
     if (error) {
-      console.error('[v0] Error fetching entries:', error);
+      console.error('Error fetching entries:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('[v0] Report error:', err);
+    console.error('Report error:', err);
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 });
   }
 }

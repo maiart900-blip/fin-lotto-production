@@ -122,9 +122,9 @@ export default function DashboardPage() {
   const periodStats = dashboardStats?.stats?.periods || null;
 
   // Log errors for debugging only
-  if (entriesError) console.error('[v0] Dashboard entries error:', entriesError);
-  if (customersError) console.error('[v0] Dashboard customers error:', customersError);
-  if (lotteriesError) console.error('[v0] Dashboard lotteries error:', lotteriesError);
+  if (entriesError) console.error('Dashboard entries error:', entriesError);
+  if (customersError) console.error('Dashboard customers error:', customersError);
+  if (lotteriesError) console.error('Dashboard lotteries error:', lotteriesError);
 
   const grandTotal = useMemo(() => {
     try {

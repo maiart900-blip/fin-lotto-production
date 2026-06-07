@@ -46,12 +46,12 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query.limit(100);
   
   if (error) {
-    console.error('[v0] Error fetching bets:', error);
+    console.error('Error fetching bets:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   
   // Strip sensitive fields but keep all operational data including nested relations
-  console.log('[v0] Bets fetched:', data?.length, 'source_type filter:', source_type);
+  console.log('Bets fetched:', data?.length, 'source_type filter:', source_type);
   return NextResponse.json(deepStripSensitiveFields(data || []));
 }
 
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     // Determine source_type: manual_key (คีย์หวย) or auto (ลูกค้าแทงเอง)
     const betSourceType = source_type || (effectiveAdminId ? 'manual_key' : 'auto');
     
-    console.log('[v0] Creating bet:', { lottery_id, actualCustomerId, betSourceType, agent_id, adminId: effectiveAdminId });
+    console.log('Creating bet:', { lottery_id, actualCustomerId, betSourceType, agent_id, adminId: effectiveAdminId });
     
     // items and lottery_id already validated by Zod schema above
     if (!items || items.length === 0) {
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         .single();
       
       if (existingBet) {
-        console.log('[v0] Duplicate bet request detected:', idempotency_key);
+        console.log('Duplicate bet request detected:', idempotency_key);
         return NextResponse.json({ 
           success: true, 
           bet_id: existingBet.id,
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (updateError || !updatedCustomer) {
-      console.error('[v0] Balance deduction failed - race condition or insufficient balance');
+      console.error('Balance deduction failed - race condition or insufficient balance');
       return NextResponse.json({ 
         error: 'Balance deduction failed. Please try again.',
         code: 'BALANCE_RACE_CONDITION'
@@ -226,11 +226,11 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
     
-    console.log('[v0] Bet created:', { bet_id: bet?.id, source_type: betSourceType });
+    console.log('Bet created:', { bet_id: bet?.id, source_type: betSourceType });
     
     if (betError) {
       // ROLLBACK: คืนเงินให้ลูกค้า
-      console.error('[v0] Bet creation failed, rolling back balance');
+      console.error('Bet creation failed, rolling back balance');
       await supabase
         .from('customers')
         .update({ credit_balance: customer.credit_balance })
@@ -265,13 +265,13 @@ export async function POST(request: NextRequest) {
       payoutRates?.map(p => [p.bet_type, parseFloat(p.rate)]) || []
     );
     
-    console.log('[v0] Payout rates:', Object.fromEntries(payoutRateMap));
+    console.log('Payout rates:', Object.fromEntries(payoutRateMap));
     
     // Create bet items with correct payout rates
     const betItems = items.map((item: any) => {
       const dbBetType = mapBetType(item.bet_type);
       const payoutRate = payoutRateMap.get(dbBetType) || 0;
-      console.log('[v0] Bet item:', { number: item.number, frontendType: item.bet_type, dbType: dbBetType, payoutRate });
+      console.log('Bet item:', { number: item.number, frontendType: item.bet_type, dbType: dbBetType, payoutRate });
       
       return {
         bet_id: bet.id,
@@ -292,7 +292,7 @@ export async function POST(request: NextRequest) {
     
     if (itemsError) {
       // ROLLBACK: ลบ bet และคืนเงินให้ลูกค้า
-      console.error('[v0] Bet items creation failed, rolling back');
+      console.error('Bet items creation failed, rolling back');
       await supabase.from('bets').delete().eq('id', bet.id);
       await supabase
         .from('customers')

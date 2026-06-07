@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
     
     if (error) {
-      console.error('[v0] Network members GET error:', error.message);
+      console.error('Network members GET error:', error.message);
       return NextResponse.json({ members: [], total: 0 });
     }
     
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       limit
     });
   } catch (err) {
-    console.error('[v0] Network members GET exception:', err);
+    console.error('Network members GET exception:', err);
     return NextResponse.json({ members: [], total: 0 });
   }
 }
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[v0] Create network member error:', error);
+      console.error('Create network member error:', error);
       return NextResponse.json({ error: 'ไม่สามารถสร้างแมมเบอร์ได้' }, { status: 500 });
     }
 
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
       member: newMember 
     });
   } catch (err) {
-    console.error('[v0] Network members POST exception:', err);
+    console.error('Network members POST exception:', err);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }
@@ -225,7 +225,7 @@ export async function PUT(request: NextRequest) {
     if (error) throw error;
     return NextResponse.json({ success: true, member: updated });
   } catch (err) {
-    console.error('[v0] Network members PUT exception:', err);
+    console.error('Network members PUT exception:', err);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }

@@ -28,7 +28,7 @@ export async function GET() {
       .order('name', { ascending: true });
 
     if (error) {
-      console.error('[v0] Error fetching agents:', error);
+      console.error('Error fetching agents:', error);
       return NextResponse.json({ agents: [] });
     }
 
@@ -90,7 +90,7 @@ export async function GET() {
       total: agents.length,
     });
   } catch (error) {
-    console.error('[v0] Error in agents/tree API:', error);
+    console.error('Error in agents/tree API:', error);
     return NextResponse.json({ agents: [], error: 'Internal server error' }, { status: 500 });
   }
 }

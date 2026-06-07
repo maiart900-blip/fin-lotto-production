@@ -44,7 +44,7 @@ export async function getTenantFeatures(tenantId: string): Promise<TenantFeature
     .eq('tenant_id', tenantId);
   
   if (error) {
-    console.error('[v0] Error fetching tenant features:', error);
+    console.error('Error fetching tenant features:', error);
     return [];
   }
   

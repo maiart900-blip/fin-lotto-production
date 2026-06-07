@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
 
       // ถ้า update ไม่สำเร็จ แปลว่า bet นี้ถูกตรวจไปแล้ว (skip)
       if (updateBetError || !updatedBet) {
-        console.log(`[v0] Bet ${bet.id} already checked, skipping payout`);
+        console.log(`Bet ${bet.id} already checked, skipping payout`);
         continue; // Skip to next bet
       }
 

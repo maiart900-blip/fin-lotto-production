@@ -23,13 +23,13 @@ export async function GET(
       .order('created_at', { ascending: true });
     
     if (error) {
-      console.error('[v0] Error fetching tenant features:', error);
+      console.error('Error fetching tenant features:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
     return NextResponse.json({ features: features || [] });
   } catch (error) {
-    console.error('[v0] Tenant features GET error:', error);
+    console.error('Tenant features GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch features' }, { status: 500 });
   }
 }
@@ -148,7 +148,7 @@ export async function POST(
       message: `${feature_key} ${is_enabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}แล้ว`,
     });
   } catch (error) {
-    console.error('[v0] Tenant feature toggle error:', error);
+    console.error('Tenant feature toggle error:', error);
     return NextResponse.json({ error: 'Failed to update feature' }, { status: 500 });
   }
 }
@@ -185,7 +185,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[v0] Tenant feature delete error:', error);
+    console.error('Tenant feature delete error:', error);
     return NextResponse.json({ error: 'Failed to delete feature' }, { status: 500 });
   }
 }

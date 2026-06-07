@@ -330,5 +330,5 @@ export async function warmUpCache(): Promise<void> {
     })
   );
 
-  console.log(`[v0] Cache warmed up for ${lotteries.length} lotteries`);
+  console.log(`Cache warmed up for ${lotteries.length} lotteries`);
 }

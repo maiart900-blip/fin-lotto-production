@@ -144,7 +144,7 @@ export default function ResultsPage() {
     }
 
     // Debug log
-    console.log('[v0] Saving result:', {
+    console.log('Saving result:', {
       lottery_id: selectedLotteryId,
       draw_date: selectedDate,
       three_top: threeTop,
@@ -166,7 +166,7 @@ export default function ResultsPage() {
       });
 
       const data = await res.json();
-      console.log('[v0] API response:', { status: res.status, data });
+      console.log('API response:', { status: res.status, data });
 
       if (!res.ok) {
         // แสดง error message จริงจาก API
@@ -174,7 +174,7 @@ export default function ResultsPage() {
         const errorDetails = data.details ? ` (${data.details})` : '';
         const errorCode = data.code ? ` [${data.code}]` : '';
         toast.error(`${errorMsg}${errorDetails}${errorCode}`);
-        console.error('[v0] Save failed:', data);
+        console.error('Save failed:', data);
         return;
       }
 
@@ -203,7 +203,7 @@ export default function ResultsPage() {
       mutate(`/api/results?lottery_id=${selectedLotteryId}&date=${selectedDate}`);
       mutate('/api/results?limit=20'); // Refresh history
     } catch (err: any) {
-      console.error('[v0] Save exception:', err);
+      console.error('Save exception:', err);
       toast.error(err?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
       setIsSaving(false);
@@ -222,7 +222,7 @@ export default function ResultsPage() {
       return;
     }
 
-    console.log('[v0] Processing winners for result:', {
+    console.log('Processing winners for result:', {
       result_id: existingResult.id,
       lottery_id: selectedLotteryId,
       draw_date: selectedDate,
@@ -241,7 +241,7 @@ export default function ResultsPage() {
       });
 
       const data = await res.json();
-      console.log('[v0] Process API response:', data);
+      console.log('Process API response:', data);
 
       if (!res.ok) {
         const errorMsg = data.error || data.message || 'Failed to process';
@@ -270,7 +270,7 @@ export default function ResultsPage() {
       mutate(`/api/results?lottery_id=${selectedLotteryId}&date=${selectedDate}`);
       mutate('/api/results?limit=20'); // Refresh history
     } catch (err: any) {
-      console.error('[v0] Process exception:', err);
+      console.error('Process exception:', err);
       toast.error(err?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
       setIsProcessing(false);

@@ -74,7 +74,7 @@ export function InstallAppButton({
           setDeferredPrompt(null);
         }
       } catch (err) {
-        console.error('[v0] Install prompt error:', err);
+        console.error('Install prompt error:', err);
       }
       setIsInstalling(false);
       return;

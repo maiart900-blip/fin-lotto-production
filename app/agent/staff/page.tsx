@@ -134,7 +134,7 @@ export default function AgentStaffPage() {
         toast.error(data.message || data.error || 'เกิดข้อผิดพลาด');
       }
     } catch (error) {
-      console.error('[v0] Error adding staff:', error);
+      console.error('Error adding staff:', error);
       toast.error('เกิดข้อผิดพลาดในการเพิ่มพนักงาน');
     } finally {
       setIsSubmitting(false);

@@ -66,7 +66,7 @@ export function useEntries(customerId?: string) {
 
       return { success: true, data: result };
     } catch (err) {
-      console.error('[v0] addEntries error:', err);
+      console.error('addEntries error:', err);
       toast.error('เกิดข้อผิดพลาดในการบันทึกโพย');
       return { success: false, error: 'เกิดข้อผิดพลาด' };
     }
@@ -90,7 +90,7 @@ export function useEntries(customerId?: string) {
 
       return { success: true };
     } catch (err) {
-      console.error('[v0] deleteEntries error:', err);
+      console.error('deleteEntries error:', err);
       toast.error('เกิดข้อผิดพลาดในการลบโพย');
       return { success: false };
     }

@@ -222,7 +222,7 @@ export default function WithdrawRequestsPage() {
       setSlipPreview(null);
       mutate();
     } catch (err) {
-      console.error('[v0] Upload slip error:', err);
+      console.error('Upload slip error:', err);
       toast.error('เกิดข้อผิดพลาดในการอัพโหลด');
     } finally {
       setIsUploading(false);

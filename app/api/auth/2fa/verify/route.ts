@@ -31,10 +31,10 @@ async function verifyTOTPCode(secret: string, code: string): Promise<boolean> {
     // - Server/client time drift
     // - User entering code near period boundary
     const delta = totp.validate({ token: code, window: 2 });
-    console.log('[v0] TOTP validate - code:', code, 'delta:', delta, 'window: 2');
+    console.log('TOTP validate - code:', code, 'delta:', delta, 'window: 2');
     return delta !== null;
   } catch (error) {
-    console.error('[v0] TOTP verification error:', error);
+    console.error('TOTP verification error:', error);
     return false;
   }
 }
@@ -72,7 +72,7 @@ async function verifyAndUseBackupCode(userId: string, code: string): Promise<boo
     
     return true;
   } catch (error) {
-    console.error('[v0] Backup code verification error:', error);
+    console.error('Backup code verification error:', error);
     return false;
   }
 }
@@ -101,24 +101,24 @@ export async function POST(request: NextRequest) {
     
     const { code, isBackupCode } = validation.data;
     
-    console.log('[v0] 2FA verify: Starting verification');
+    console.log('2FA verify: Starting verification');
     
     const supabase = await createClient();
     const cookieStore = await cookies();
     const pendingUserId = cookieStore.get('pending_2fa_user')?.value;
 
-    console.log('[v0] 2FA verify: pendingUserId =', pendingUserId);
+    console.log('2FA verify: pendingUserId =', pendingUserId);
 
     if (!pendingUserId) {
       return NextResponse.json({ error: 'No pending 2FA verification' }, { status: 400 });
     }
 
-    console.log('[v0] 2FA verify: code length =', code?.length, 'isBackupCode =', isBackupCode);
+    console.log('2FA verify: code length =', code?.length, 'isBackupCode =', isBackupCode);
 
     // Code and isBackupCode already validated and extracted above
 
     // Get user data first
-    console.log('[v0] 2FA verify: Fetching user data');
+    console.log('2FA verify: Fetching user data');
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, username, role, tenant_id, display_name, two_factor_secret, two_factor_backup_codes, failed_login_attempts, locked_until')
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError) {
-      console.error('[v0] 2FA verify: User fetch error:', userError);
+      console.error('2FA verify: User fetch error:', userError);
       return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
 
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    console.log('[v0] 2FA verify: User found:', user.username, 'has secret:', !!user.two_factor_secret);
+    console.log('2FA verify: User found:', user.username, 'has secret:', !!user.two_factor_secret);
 
     // Check if account is locked
     if (user.locked_until && new Date(user.locked_until) > new Date()) {
@@ -147,20 +147,20 @@ export async function POST(request: NextRequest) {
 
     if (isBackupCode) {
       // Verify backup code
-      console.log('[v0] 2FA verify: Verifying backup code');
+      console.log('2FA verify: Verifying backup code');
       isValid = await verifyAndUseBackupCode(pendingUserId, code);
     } else {
       // Verify TOTP code using the guard function
-      console.log('[v0] 2FA verify: Verifying TOTP code');
+      console.log('2FA verify: Verifying TOTP code');
       const secret = user.two_factor_secret;
-      console.log('[v0] 2FA verify: secret exists:', !!secret, 'secret length:', secret?.length);
+      console.log('2FA verify: secret exists:', !!secret, 'secret length:', secret?.length);
       
       if (secret) {
         try {
           isValid = await verifyTOTPCode(secret, code);
-          console.log('[v0] 2FA verify: TOTP result:', isValid);
+          console.log('2FA verify: TOTP result:', isValid);
         } catch (verifyErr) {
-          console.error('[v0] 2FA verify: verifyTOTPCode threw:', verifyErr);
+          console.error('2FA verify: verifyTOTPCode threw:', verifyErr);
           return NextResponse.json({ 
             error: 'OTP verification failed', 
             details: verifyErr instanceof Error ? verifyErr.message : 'Unknown error' 
@@ -175,12 +175,12 @@ export async function POST(request: NextRequest) {
             .eq('id', pendingUserId);
         }
       } else {
-        console.log('[v0] 2FA verify: No secret found for user');
+        console.log('2FA verify: No secret found for user');
         return NextResponse.json({ error: 'ไม่พบการตั้งค่า 2FA กรุณาตั้งค่าใหม่' }, { status: 400 });
       }
     }
     
-    console.log('[v0] 2FA verify: isValid =', isValid);
+    console.log('2FA verify: isValid =', isValid);
 
     if (!isValid) {
       // Smart Account Lockout:
@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('[v0] 2FA verify: Unexpected error:', error);
+    console.error('2FA verify: Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

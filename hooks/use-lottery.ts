@@ -8,19 +8,19 @@ const fetcher = async (url: string) => {
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      console.error(`[v0] API Error ${url}:`, res.status, res.statusText);
+      console.error(`API Error ${url}:`, res.status, res.statusText);
       // Return empty data instead of throwing
       return url.includes('/settings') ? null : [];
     }
     const data = await res.json();
     // Check if data has error property
     if (data && data.error) {
-      console.error(`[v0] API returned error ${url}:`, data.error);
+      console.error(`API returned error ${url}:`, data.error);
       return url.includes('/settings') ? null : [];
     }
     return data;
   } catch (error) {
-    console.error(`[v0] Fetch error ${url}:`, error);
+    console.error(`Fetch error ${url}:`, error);
     return url.includes('/settings') ? null : [];
   }
 };

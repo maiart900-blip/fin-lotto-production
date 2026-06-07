@@ -19,13 +19,13 @@ export async function GET(request: Request) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[v0] Withdrawal accounts GET error:', error.message);
+      console.error('Withdrawal accounts GET error:', error.message);
       return NextResponse.json([]);
     }
 
     return NextResponse.json(data || []);
   } catch (err) {
-    console.error('[v0] Withdrawal accounts GET exception:', err);
+    console.error('Withdrawal accounts GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -95,13 +95,13 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('[v0] Withdrawal accounts POST error:', error.message);
+      console.error('Withdrawal accounts POST error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Withdrawal accounts POST exception:', err);
+    console.error('Withdrawal accounts POST exception:', err);
     return NextResponse.json({ error: 'Failed to create withdrawal account' }, { status: 500 });
   }
 }
@@ -166,13 +166,13 @@ export async function PUT(request: Request) {
       .single();
 
     if (error) {
-      console.error('[v0] Withdrawal accounts PUT error:', error.message);
+      console.error('Withdrawal accounts PUT error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error('[v0] Withdrawal accounts PUT exception:', err);
+    console.error('Withdrawal accounts PUT exception:', err);
     return NextResponse.json({ error: 'Failed to update withdrawal account' }, { status: 500 });
   }
 }
@@ -194,13 +194,13 @@ export async function DELETE(request: Request) {
       .eq('id', id);
 
     if (error) {
-      console.error('[v0] Withdrawal accounts DELETE error:', error.message);
+      console.error('Withdrawal accounts DELETE error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[v0] Withdrawal accounts DELETE exception:', err);
+    console.error('Withdrawal accounts DELETE exception:', err);
     return NextResponse.json({ error: 'Failed to delete withdrawal account' }, { status: 500 });
   }
 }
