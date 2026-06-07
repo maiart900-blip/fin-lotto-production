@@ -3,7 +3,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Allow dev origins for HMR in v0 sandbox
+  // Allow dev origins for HMR in preview sandbox
   allowedDevOrigins: ['*.vusercontent.net'],
   images: {
     unoptimized: true,

@@ -1,6 +1,7 @@
 {
-  "name": "my-project",
-  "version": "0.1.0",
+  "name": "fin-lotto-production",
+  "version": "1.0.0",
+  "description": "FIN LOTTO R+ - Enterprise online lottery management system with hybrid wallet, agent network, and automated settlement engine.",
   "private": true,
   "scripts": {
     "dev": "next dev",
