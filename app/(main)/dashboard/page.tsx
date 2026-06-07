@@ -27,16 +27,45 @@ import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+// สร้าง Intl.NumberFormat ครั้งเดียว (module scope) แทนการสร้างใหม่ทุกครั้งที่เรียกฟังก์ชัน
+const numberFormatter = new Intl.NumberFormat('th-TH');
+const currencyFormatter = new Intl.NumberFormat('th-TH', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
 function formatNumber(num: number): string {
-  return new Intl.NumberFormat('th-TH').format(num);
+  return numberFormatter.format(num);
 }
 
 function formatCurrency(num: number): string {
-  return new Intl.NumberFormat('th-TH', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(num);
+  return currencyFormatter.format(num);
 }
+
+// ===== ค่าคงที่ของสีการ์ด (ย้ายออกนอก component เพื่อไม่ให้สร้าง object ใหม่ทุก render) =====
+const STAT_COLOR_CLASSES = {
+  blue: 'bg-blue-500/10 text-blue-600',
+  green: 'bg-green-500/10 text-green-600',
+  red: 'bg-red-500/10 text-red-600',
+  orange: 'bg-orange-500/10 text-orange-600',
+  purple: 'bg-purple-500/10 text-purple-600',
+} as const;
+
+const PENDING_COLOR_CLASSES = {
+  orange: 'border-orange-200 bg-orange-50',
+  blue: 'border-blue-200 bg-blue-50',
+  red: 'border-red-200 bg-red-50',
+} as const;
+
+// ===== ข้อมูลทางลัด (Quick Links) — แยกออกมาเป็น data array เพื่อลดโค้ดซ้ำ =====
+const QUICK_LINKS = [
+  { href: '/customers', icon: Users, label: 'ลูกค้า' },
+  { href: '/topup-requests', icon: TrendingUp, label: 'คำขอเติมเงิน' },
+  { href: '/withdraw-requests', icon: TrendingDown, label: 'คำขอถอนเงิน' },
+  { href: '/bets', icon: Ticket, label: 'รายการแทง' },
+  { href: '/result-announcement', icon: Clock, label: 'ออกผล' },
+  { href: '/reports', icon: DollarSign, label: 'รายงาน' },
+] as const;
 
 function StatCard({
   title,
@@ -57,14 +86,6 @@ function StatCard({
   color?: 'blue' | 'green' | 'red' | 'orange' | 'purple';
   href?: string;
 }) {
-  const colorClasses = {
-    blue: 'bg-blue-500/10 text-blue-600',
-    green: 'bg-green-500/10 text-green-600',
-    red: 'bg-red-500/10 text-red-600',
-    orange: 'bg-orange-500/10 text-orange-600',
-    purple: 'bg-purple-500/10 text-purple-600',
-  };
-
   const content = (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -88,7 +109,7 @@ function StatCard({
               </div>
             )}
           </div>
-          <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
+          <div className={`p-3 rounded-lg ${STAT_COLOR_CLASSES[color]}`}>
             <Icon className="h-5 w-5" />
           </div>
         </div>
@@ -116,15 +137,9 @@ function PendingCard({
   href: string;
   color?: 'orange' | 'blue' | 'red';
 }) {
-  const colorClasses = {
-    orange: 'border-orange-200 bg-orange-50',
-    blue: 'border-blue-200 bg-blue-50',
-    red: 'border-red-200 bg-red-50',
-  };
-
   return (
     <Link href={href}>
-      <Card className={`${colorClasses[color]} hover:shadow-md transition-shadow cursor-pointer`}>
+      <Card className={`${PENDING_COLOR_CLASSES[color]} hover:shadow-md transition-shadow cursor-pointer`}>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -459,42 +474,14 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            <Button variant="outline" asChild className="h-auto py-3 flex-col gap-1">
-              <Link href="/customers">
-                <Users className="h-5 w-5" />
-                <span className="text-xs">ลูกค้า</span>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="h-auto py-3 flex-col gap-1">
-              <Link href="/topup-requests">
-                <TrendingUp className="h-5 w-5" />
-                <span className="text-xs">คำขอเติมเงิน</span>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="h-auto py-3 flex-col gap-1">
-              <Link href="/withdraw-requests">
-                <TrendingDown className="h-5 w-5" />
-                <span className="text-xs">คำขอถอนเงิน</span>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="h-auto py-3 flex-col gap-1">
-              <Link href="/bets">
-                <Ticket className="h-5 w-5" />
-                <span className="text-xs">รายการแทง</span>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="h-auto py-3 flex-col gap-1">
-              <Link href="/result-announcement">
-                <Clock className="h-5 w-5" />
-                <span className="text-xs">ออกผล</span>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="h-auto py-3 flex-col gap-1">
-              <Link href="/reports">
-                <DollarSign className="h-5 w-5" />
-                <span className="text-xs">รายงาน</span>
-              </Link>
-            </Button>
+            {QUICK_LINKS.map(({ href, icon: Icon, label }) => (
+              <Button key={href} variant="outline" asChild className="h-auto py-3 flex-col gap-1">
+                <Link href={href}>
+                  <Icon className="h-5 w-5" />
+                  <span className="text-xs">{label}</span>
+                </Link>
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>
