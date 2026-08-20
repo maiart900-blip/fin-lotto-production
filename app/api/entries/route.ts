@@ -113,10 +113,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // Auth guard - get session for tenant_id
+    // Auth guard - get session for tenant_id (requireAgentOrHigher คืน { user })
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
-    const session = authResult;
+    const session = authResult.user;
     
     const body = await request.json();
     const supabase = await createClient();
@@ -128,7 +128,16 @@ export async function POST(request: Request) {
     const finalCustomerId = customerId || customer_id || null;
     const finalCreatedBy = created_by || body.createdBy || userId || session.id || null;
     const finalSourceType = source_type || 'manual';
-    const finalTenantId = session.tenant_id || null;
+    // tenant scope จาก session; ถ้า session เป็น master (null) แต่ระบุ customer ให้ inherit จาก customer
+    let finalTenantId: string | null = session.tenant_id ?? null;
+    if (finalTenantId == null && finalCustomerId) {
+      const { data: custRow } = await supabase
+        .from('customers')
+        .select('tenant_id')
+        .eq('id', finalCustomerId)
+        .maybeSingle();
+      finalTenantId = custRow?.tenant_id ?? null;
+    }
     
     // ===== VALIDATION: Manual key entries MUST have customer linkage =====
     // For manual_key or manual source_type, we need either:
@@ -401,7 +410,7 @@ export async function POST(request: Request) {
     }
     
     // คำนวณ commission/ถือสู้ chain สำหรับทุก entry ที่บันทึกสำเร็จ
-    // เพื่อ snapshot สายงานเอเย่นต์ (agent + parent) ลงในแต่ละ entry
+    // เ��ื่อ snapshot สายงานเอเย่นต์ (agent + parent) ลงในแต่ละ entry
     // แหล่งข้อมูลจริงคือตาราง agents (customers.agent_id -> agents)
     if (data && data.length > 0) {
       // resolve สายงานทีละ customer แล้ว cache ไ��้ เลี่ยง query ซ้ำ
