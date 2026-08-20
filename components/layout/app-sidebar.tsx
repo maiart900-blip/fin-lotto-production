@@ -120,8 +120,8 @@ const attendanceItem = {
 
 const autoWebSystemItems = [
   { id: 'auto-system', title: 'ระบบออโต้ (คาสิโน/สล็อต/กีฬา)', href: '/auto-system', icon: Zap },
-  { id: 'live-stream', title: 'ไลฟ์สด', href: '/live-stream', icon: Radio },
-  { id: 'live-draw', title: 'ถ่ายทอดสดหวย', href: '/live-draw', icon: Tv },
+  { id: 'live-stream', title: 'ถ่ายทอดสด', href: '/live-stream', icon: Radio },
+  { id: 'live-draw', title: 'ออกผลหวย', href: '/live-draw', icon: Tv },
   { id: 'promotions', title: 'โปรโมชั่น', href: '/promotions', icon: Sparkles },
   { id: 'marketing-center', title: 'ศูนย์การตลาด', href: '/marketing-center', icon: Megaphone },
   { id: 'affiliate', title: 'ลิงก์แนะนำเพื่อน', href: '/affiliate', icon: Link2 },
@@ -350,7 +350,7 @@ const menuSections: MenuSection[] = [
   
   // === GROUP 7: รายงานสรุปผล ===
   { 
-    title: 'รายงานสรุปผล', 
+    title: '��ายงานสรุปผล', 
     icon: BarChart3, 
     items: reportsItems, 
     defaultOpen: false, 
