@@ -13,10 +13,10 @@ import { resolveCustomerAgentChain, buildAgentSnapshotFields } from '@/lib/agent
  */
 export async function GET(request: Request) {
   try {
-    // Auth guard
+    // Auth guard (requireAgentOrHigher คืน { user })
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
-    const session = authResult;
+    const session = authResult.user;
     
     // Get data scope for current user
     const scope = await getDataScope({
@@ -418,7 +418,6 @@ export async function POST(request: Request) {
 
       for (const entry of data) {
         try {
-          console.log('[v0] snapshot loop entry', entry.id, 'customer_id=', entry.customer_id);
           if (!entry.customer_id) continue;
 
           if (!chainCache.has(entry.customer_id)) {
@@ -428,17 +427,17 @@ export async function POST(request: Request) {
             );
           }
           const chain = chainCache.get(entry.customer_id) ?? null;
-          console.log('[v0] snapshot chain resolved:', JSON.stringify(chain));
           if (!chain) continue;
 
           const snapshot = buildAgentSnapshotFields(chain, entry.amount);
-          console.log('[v0] snapshot fields:', JSON.stringify(snapshot));
 
           const { error: snapErr } = await supabase
             .from('entries')
             .update(snapshot)
             .eq('id', entry.id);
-          if (snapErr) console.log('[v0] snapshot UPDATE error:', snapErr.message, snapErr.code);
+          if (snapErr) {
+            console.error('Snapshot update failed for entry:', entry.id, snapErr.message, snapErr.code);
+          }
         } catch (commErr) {
           console.error('Commission calculation error for entry:', entry.id, commErr);
         }
