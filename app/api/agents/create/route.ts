@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
       .from('users')
       .insert({
         username: agentCode,
-        password: hashedPassword,
+        password_hash: hashedPassword, // คอลัมน์จริงคือ password_hash (ไม่ใช่ password)
         display_name: name,
         phone: phone || null,
         tenant_id: resolvedTenantId, // ผูก tenant เดียวกับ agents row (login scope)
