@@ -1,48 +1,43 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAgentOrHigher } from '@/lib/api-auth';
+import { requireAgentContext, applyTenantScope } from '@/lib/agent-context';
 
-// API สำหรับเอเย่น - ดึง entries เฉพาะของเอเย่นตัวเอง
+// API สำหรับเอเย่น - ดึง/สร้าง entries เฉพาะของเอเย่นตัวเอง (identity จาก session, scope ด้วย tenant)
 // ไม่แก้ไข API entries เดิมของเว็บกลาง
 
 export async function GET(request: Request) {
   try {
-    // Auth guard - require agent or higher
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-
     const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
+    const targetAgentId = searchParams.get('agent_id'); // admin only
     const date = searchParams.get('date');
     const lotteryId = searchParams.get('lottery_id');
     const status = searchParams.get('status');
 
-    if (!agentId) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
-    }
+    const ctxResult = await requireAgentContext(targetAgentId);
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agentId = context.agentId;
 
     const supabase = await createClient();
 
-    // ตรวจสอบว่า agent นี้เป็น agent หรือ sub_agent
-    const { data: agentInfo } = await supabase
+    // ตรวจสอบว่า agent นี้เป็น agent หรือ sub_agent (scope ด้วย tenant)
+    let agentInfoQuery = supabase
       .from('agents')
       .select('id, role, parent_agent_id')
-      .eq('id', agentId)
-      .single();
+      .eq('id', agentId);
+    agentInfoQuery = applyTenantScope(agentInfoQuery, context);
+    const { data: agentInfo } = await agentInfoQuery.single();
 
-    // Data Scope Logic:
-    // - Agent (role=agent/agent_key): เห็น own data + sub-agents data
-    // - Sub-Agent (role=sub_agent): เห็นเฉพาะ own data
+    // Data Scope: agent เห็นตัวเอง + sub-agents / sub_agent เห็นเฉพาะตัวเอง — scope ด้วย tenant
     let query = supabase
       .from('entries')
       .select('*')
       .order('created_at', { ascending: false });
+    query = applyTenantScope(query, context);
 
     if (agentInfo?.role === 'sub_agent') {
-      // Sub-agent เห็นเฉพาะ entries ที่ตัวเองสร้าง
       query = query.eq('agent_id', agentId);
     } else {
-      // Agent เห็น entries ของตัวเอง + sub-agents ทั้งหมด
       query = query.or(`agent_id.eq.${agentId},parent_agent_id.eq.${agentId}`);
     }
 
@@ -85,15 +80,16 @@ export async function GET(request: Request) {
   }
 }
 
-// POST - เอเย่นบันทึก entries ของตัวเอง
+// POST - เอเย่นบันทึก entries ของตัวเอง (agent_id + tenant_id มาจาก session เท่านั้น)
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { entries, agent_id, lottery_id, customer_name, customer_id } = body;
+    const ctxResult = await requireAgentContext();
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agentId = context.agentId;
 
-    if (!agent_id) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { entries, lottery_id, customer_name, customer_id } = body;
 
     if (!entries || !Array.isArray(entries) || entries.length === 0) {
       return NextResponse.json({ error: 'entries array is required' }, { status: 400 });
@@ -101,13 +97,14 @@ export async function POST(request: Request) {
 
     const supabase = await createClient();
 
-    // Insert entries พร้อม agent_id และ customer_id
+    // Insert entries — agent_id + tenant_id จาก session (กัน spoofing)
     const entriesToInsert = entries.map(e => ({
       number: e.number,
       bet_type: e.bet_type || e.betType,
       amount: Number(e.amount) || 0,
       lottery_id: lottery_id || e.lottery_id,
-      agent_id: agent_id,
+      agent_id: agentId,
+      tenant_id: context.tenantId,
       customer_id: customer_id || e.customer_id || null,
       customer_name: customer_name || e.customer_name,
       status: 'pending',

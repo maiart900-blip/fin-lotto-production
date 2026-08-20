@@ -1,33 +1,29 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { requireAgentOrHigher } from '@/lib/api-auth';
+import { requireAgentContext, applyTenantScope } from '@/lib/agent-context';
 
 // API สำหรับเอเย่นจัดการ downline (ลูก, หลาน, เหลน...)
-// GET - ดู downline ทั้งหมดของตัวเอง
-// POST - สร้าง downline ใหม่ (เปิดเอเย่นลูก)
+// GET - ดู downline ทั้งหมดของตัวเอง (identity จาก session, scope ด้วย tenant)
+// POST - สร้าง downline ใหม่ (parent + tenant มาจาก session)
 
 export async function GET(request: NextRequest) {
   try {
-    // Auth guard - require agent or higher
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-
-    const supabase = await createClient();
     const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
+    const targetAgentId = searchParams.get('agent_id'); // admin only
     const level = searchParams.get('level'); // 'direct' = แค่ลูกตรง, 'all' = ทุก level
 
-    if (!agentId) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
-    }
+    const ctxResult = await requireAgentContext(targetAgentId);
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agentId = context.agentId;
 
-    // ดึงข้อมูลเอเย่นตัวเอง
-    const { data: agent } = await supabase
-      .from('agents')
-      .select('*')
-      .eq('id', agentId)
-      .single();
+    const supabase = await createClient();
+
+    // ดึงข้อมูลเอเย่นตัวเอง (scope ด้วย tenant)
+    let agentQuery = supabase.from('agents').select('*').eq('id', agentId);
+    agentQuery = applyTenantScope(agentQuery, context);
+    const { data: agent } = await agentQuery.single();
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
@@ -35,12 +31,14 @@ export async function GET(request: NextRequest) {
 
     // ดึง downline
     if (level === 'direct') {
-      // แค่ลูกตรง (Level 1)
-      const { data: directDownline } = await supabase
+      // แค่ลูกตรง (Level 1) — scope ด้วย tenant
+      let directQuery = supabase
         .from('agents')
         .select('*')
-        .eq('parent_id', agentId)
+        .or(`parent_id.eq.${agentId},parent_agent_id.eq.${agentId}`)
         .order('created_at', { ascending: false });
+      directQuery = applyTenantScope(directQuery, context);
+      const { data: directDownline } = await directQuery;
 
       return NextResponse.json({
         agent,
@@ -54,7 +52,7 @@ export async function GET(request: NextRequest) {
         p_agent_id: agentId,
       });
 
-      // ถ้าไม่มี function ให้ใช้วิธีปกติ
+      // ถ้าไม่มี function ให้ใช้วิธีปกติ (scope ด้วย tenant)
       if (!allDownline) {
         const downlineMap = new Map();
         const queue = [agentId];
@@ -65,10 +63,12 @@ export async function GET(request: NextRequest) {
           queue.length = 0;
           currentLevel++;
 
-          const { data: children } = await supabase
+          let childQuery = supabase
             .from('agents')
             .select('*')
             .in('parent_id', currentIds);
+          childQuery = applyTenantScope(childQuery, context);
+          const { data: children } = await childQuery;
 
           if (children) {
             for (const child of children) {
@@ -104,53 +104,75 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const ctxResult = await requireAgentContext();
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+
     const supabase = await createClient();
     const body = await request.json();
-    const { 
-      parent_id,  // เอเย่นที่เปิด (พ่อ) - อาจเป็น null ถ้าเป็นลูกตรงของแม่
+    const {
+      parent_id: requestedParentId, // parent เป้าหมาย (ต้องเป็นตัวเองหรือ downline ที่ตัวเองเป็นเจ้าของ)
       name,
       phone,
       password,
-      share_percent,      // % ที่ลูกได้ (เช่น 90%)
-      commission_rate,    // ค่าคอมมิชชั่น
+      share_percent,      // % ที่ลูกได้ — ต้องระบุ (ไม่มี default ปลอม)
+      commission_rate,    // ค่าคอมมิชชั่น — ต้องระบุ
       credit_limit,
       type = 'agent',     // agent หรือ staff
-      system_type = 'manual_key', // manual_key หรือ auto
+      system_type = 'manual_key',
     } = body;
 
     if (!name || !phone) {
-      return NextResponse.json({ 
-        error: 'name, phone are required' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'name, phone are required' }, { status: 400 });
+    }
+    if (share_percent === undefined || share_percent === null) {
+      return NextResponse.json({ error: 'share_percent is required' }, { status: 400 });
+    }
+    if (commission_rate === undefined || commission_rate === null) {
+      return NextResponse.json({ error: 'commission_rate is required' }, { status: 400 });
     }
 
-    let newLevel = 1;
-    let parentShare = 100;
-
-    // ถ้ามี parent_id ให้ดึงข้อมูลพ่อ
-    if (parent_id) {
-      const { data: parent } = await supabase
-        .from('agents')
-        .select('*')
-        .eq('id', parent_id)
-        .single();
-
-      if (!parent) {
-        return NextResponse.json({ error: 'Parent agent not found' }, { status: 404 });
+    // parent เริ่มต้น = ตัวเอง (session). ถ้าระบุ parent อื่น ต้องเป็น downline ที่ตัวเองเป็นเจ้าของ
+    let parentId = context.agentId;
+    if (requestedParentId && requestedParentId !== context.agentId) {
+      if (!context.isAdmin) {
+        // ตรวจสอบ ownership: เดินสายขึ้นจาก requestedParent จนถึง context.agentId
+        let owned = false;
+        let cursor: string | null = requestedParentId;
+        for (let i = 0; i < 10 && cursor; i++) {
+          const { data: node } = await supabase
+            .from('agents')
+            .select('id, parent_id, parent_agent_id')
+            .eq('id', cursor)
+            .single();
+          if (!node) break;
+          const up = node.parent_id || node.parent_agent_id;
+          if (up === context.agentId) { owned = true; break; }
+          cursor = up;
+        }
+        if (!owned) {
+          return NextResponse.json({ error: 'Permission denied: parent is not in your downline' }, { status: 403 });
+        }
       }
-
-      // คำนวณ level
-      const parentLevel = parent.level || 1;
-      newLevel = parentLevel + 1;
-      parentShare = parent.share_percent || 90;
+      parentId = requestedParentId;
     }
 
-    // ตรวจสอบว่า share_percent ไม่เกินของพ่อ
-    const childShare = share_percent || 90;
-    
-    if (parent_id && childShare > parentShare) {
-      return NextResponse.json({ 
-        error: `share_percent ไม่สามารถเกิน ${parentShare}% ของต้นสายได้` 
+    // ดึงข้อมูล parent เพื่อคำนวณ level + เพดาน share (scope ด้วย tenant)
+    let parentQuery = supabase.from('agents').select('*').eq('id', parentId);
+    parentQuery = applyTenantScope(parentQuery, context);
+    const { data: parent } = await parentQuery.single();
+
+    if (!parent) {
+      return NextResponse.json({ error: 'Parent agent not found' }, { status: 404 });
+    }
+
+    const newLevel = (parent.level || 1) + 1;
+    const parentShare = parent.share_percent;
+
+    // share ของลูกห้ามเกินของ parent (ถ้า parent มีค่า share)
+    if (parentShare !== null && parentShare !== undefined && share_percent > parentShare) {
+      return NextResponse.json({
+        error: `share_percent ไม่สามารถเกิน ${parentShare}% ของต้นสายได้`
       }, { status: 400 });
     }
 
@@ -160,23 +182,23 @@ export async function POST(request: NextRequest) {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
-    // Generate username from name or phone
     const username = phone || `agent_${Date.now()}`;
 
-    // สร้าง downline ใหม่
+    // สร้าง downline ใหม่ — tenant_id inherit จาก session (กัน cross-tenant)
     const { data: newAgent, error } = await supabase
       .from('agents')
       .insert({
-        code: username, // code is used as username for login
+        code: username,
         name,
-        phone: phone || null, // Phone is optional for Agent Key
+        phone: phone || null,
         password: hashedPassword,
-        parent_id: parent_id || null,
-        parent_agent_id: parent_id || null,
+        parent_id: parentId,
+        parent_agent_id: parentId,
+        tenant_id: context.tenantId,
         role: type === 'staff' ? 'staff' : 'agent_key',
         level: newLevel,
-        share_percent: childShare,
-        commission_rate: commission_rate || 5,
+        share_percent: share_percent,
+        commission_rate: commission_rate,
         credit_limit: credit_limit || 10000,
         credit_balance: 0,
         status: 'active',

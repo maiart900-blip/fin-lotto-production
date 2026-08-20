@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAgentOrHigher } from '@/lib/api-auth';
+import { requireAgentContext, applyTenantScope } from '@/lib/agent-context';
 
-// API คำนวณกำไร/ขาดทุน เฉพาะของเอเย่นตัวเอง
+// API คำนวณกำไร/ขาดทุน เฉพาะของเอเย่นตัวเอง (identity จาก session, scope ด้วย tenant)
 // ไม่ยุ่งกับระบบเดิมของเว็บกลาง
 
 interface ProfitResult {
@@ -18,45 +18,46 @@ interface ProfitResult {
 
 export async function GET(request: Request) {
   try {
-    // Auth guard - require agent or higher
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-
     const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
+    const targetAgentId = searchParams.get('agent_id'); // admin only
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
     const lotteryId = searchParams.get('lottery_id');
 
-    if (!agentId) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
-    }
+    const ctxResult = await requireAgentContext(targetAgentId);
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agentId = context.agentId;
 
     const supabase = await createClient();
 
-    // ดึงข้อมูลเอเย่นเพื่อหา share_percent
-    const { data: agent } = await supabase
+    // ดึงข้อมูลเอเย่นเพื่อหา share_percent (scope ด้วย tenant)
+    let agentQuery = supabase
       .from('agents')
       .select('id, name, share_percent, commission_rate')
-      .eq('id', agentId)
-      .single();
+      .eq('id', agentId);
+    agentQuery = applyTenantScope(agentQuery, context);
+    const { data: agent } = await agentQuery.single();
 
-    const sharePercent = agent?.share_percent || 90; // เอเย่นได้ 90%, เว็บกลางได้ 10%
+    // ค่าถือสู้จริงจาก DB (ไม่มี fallback ปลอม) — null = ยังไม่ตั้งค่า
+    const sharePercent: number | null = agent?.share_percent ?? null;
+    const shareConfigured = sharePercent !== null;
 
     // กำหนดช่วงวันที่
     const start = startDate ? new Date(startDate) : new Date();
     start.setHours(0, 0, 0, 0);
-    
+
     const end = endDate ? new Date(endDate) : new Date();
     end.setHours(23, 59, 59, 999);
 
-    // ดึง entries ของเอเย่น
+    // ดึง entries ของเอเย่น (scope ด้วย tenant)
     let entriesQuery = supabase
       .from('entries')
       .select('*')
       .eq('agent_id', agentId)
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString());
+    entriesQuery = applyTenantScope(entriesQuery, context);
 
     if (lotteryId) {
       entriesQuery = entriesQuery.eq('lottery_id', lotteryId);
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
     // ดึง winning entries ของเอเย่น
     const entryIds = entries?.map(e => e.id) || [];
     let winningEntries: any[] = [];
-    
+
     if (entryIds.length > 0) {
       const { data: winners } = await supabase
         .from('winning_entries')
@@ -120,11 +121,11 @@ export async function GET(request: Request) {
       }
     });
 
-    // คำนวณกำไรและส่วนแบ่ง
+    // คำนวณกำไรและส่วนแบ่ง (เฉพาะเมื่อมี share config จริง)
     Object.values(profitByLottery).forEach(item => {
       item.profit = item.total_amount - item.total_payout;
-      item.agent_share = Math.round(item.profit * (sharePercent / 100));
-      item.master_share = item.profit - item.agent_share;
+      item.agent_share = shareConfigured ? Math.round(item.profit * (sharePercent! / 100)) : 0;
+      item.master_share = shareConfigured ? item.profit - item.agent_share : 0;
     });
 
     // สรุปรวม
@@ -136,17 +137,19 @@ export async function GET(request: Request) {
       agent_total_share: 0,
       master_total_share: 0,
       share_percent: sharePercent,
+      share_configured: shareConfigured,
     };
 
     summary.total_profit = summary.total_amount - summary.total_payout;
-    summary.agent_total_share = Math.round(summary.total_profit * (sharePercent / 100));
-    summary.master_total_share = summary.total_profit - summary.agent_total_share;
+    summary.agent_total_share = shareConfigured ? Math.round(summary.total_profit * (sharePercent! / 100)) : 0;
+    summary.master_total_share = shareConfigured ? summary.total_profit - summary.agent_total_share : 0;
 
     return NextResponse.json({
       agent: {
         id: agent?.id,
         name: agent?.name,
         share_percent: sharePercent,
+        share_configured: shareConfigured,
       },
       summary,
       details: Object.values(profitByLottery).sort((a, b) => b.date.localeCompare(a.date)),

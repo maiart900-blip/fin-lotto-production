@@ -1,73 +1,65 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAgentOrHigher } from '@/lib/api-auth';
+import { requireAgentContext, applyTenantScope } from '@/lib/agent-context';
 
 // API สำหรับแก้ไข % ส่วนแบ่ง (share_percent, commission_rate)
-// PATCH - แก้ไข % ของ downline
+// PATCH - แก้ไข % ของ downline (ผู้ขอแก้ไข = session เท่านั้น, กัน auth bypass)
 
 export async function PATCH(request: NextRequest) {
   try {
-    // Auth guard - require agent or higher
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
+    const ctxResult = await requireAgentContext();
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
 
     const supabase = await createClient();
     const body = await request.json();
-    const { 
+    const {
       agent_id,           // เอเย่นที่จะแก้ไข
-      requester_id,       // ผู้ขอแก้ไข (ต้องเป็น parent หรือ master)
       share_percent,      // % ที่เอเย่นได้ (เช่น 90%)
       commission_rate,    // ค่าคอมมิชชั่น
       credit_limit,
     } = body;
 
-    if (!agent_id || !requester_id) {
-      return NextResponse.json({ 
-        error: 'agent_id and requester_id are required' 
-      }, { status: 400 });
+    // requester = session (ไม่รับจาก body อีกต่อไป)
+    const requesterId = context.agentId;
+    const isMaster = context.isAdmin;
+
+    if (!agent_id) {
+      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
     }
 
-    // ดึงข้อมูลเอเย่นที่จะแก้ไข
-    const { data: agent } = await supabase
-      .from('agents')
-      .select('*')
-      .eq('id', agent_id)
-      .single();
+    // ดึงข้อมูลเอเย่นที่จะแก้ไข (scope ด้วย tenant)
+    let agentQuery = supabase.from('agents').select('*').eq('id', agent_id);
+    agentQuery = applyTenantScope(agentQuery, context);
+    const { data: agent } = await agentQuery.single();
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
-    // ดึงข้อมูลผู้ขอแก้ไข
-    const { data: requester } = await supabase
-      .from('agents')
-      .select('*')
-      .eq('id', requester_id)
-      .single();
-
-    // ตรวจสอบสิทธิ์ (ต้องเป็น parent โดยตรง หรือ master level 0)
-    const isMaster = !requester; // ถ้าไม่ใช่ agent = เป็น master
-    const isDirectParent = agent.parent_id === requester_id;
+    // ตรวจสอบสิทธิ์: ต้องเป็น parent โดยตรงของ agent เป้าหมาย หรือเป็น admin/master
+    const isDirectParent = agent.parent_id === requesterId || agent.parent_agent_id === requesterId;
 
     if (!isMaster && !isDirectParent) {
-      return NextResponse.json({ 
-        error: 'Permission denied. Only parent or master can edit.' 
+      return NextResponse.json({
+        error: 'Permission denied. Only direct parent or master can edit.'
       }, { status: 403 });
     }
 
     // ถ้ามีการแก้ไข share_percent
     if (share_percent !== undefined) {
       // ตรวจสอบว่าไม่เกินของ parent
-      if (agent.parent_id) {
+      const parentId = agent.parent_id || agent.parent_agent_id;
+      if (parentId) {
         const { data: parent } = await supabase
           .from('agents')
           .select('share_percent')
-          .eq('id', agent.parent_id)
+          .eq('id', parentId)
           .single();
 
         if (parent && share_percent > (parent.share_percent || 100)) {
-          return NextResponse.json({ 
-            error: `share_percent cannot exceed parent's share (${parent.share_percent}%)` 
+          return NextResponse.json({
+            error: `share_percent cannot exceed parent's share (${parent.share_percent}%)`
           }, { status: 400 });
         }
       }
@@ -76,12 +68,12 @@ export async function PATCH(request: NextRequest) {
       const { data: downline } = await supabase
         .from('agents')
         .select('share_percent, name')
-        .eq('parent_id', agent_id)
+        .or(`parent_id.eq.${agent_id},parent_agent_id.eq.${agent_id}`)
         .gt('share_percent', share_percent);
 
       if (downline && downline.length > 0) {
-        return NextResponse.json({ 
-          error: `Cannot set share_percent lower than downline. ${downline[0].name} has ${downline[0].share_percent}%` 
+        return NextResponse.json({
+          error: `Cannot set share_percent lower than downline. ${downline[0].name} has ${downline[0].share_percent}%`
         }, { status: 400 });
       }
     }
@@ -112,23 +104,26 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// GET - ดูประวัติการแก้ไข % (ถ้ามี)
+// GET - ดูข้อมูล % (scope ด้วย tenant + identity จาก session)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
     const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
+    const targetAgentId = searchParams.get('agent_id'); // admin only
 
-    if (!agentId) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
-    }
+    const ctxResult = await requireAgentContext(targetAgentId);
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agentId = context.agentId;
 
-    // ดึงข้อมูลเอเย่น
-    const { data: agent } = await supabase
+    const supabase = await createClient();
+
+    // ดึงข้อมูลเอเย่น (scope ด้วย tenant)
+    let agentQuery = supabase
       .from('agents')
-      .select('id, name, share_percent, commission_rate, credit_limit, parent_id, level')
-      .eq('id', agentId)
-      .single();
+      .select('id, name, share_percent, commission_rate, credit_limit, parent_id, parent_agent_id, level')
+      .eq('id', agentId);
+    agentQuery = applyTenantScope(agentQuery, context);
+    const { data: agent } = await agentQuery.single();
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
@@ -136,20 +131,23 @@ export async function GET(request: NextRequest) {
 
     // ดึงข้อมูล parent (ถ้ามี)
     let parent = null;
-    if (agent.parent_id) {
+    const parentId = agent.parent_id || agent.parent_agent_id;
+    if (parentId) {
       const { data: parentData } = await supabase
         .from('agents')
         .select('id, name, share_percent')
-        .eq('id', agent.parent_id)
+        .eq('id', parentId)
         .single();
       parent = parentData;
     }
 
-    // ดึง downline
-    const { data: downline } = await supabase
+    // ดึง downline (scope ด้วย tenant)
+    let downlineQuery = supabase
       .from('agents')
       .select('id, name, share_percent')
-      .eq('parent_id', agentId);
+      .or(`parent_id.eq.${agentId},parent_agent_id.eq.${agentId}`);
+    downlineQuery = applyTenantScope(downlineQuery, context);
+    const { data: downline } = await downlineQuery;
 
     return NextResponse.json({
       agent,

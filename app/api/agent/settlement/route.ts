@@ -1,40 +1,36 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAgentOrHigher } from '@/lib/api-auth';
+import { requireAgentContext, applyTenantScope } from '@/lib/agent-context';
 
-// API สรุปยอดส่งเว็บกลาง (Settlement)
-// เอเย่นต้องส่ง % ส่วนแบ่งให้เว็บกลาง
+// API สรุปยอดส่งเว็บกลาง (Settlement) — identity จาก session, scope ด้วย tenant
 
 export async function GET(request: Request) {
   try {
-    // Auth guard - require agent or higher
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-
     const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
+    const targetAgentId = searchParams.get('agent_id'); // admin only
     const period = searchParams.get('period') || 'daily'; // daily, weekly, monthly
     const date = searchParams.get('date');
 
-    if (!agentId) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
-    }
+    const ctxResult = await requireAgentContext(targetAgentId);
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agentId = context.agentId;
 
     const supabase = await createClient();
 
-    // ดึงข้อมูลเอเย่น
-    const { data: agent } = await supabase
-      .from('agents')
-      .select('*')
-      .eq('id', agentId)
-      .single();
+    // ดึงข้อมูลเอเย่น (scope ด้วย tenant)
+    let agentQuery = supabase.from('agents').select('*').eq('id', agentId);
+    agentQuery = applyTenantScope(agentQuery, context);
+    const { data: agent } = await agentQuery.single();
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
-    const sharePercent = agent.share_percent || 90;
-    const masterSharePercent = 100 - sharePercent;
+    // ค่าถือสู้จริงจาก DB (ไม่มี fallback ปลอม)
+    const sharePercent: number | null = agent.share_percent ?? null;
+    const shareConfigured = sharePercent !== null;
+    const masterSharePercent = shareConfigured ? 100 - sharePercent! : null;
 
     // กำหนดช่วงวันที่
     const now = date ? new Date(date) : new Date();
@@ -53,20 +49,17 @@ export async function GET(request: Request) {
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     }
 
-    // Data Scope Logic:
-    // - Agent (role=agent/agent_key): รวมยอดของตัวเอง + sub-agents ทั้งหมด
-    // - Sub-Agent (role=sub_agent): เฉพาะยอดของตัวเอง
+    // Data Scope: agent เห็นตัวเอง + sub-agents / sub_agent เห็นเฉพาะตัวเอง — scope ด้วย tenant
     let entriesQuery = supabase
       .from('entries')
       .select('*')
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString());
+    entriesQuery = applyTenantScope(entriesQuery, context);
 
     if (agent.role === 'sub_agent') {
-      // Sub-agent เห็นเฉพาะ entries ที่ตัวเองสร้าง
       entriesQuery = entriesQuery.eq('agent_id', agentId);
     } else {
-      // Agent เห็น entries ของตัวเอง + sub-agents ทั้งหมด
       entriesQuery = entriesQuery.or(`agent_id.eq.${agentId},parent_agent_id.eq.${agentId}`);
     }
 
@@ -81,7 +74,7 @@ export async function GET(request: Request) {
         .from('winning_entries')
         .select('payout')
         .in('entry_id', entryIds);
-      
+
       totalPayout = winners?.reduce((sum, w) => sum + (Number(w.payout) || 0), 0) || 0;
     }
 
@@ -89,23 +82,21 @@ export async function GET(request: Request) {
     const totalBets = entries?.length || 0;
     const totalAmount = entries?.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0;
     const profit = totalAmount - totalPayout;
-    
-    // คำนวณส่วนแบ่ง
-    const agentShare = Math.round(profit * (sharePercent / 100));
-    const masterShare = profit - agentShare;
 
-    // ดึงประวัติการส่งยอด
-    const { data: settlements } = await supabase
+    // คำนวณส่วนแบ่ง (เฉพาะเมื่อมี share config)
+    const agentShare = shareConfigured ? Math.round(profit * (sharePercent! / 100)) : 0;
+    const masterShare = shareConfigured ? profit - agentShare : 0;
+
+    // ดึงประวัติการส่งยอด (scope ด้วย tenant)
+    let settlementsQuery = supabase
       .from('agent_settlements')
       .select('*')
       .eq('agent_id', agentId)
       .order('created_at', { ascending: false })
       .limit(10);
+    settlementsQuery = applyTenantScope(settlementsQuery, context);
+    const { data: settlements } = await settlementsQuery;
 
-    // คำนวณยอดค้างส่ง
-    const paidAmount = settlements?.filter(s => s.status === 'paid')
-      .reduce((sum, s) => sum + (Number(s.amount) || 0), 0) || 0;
-    
     const pendingAmount = masterShare > 0 ? masterShare : 0;
 
     return NextResponse.json({
@@ -115,6 +106,7 @@ export async function GET(request: Request) {
         code: agent.code,
         share_percent: sharePercent,
         master_share_percent: masterSharePercent,
+        share_configured: shareConfigured,
       },
       period: {
         type: period,
@@ -129,6 +121,7 @@ export async function GET(request: Request) {
         agent_share: agentShare,
         master_share: masterShare,
         pending_amount: pendingAmount,
+        share_configured: shareConfigured,
       },
       settlements: settlements || [],
     });
@@ -138,23 +131,29 @@ export async function GET(request: Request) {
   }
 }
 
-// POST - บันทึกการส่งยอด
+// POST - บันทึกการส่งยอด (agent_id + tenant_id มาจาก session)
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { agent_id, amount, period_start, period_end, note } = body;
+    const ctxResult = await requireAgentContext();
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
 
-    if (!agent_id || !amount) {
-      return NextResponse.json({ error: 'agent_id and amount are required' }, { status: 400 });
+    const body = await request.json();
+    const { amount, period_start, period_end, note } = body;
+
+    if (amount === undefined || amount === null) {
+      return NextResponse.json({ error: 'amount is required' }, { status: 400 });
     }
 
     const supabase = await createClient();
 
-    // สร้างรายการส่งยอด
+    // สร้างรายการส่งยอด — agent_id + tenant_id จาก session (กัน spoofing)
     const { data, error } = await supabase
       .from('agent_settlements')
       .insert({
-        agent_id,
+        agent_id: context.agentId,
+        tenant_id: context.tenantId,
+        product_type: 'lottery',
         amount: Number(amount),
         period_start: period_start || new Date().toISOString(),
         period_end: period_end || new Date().toISOString(),
