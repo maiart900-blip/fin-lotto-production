@@ -41,29 +41,28 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Get all agents with their settings
-    // Real schema: users has display_name (not name), credit_balance + is_unlimited_credit
-    // (no credit_limit), share_percent = ถือสู้/PT (no position_taking),
-    // commission_percent/commission_rate, and agent tiers live in agent_tier.
+    // Get all agents with their settings.
+    // Source of truth for the agent network is the `agents` table (self-referencing
+    // hierarchy via parent_agent_id → agents; customers.agent_id and transactions.agent_id
+    // both point here). Real columns: code, name, level (1..n), commission_rate,
+    // share_percent (ถือสู้/PT), credit_limit, credit_balance.
     const { data: agents, error: agentsError } = await supabase
-      .from('users')
+      .from('agents')
       .select(`
         id,
-        username,
-        display_name,
+        code,
+        name,
         role,
-        agent_tier,
-        credit_balance,
-        is_unlimited_credit,
-        commission_percent,
+        level,
+        parent_agent_id,
         commission_rate,
         share_percent,
-        is_active,
-        parent_agent_id
+        credit_limit,
+        credit_balance,
+        is_active
       `)
-      .or('role.eq.agent,agent_tier.eq.master,agent_tier.eq.senior')
       .eq('is_active', true)
-      .order('agent_tier', { ascending: true });
+      .order('level', { ascending: true });
 
     if (agentsError) {
       console.error('Error fetching agents:', agentsError);
@@ -95,12 +94,12 @@ export async function GET(request: NextRequest) {
       const agentTotalWins = bets?.reduce((sum, b) => sum + Number(b.payout_amount || 0), 0) || 0;
       const agentGrossProfit = agentTotalBets - agentTotalWins;
 
-      // Calculate PT share (ถือสู้ / Position Taking) from users.share_percent
+      // Calculate PT share (ถือสู้ / Position Taking) from agents.share_percent
       const ptPercent = Number(agent.share_percent) || 0;
       const ptShare = agentGrossProfit * (ptPercent / 100);
 
-      // Calculate commission (based on total bets) — commission_percent, fallback commission_rate
-      const commissionRate = Number(agent.commission_percent ?? agent.commission_rate) || 0;
+      // Calculate commission (based on total bets) from agents.commission_rate
+      const commissionRate = Number(agent.commission_rate) || 0;
       const commissionAmount = agentTotalBets * (commissionRate / 100);
 
       // Net settlement = PT share + Commission
@@ -114,9 +113,9 @@ export async function GET(request: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .eq('agent_id', agent.id);
 
-      // Get downline agent count — users.parent_agent_id points to the upline
+      // Get downline agent count — agents.parent_agent_id points to the upline
       const { count: downlineCount } = await supabase
-        .from('users')
+        .from('agents')
         .select('id', { count: 'exact', head: true })
         .eq('parent_agent_id', agent.id);
 
@@ -136,21 +135,22 @@ export async function GET(request: NextRequest) {
         pendingSettlements++;
       }
 
-      // Derive display level from agent_tier (master/senior) falling back to agent
+      // Derive display level from the agents.level integer (1 = top of the tree).
       const level: 'master' | 'senior' | 'agent' =
-        agent.agent_tier === 'master' ? 'master' : agent.agent_tier === 'senior' ? 'senior' : 'agent';
-      // Real schema has no credit_limit/credit_used split — only credit_balance
-      // (available balance) and an is_unlimited_credit flag.
-      const creditBalance = Number(agent.credit_balance) || 0;
+        agent.level === 1 ? 'master' : agent.level === 2 ? 'senior' : 'agent';
+      // agents has real credit_limit and credit_balance columns.
+      // credit_balance is the current available balance; used = limit - available.
+      const creditLimit = Number(agent.credit_limit) || 0;
+      const creditAvailable = Number(agent.credit_balance) || 0;
 
       agentSettlements.push({
         agentId: agent.id,
-        agentCode: agent.username,
-        agentName: agent.display_name || agent.username,
+        agentCode: agent.code,
+        agentName: agent.name || agent.code,
         level,
-        creditLimit: agent.is_unlimited_credit ? 0 : creditBalance,
-        creditUsed: 0,
-        creditAvailable: creditBalance,
+        creditLimit,
+        creditUsed: Math.max(0, creditLimit - creditAvailable),
+        creditAvailable,
         ptPercent,
         commission: commissionRate,
         period,
