@@ -206,8 +206,6 @@ export async function POST(request: Request) {
         sync_blocked_numbers,
         sync_lottery_status,
         theme_config: { primaryColor: '#D4AF37', theme: 'midnight-gold' },
-        // Store custom domains as JSON array
-        custom_domains: custom_domains.length > 0 ? custom_domains : null,
       })
       .select()
       .single();
@@ -250,29 +248,12 @@ export async function POST(request: Request) {
         tenant_id: tenant.id,
         is_active: true,
         display_name: `Admin ${name}`,
-        // Force password change on first login
-        must_change_password: true,
       })
       .select('id, username')
       .single();
 
     if (adminError) {
       console.error('Failed to create tenant admin:', adminError);
-    }
-
-    // Also insert into admin_users table for backward compatibility
-    if (adminUser) {
-      await supabase
-        .from('admin_users')
-        .insert({
-          id: adminUser.id,
-          username: finalUsername,
-          password_hash: hashedPassword,
-          role: 'admin',
-          tenant_id: tenant.id,
-          is_active: true,
-          display_name: `Admin ${name}`,
-        });
     }
 
     return NextResponse.json({
