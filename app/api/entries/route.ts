@@ -350,6 +350,7 @@ export async function POST(request: Request) {
         status: 'pending',
         payout_rate: e.payoutRate || e.payout_rate || null,
         source_type: finalSourceType || e.source_type || 'manual',
+        product_type: 'lottery', // multi-product discriminator (agent คีย์โพยหวย)
       })))
       .select('*');
     
@@ -403,7 +404,7 @@ export async function POST(request: Request) {
     // เพื่อ snapshot สายงานเอเย่นต์ (agent + parent) ลงในแต่ละ entry
     // แหล่งข้อมูลจริงคือตาราง agents (customers.agent_id -> agents)
     if (data && data.length > 0) {
-      // resolve สายงานทีละ customer แล้ว cache ไว้ เลี่ยง query ซ้ำ
+      // resolve สายงานทีละ customer แล้ว cache ไ��้ เลี่ยง query ซ้ำ
       const chainCache = new Map<string, Awaited<ReturnType<typeof resolveCustomerAgentChain>>>();
 
       for (const entry of data) {

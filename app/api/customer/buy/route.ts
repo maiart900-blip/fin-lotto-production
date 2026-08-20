@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
       bet_type: item.bet_type || item.betType,
       amount: item.amount,
       source_type: 'auto', // ลูกค้าแทงเองผ่านระบบออโต้
+      product_type: 'lottery', // multi-product discriminator (โพยนี้คือหวย)
       // snapshot สายงานเอเย่นต์ + ค่าคอม/ถือสู้ ณ เวลาที่แทง
       ...(agentChain ? buildAgentSnapshotFields(agentChain, item.amount) : {}),
     }));
