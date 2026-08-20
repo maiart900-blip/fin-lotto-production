@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAgentContext, applyTenantScope } from '@/lib/agent-context';
+import { computeProfitShare, buildPayoutMap } from '@/lib/agent-financials';
 
 // API สรุปข้อมูลสำหรับ Agent Dashboard
 // Data Scope: Agent เห็นยอดรวมของตัวเอง + sub-agents (scope ด้วย tenant + identity จาก session)
@@ -54,27 +55,35 @@ export async function GET(request: Request) {
 
     const { data: entries } = await entriesQuery;
 
-    // ดึง winning entries
+    // ดึง winning entries (payout ต่อ entry เพื่อคิดกำไรราย entry)
     const entryIds = entries?.map(e => e.id) || [];
-    let totalPayout = 0;
+    let winners: Array<{ entry_id: string; payout: number | null }> = [];
 
     if (entryIds.length > 0) {
-      const { data: winners } = await supabase
+      const { data: w } = await supabase
         .from('winning_entries')
-        .select('payout')
+        .select('entry_id, payout')
         .in('entry_id', entryIds);
-
-      totalPayout = winners?.reduce((sum, w) => sum + (Number(w.payout) || 0), 0) || 0;
+      winners = w || [];
     }
 
-    // คำนวณยอด
-    const totalBets = entries?.length || 0;
-    const totalAmount = entries?.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0;
-    const profit = totalAmount - totalPayout;
+    // คำนวณส่วนแบ่งจาก snapshot ที่ freeze ไว้บนแต่ละ entry (source of truth)
+    // ไม่ใช้ live share_percent เพื่อคิดโพยเก่า — กัน retroactive drift
+    // live sharePercent ใช้เป็น fallback เฉพาะ entry เก่าที่ไม่มี snapshot เท่านั้น
+    const payoutMap = buildPayoutMap(winners);
+    const share = computeProfitShare(
+      entries || [],
+      agentId,
+      shareConfigured ? sharePercent : null,
+      payoutMap,
+    );
 
-    // คำนวณส่วนแบ่งเฉพาะเมื่อมีการตั้งค่า share จริง
-    const agentShare = shareConfigured ? Math.round(profit * (sharePercent! / 100)) : 0;
-    const masterShare = shareConfigured ? profit - agentShare : 0;
+    const totalBets = entries?.length || 0;
+    const totalAmount = share.totalAmount;
+    const totalPayout = share.totalPayout;
+    const profit = share.profit;
+    const agentShare = share.agentShare;
+    const masterShare = share.masterShare;
 
     // นับจำนวน sub-agents (scope ด้วย tenant)
     let subAgentsCount = 0;

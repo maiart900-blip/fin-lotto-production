@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAgentContext, applyTenantScope } from '@/lib/agent-context';
+import { computeProfitShare, buildPayoutMap } from '@/lib/agent-financials';
 
 // API สรุปยอดส่งเว็บกลาง (Settlement) — identity จาก session, scope ด้วย tenant
 
@@ -65,27 +66,34 @@ export async function GET(request: Request) {
 
     const { data: entries } = await entriesQuery;
 
-    // ดึง winning entries
+    // ดึง winning entries (payout ต่อ entry)
     const entryIds = entries?.map(e => e.id) || [];
-    let totalPayout = 0;
+    let winners: Array<{ entry_id: string; payout: number | null }> = [];
 
     if (entryIds.length > 0) {
-      const { data: winners } = await supabase
+      const { data: w } = await supabase
         .from('winning_entries')
-        .select('payout')
+        .select('entry_id, payout')
         .in('entry_id', entryIds);
-
-      totalPayout = winners?.reduce((sum, w) => sum + (Number(w.payout) || 0), 0) || 0;
+      winners = w || [];
     }
 
-    // คำนวณยอด
-    const totalBets = entries?.length || 0;
-    const totalAmount = entries?.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0;
-    const profit = totalAmount - totalPayout;
+    // คำนวณส่วนแบ่งจาก snapshot ที่ freeze บนแต่ละ entry (source of truth)
+    // live sharePercent = fallback เฉพาะ entry เก่าที่ไม่มี snapshot
+    const payoutMap = buildPayoutMap(winners);
+    const share = computeProfitShare(
+      entries || [],
+      agentId,
+      shareConfigured ? sharePercent : null,
+      payoutMap,
+    );
 
-    // คำนวณส่วนแบ่ง (เฉพาะเมื่อมี share config)
-    const agentShare = shareConfigured ? Math.round(profit * (sharePercent! / 100)) : 0;
-    const masterShare = shareConfigured ? profit - agentShare : 0;
+    const totalBets = entries?.length || 0;
+    const totalAmount = share.totalAmount;
+    const totalPayout = share.totalPayout;
+    const profit = share.profit;
+    const agentShare = share.agentShare;
+    const masterShare = share.masterShare;
 
     // ดึงประวัติการส่งยอด (scope ผ่าน agent_id ที่ผ่าน tenant scope แล้ว
     // หมายเหตุ: agent_settlements ไม่มีคอลัมน์ tenant_id — isolation ทำผ่าน agent_id)
