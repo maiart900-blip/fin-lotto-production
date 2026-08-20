@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test:auto-recovery": "tsx scripts/tests/auto-recovery.test.ts"
+    "test:auto-recovery": "tsx scripts/tests/auto-recovery.test.ts",
+    "test:cron-dispatcher": "tsx scripts/tests/cron-dispatcher.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
