@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
     
-    // Get user session for scope filtering
-    const session = authResult;
+    // Get user session for scope filtering (requireAgentOrHigher คืน { user })
+    const session = authResult.user;
 
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
@@ -106,17 +106,41 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: Request) {
   try {
+    // Auth guard - เฉพาะ agent หรือ admin สร้าง customer ได้ (กัน public create)
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    const creator = authResult.user;
+
     const body = await request.json();
     const { 
       name, phone, note, agent_id, system_type, username, password, position,
       user_type, customer_source, account_type 
     } = body;
     const supabase = await createClient();
-    
-    // Build insert object
-    const insertData: Record<string, any> = { name, phone };
+
+    // Resolve agent scope:
+    // - agent (ไม่ใช่ admin): customer ต้องผูกกับตัวเองเสมอ (กัน cross-agent)
+    // - admin/super_admin: ระบุ agent_id ได้อิสระ
+    const creatorIsAdmin = creator.role === 'admin' || creator.role === 'super_admin';
+    const resolvedAgentId = creatorIsAdmin ? (agent_id || null) : creator.id;
+
+    // Resolve tenant scope (multi-tenant isolation):
+    // - creator มี tenant_id: ใช้ tenant นั้น
+    // - creator เป็น master (null): อิง tenant ของ agent ที่ผูก (ถ้ามี) มิฉะนั้น null
+    let resolvedTenantId: string | null = creator.tenant_id ?? null;
+    if (resolvedTenantId == null && resolvedAgentId) {
+      const { data: agentRow } = await supabase
+        .from('agents')
+        .select('tenant_id')
+        .eq('id', resolvedAgentId)
+        .maybeSingle();
+      resolvedTenantId = agentRow?.tenant_id ?? null;
+    }
+
+    // Build insert object — tenant_id + agent_id มาจาก session/scope (กัน spoofing)
+    const insertData: Record<string, any> = { name, phone, tenant_id: resolvedTenantId };
     if (note) insertData.note = note;
-    if (agent_id) insertData.agent_id = agent_id;
+    if (resolvedAgentId) insertData.agent_id = resolvedAgentId;
     if (system_type) insertData.system_type = system_type;
     if (username) insertData.username = username;
     if (password) {

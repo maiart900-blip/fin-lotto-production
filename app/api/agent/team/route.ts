@@ -4,6 +4,8 @@ import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // API สำหรับดึงข้อมูลทีมของ Agent (Scoped Data - เฉพาะสายงานของตัวเอง)
 // Identity มาจาก session เท่านั้น — admin/super_admin override ดู agent อื่นได้
+// โครงจริง: สมาชิกทีม = customers ที่ agent_id = agent นี้, ยอดเล่น = entries.customer_id,
+//           คอมมิชชั่น = commission_logs (agent_id, commission_type, amount) — ไม่มีอัตราปลอม
 export async function GET(request: Request) {
   try {
     // Auth guard - require agent or higher
@@ -18,21 +20,26 @@ export async function GET(request: Request) {
     // IDOR guard: เฉพาะ admin/super_admin ที่ระบุ agent_id คนอื่นได้
     const isAdmin = user.role === 'admin' || user.role === 'super_admin';
     const agentId = isAdmin && requestedAgentId ? requestedAgentId : user.id;
+    const tenantId = user.tenant_id ?? null;
 
     const supabase = await createClient();
 
-    // 1. Get all users under this agent's downline (recursive)
-    const { data: downlineUsers, error: downlineError } = await supabase
-      .from('users')
-      .select('id, username, display_name, role, credit_balance, is_active, created_at, upline_id')
-      .eq('upline_id', agentId)
+    // 1. สมาชิกในสายงาน = customers ที่อยู่ใต้ agent นี้ (scope ด้วย tenant)
+    let membersQuery = supabase
+      .from('customers')
+      .select('id, name, credit_balance, is_active, created_at, agent_level')
+      .eq('agent_id', agentId)
       .order('created_at', { ascending: false });
+    membersQuery = tenantId === null
+      ? membersQuery.is('tenant_id', null)
+      : membersQuery.eq('tenant_id', tenantId);
+    const { data: downlineCustomers, error: downlineError } = await membersQuery;
 
     if (downlineError) {
       console.error('Downline fetch error:', downlineError);
     }
 
-    const members = downlineUsers || [];
+    const members = downlineCustomers || [];
 
     // Calculate date range
     const now = new Date();
@@ -54,34 +61,32 @@ export async function GET(request: Request) {
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     }
 
-    // 2. Get betting stats for this agent and their downline
+    // 2. ยอดเล่นของ agent (entries.agent_id) — turnover จริง
     let totalBets = 0;
-    let totalCommission = 0;
     let todayTurnover = 0;
-    let todayCommission = 0;
 
-    // Get entries where agent_id matches (entries created by this agent or their staff)
     const { data: entries } = await supabase
       .from('entries')
-      .select('amount, created_at, agent_id, created_by')
+      .select('amount, created_at')
       .eq('agent_id', agentId)
       .gte('created_at', startDate.toISOString());
 
     if (entries && entries.length > 0) {
       totalBets = entries.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
-
-      // Today's turnover
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const todayEntries = entries.filter((e: any) => new Date(e.created_at) >= todayStart);
-      todayTurnover = todayEntries.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+      todayTurnover = entries
+        .filter((e: any) => new Date(e.created_at) >= todayStart)
+        .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
     }
 
-    // คอมมิชชั่นจริงจาก credit_transactions เท่านั้น (ไม่มีอัตราปลอม)
+    // 3. คอมมิชชั่นจริงจาก commission_logs ของ agent นี้ (ไม่มีอัตราปลอม)
+    let totalCommission = 0;
+    let todayCommission = 0;
+
     const { data: commissions } = await supabase
-      .from('credit_transactions')
+      .from('commission_logs')
       .select('amount, created_at')
-      .eq('user_id', agentId)
-      .eq('type', 'commission')
+      .eq('agent_id', agentId)
       .gte('created_at', startDate.toISOString());
 
     if (commissions && commissions.length > 0) {
@@ -92,34 +97,28 @@ export async function GET(request: Request) {
         .reduce((sum: number, c: any) => sum + Math.abs(Number(c.amount) || 0), 0);
     }
 
-    // 3. Calculate member stats
+    // 4. member stats — ยอดเล่นต่อ customer (entries.customer_id)
     const activeMembers = members.filter((m: any) => m.is_active).length;
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const newMembersThisWeek = members.filter((m: any) => new Date(m.created_at) >= weekAgo).length;
 
-    // 4. Get per-member betting stats (turnover จริง; commission จาก credit_transactions ของ member)
     const membersWithStats = await Promise.all(
       members.map(async (member: any) => {
         const { data: memberEntries } = await supabase
           .from('entries')
           .select('amount')
-          .eq('user_id', member.id);
+          .eq('customer_id', member.id);
 
         const totalMemberBets = memberEntries?.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0) || 0;
 
-        const { data: memberComm } = await supabase
-          .from('credit_transactions')
-          .select('amount')
-          .eq('user_id', member.id)
-          .eq('type', 'commission');
-
-        const totalMemberCommission =
-          memberComm?.reduce((sum: number, c: any) => sum + Math.abs(Number(c.amount) || 0), 0) || 0;
-
         return {
-          ...member,
+          id: member.id,
+          name: member.name,
+          credit_balance: member.credit_balance,
+          is_active: member.is_active,
+          created_at: member.created_at,
+          agent_level: member.agent_level,
           total_bets: totalMemberBets,
-          total_commission: totalMemberCommission,
         };
       })
     );
@@ -132,11 +131,6 @@ export async function GET(request: Request) {
       totalCommission,
       todayTurnover,
       todayCommission,
-      weeklyTurnover: totalBets,
-      weeklyCommission: totalCommission,
-      monthlyTurnover: totalBets,
-      monthlyCommission: totalCommission,
-      profitLoss: totalCommission,
       newMembersThisWeek,
     };
 

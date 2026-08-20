@@ -4,6 +4,8 @@ import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // API สำหรับดึงข้อมูล Chart ยอดเล่นของ Agent (Scoped Data)
 // Identity มาจาก session เท่านั้น — ไม่มี demo/random data, ไม่มีอัตราคอมปลอม
+// โครงจริง: downline = customers.agent_id, ยอดเล่น = entries (agent_id/customer_id),
+//           คอมมิชชั่น = commission_logs.agent_id
 export async function GET(request: Request) {
   try {
     const authResult = await requireAgentOrHigher();
@@ -17,16 +19,9 @@ export async function GET(request: Request) {
     // IDOR guard: เฉพาะ admin/super_admin ที่ระบุ agent_id คนอื่นได้
     const isAdmin = user.role === 'admin' || user.role === 'super_admin';
     const agentId = isAdmin && requestedAgentId ? requestedAgentId : user.id;
+    const tenantId = user.tenant_id ?? null;
 
     const supabase = await createClient();
-
-    // Get all downline user IDs
-    const { data: downlineUsers } = await supabase
-      .from('users')
-      .select('id')
-      .eq('upline_id', agentId);
-
-    const memberIds = downlineUsers?.map((u: any) => u.id) || [];
 
     // Calculate date range
     const now = new Date();
@@ -46,7 +41,7 @@ export async function GET(request: Request) {
         break;
     }
 
-    // Generate daily data (turnover จริงจาก entries, commission จริงจาก credit_transactions)
+    // Generate daily data (turnover จริงจาก entries.agent_id, commission จริงจาก commission_logs)
     const dailyData = [];
     const dayNames = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 
@@ -59,25 +54,27 @@ export async function GET(request: Request) {
       let turnover = 0;
       let commission = 0;
 
-      if (memberIds.length > 0) {
-        const { data: entries } = await supabase
-          .from('entries')
-          .select('amount')
-          .in('user_id', memberIds)
-          .gte('created_at', dayStart.toISOString())
-          .lt('created_at', dayEnd.toISOString());
+      // ยอดเล่นของ agent ในวันนั้น (scope ด้วย tenant)
+      let entriesQuery = supabase
+        .from('entries')
+        .select('amount')
+        .eq('agent_id', agentId)
+        .gte('created_at', dayStart.toISOString())
+        .lt('created_at', dayEnd.toISOString());
+      entriesQuery = tenantId === null
+        ? entriesQuery.is('tenant_id', null)
+        : entriesQuery.eq('tenant_id', tenantId);
+      const { data: entries } = await entriesQuery;
 
-        if (entries) {
-          turnover = entries.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
-        }
+      if (entries) {
+        turnover = entries.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
       }
 
-      // คอมมิชชั่นจริงของ agent ในวันนั้นจาก credit_transactions (ไม่มีอัตราปลอม)
+      // คอมมิชชั่นจริงของ agent ในวันนั้นจาก commission_logs (ไม่มีอัตราปลอม)
       const { data: dayComm } = await supabase
-        .from('credit_transactions')
+        .from('commission_logs')
         .select('amount')
-        .eq('user_id', agentId)
-        .eq('type', 'commission')
+        .eq('agent_id', agentId)
         .gte('created_at', dayStart.toISOString())
         .lt('created_at', dayEnd.toISOString());
 
@@ -93,7 +90,7 @@ export async function GET(request: Request) {
       });
     }
 
-    // Get bet type distribution (จากข้อมูลจริงเท่านั้น)
+    // Get bet type distribution (จากข้อมูลจริงของ agent เท่านั้น)
     const betTypeDistribution = [
       { name: '3 ตัวบน', value: 0 },
       { name: '3 ตัวโต๊ด', value: 0 },
@@ -103,37 +100,38 @@ export async function GET(request: Request) {
       { name: 'วิ่งล่าง', value: 0 },
     ];
 
-    if (memberIds.length > 0) {
-      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    let distQuery = supabase
+      .from('entries')
+      .select('bet_type, amount')
+      .eq('agent_id', agentId)
+      .gte('created_at', startDate.toISOString());
+    distQuery = tenantId === null
+      ? distQuery.is('tenant_id', null)
+      : distQuery.eq('tenant_id', tenantId);
+    const { data: distEntries } = await distQuery;
 
-      const { data: entries } = await supabase
-        .from('entries')
-        .select('bet_type, amount')
-        .in('user_id', memberIds)
-        .gte('created_at', startDate.toISOString());
+    if (distEntries && distEntries.length > 0) {
+      const betTypeMap: Record<string, number> = {};
+      let totalAmount = 0;
 
-      if (entries) {
-        const betTypeMap: Record<string, number> = {};
-        let totalAmount = 0;
+      distEntries.forEach((e: any) => {
+        const amount = Number(e.amount) || 0;
+        betTypeMap[e.bet_type] = (betTypeMap[e.bet_type] || 0) + amount;
+        totalAmount += amount;
+      });
 
-        entries.forEach((e: any) => {
-          const amount = Number(e.amount) || 0;
-          betTypeMap[e.bet_type] = (betTypeMap[e.bet_type] || 0) + amount;
-          totalAmount += amount;
+      if (totalAmount > 0) {
+        betTypeDistribution.forEach((bt) => {
+          const betTypeCode = bt.name === '3 ตัวบน' ? '3top' :
+                             bt.name === '3 ตัวโต๊ด' ? '3tode' :
+                             bt.name === '2 ตัวบน' ? '2top' :
+                             bt.name === '2 ตัวล่าง' ? '2bot' :
+                             bt.name === 'วิ่งบน' ? 'run_top' : 'run_bot';
+
+          const amount = betTypeMap[betTypeCode] || 0;
+          bt.value = Math.round((amount / totalAmount) * 100);
         });
-
-        if (totalAmount > 0) {
-          betTypeDistribution.forEach((bt) => {
-            const betTypeCode = bt.name === '3 ตัวบน' ? '3top' :
-                               bt.name === '3 ตัวโต๊ด' ? '3tode' :
-                               bt.name === '2 ตัวบน' ? '2top' :
-                               bt.name === '2 ตัวล่าง' ? '2bot' :
-                               bt.name === 'วิ่งบน' ? 'run_top' : 'run_bot';
-
-            const amount = betTypeMap[betTypeCode] || 0;
-            bt.value = Math.round((amount / totalAmount) * 100);
-          });
-        }
       }
     }
 
