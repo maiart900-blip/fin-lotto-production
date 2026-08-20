@@ -139,6 +139,7 @@ export async function GET(request: Request) {
       agent_level: agent.role,
       upline_id: agent.parent_agent_id || agent.parent_id,
       commission_rate: agent.commission_rate || 0,
+      share_percent: agent.share_percent ?? 0,
       is_partner: true,
       is_active: agent.is_active !== false && agent.status !== 'inactive',
       total_commission: 0,
@@ -184,6 +185,7 @@ export async function POST(request: Request) {
       agent_level, 
       upline_id: requestedUplineId, 
       commission_rate, 
+      share_percent, // % ถือสู้ (Position Taking) - กำหนดโดย Super Admin
       enable_auto, 
       enable_manual_key, 
       name, 
@@ -369,7 +371,8 @@ export async function POST(request: Request) {
         parent_id: upline_id || null,
         parent_agent_id: upline_id || null,
         commission_rate: commission_rate ?? defaultRate,
-        share_percent: 70,
+        // % ถือสู้จาก Super Admin — ค่า 0 ถือว่าถูกต้อง (?? เก็บ 0 ไว้), default 70 เมื่อไม่ส่งมา
+        share_percent: share_percent ?? 70,
         credit_limit: 100000,
         credit_balance: 0,
         is_active: true,
@@ -453,7 +456,7 @@ export async function PUT(request: Request) {
   try {
     const supabase = await createClient();
     const body = await request.json();
-    const { customer_id, agent_id, commission_rate, action, enable_auto, enable_manual_key } = body;
+    const { customer_id, agent_id, commission_rate, share_percent, action, enable_auto, enable_manual_key } = body;
     
     const targetId = agent_id || customer_id;
     
@@ -476,10 +479,11 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: true });
     }
     
-    // Update commission_rate or enable settings
-    if (commission_rate !== undefined || enable_auto !== undefined || enable_manual_key !== undefined) {
+    // Update commission_rate, share_percent (ถือสู้) or enable settings
+    if (commission_rate !== undefined || share_percent !== undefined || enable_auto !== undefined || enable_manual_key !== undefined) {
       const updateData: Record<string, unknown> = {};
       if (commission_rate !== undefined) updateData.commission_rate = commission_rate;
+      if (share_percent !== undefined) updateData.share_percent = share_percent;
       if (enable_auto !== undefined) updateData.enable_auto = enable_auto;
       if (enable_manual_key !== undefined) updateData.enable_manual_key = enable_manual_key;
       

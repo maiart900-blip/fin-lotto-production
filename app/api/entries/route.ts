@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requireAgentOrHigher } from '@/lib/api-auth';
 import { getDataScope, applyFullDataScope, assertNoGlobalFallback } from '@/lib/data-scope';
 import { requireCustomerAccess } from '@/lib/customer-scope';
+import { resolveCustomerAgentChain, buildAgentSnapshotFields } from '@/lib/agent-snapshot';
 
 /**
  * Entries API - Betting entries/slips
@@ -398,69 +399,32 @@ export async function POST(request: Request) {
         });
     }
     
-    // คำนวณ commission chain สำหรับทุก entry ที่บันทึกสำเร็จ
-    // เพื่อส่งยอดขึ้นเว็บแม่ตาม commission structure
+    // คำนวณ commission/ถือสู้ chain สำหรับทุก entry ที่บันทึกสำเร็จ
+    // เพื่อ snapshot สายงานเอเย่นต์ (agent + parent) ลงในแต่ละ entry
+    // แหล่งข้อมูลจริงคือตาราง agents (customers.agent_id -> agents)
     if (data && data.length > 0) {
+      // resolve สายงานทีละ customer แล้ว cache ไว้ เลี่ยง query ซ้ำ
+      const chainCache = new Map<string, Awaited<ReturnType<typeof resolveCustomerAgentChain>>>();
+
       for (const entry of data) {
         try {
-          // หา agent_id จาก customer หรือ user
-          let agentId = null;
-          
-          if (entry.customer_id) {
-            const { data: customer } = await supabase
-              .from('customers')
-              .select('agent_id')
-              .eq('id', entry.customer_id)
-              .single();
-            agentId = customer?.agent_id;
+          if (!entry.customer_id) continue;
+
+          if (!chainCache.has(entry.customer_id)) {
+            chainCache.set(
+              entry.customer_id,
+              await resolveCustomerAgentChain(supabase, entry.customer_id),
+            );
           }
-          
-          if (!agentId && entry.user_id) {
-            const { data: user } = await supabase
-              .from('users')
-              .select('parent_agent_id')
-              .eq('id', entry.user_id)
-              .single();
-            agentId = user?.parent_agent_id;
-          }
-          
-          if (agentId) {
-            // หา commission rate ของ agent
-            const { data: agent } = await supabase
-              .from('users')
-              .select('commission_rate, parent_agent_id')
-              .eq('id', agentId)
-              .single();
-            
-            const commissionRate = Number(agent?.commission_rate) || 5;
-            const agentCommission = entry.amount * (commissionRate / 100);
-            
-            // หา parent commission ถ้ามี
-            let parentCommission = 0;
-            if (agent?.parent_agent_id) {
-              const { data: parentAgent } = await supabase
-                .from('users')
-                .select('commission_rate')
-                .eq('id', agent.parent_agent_id)
-                .single();
-              const parentRate = Number(parentAgent?.commission_rate) || 3;
-              parentCommission = entry.amount * (parentRate / 100);
-            }
-            
-            // ยอดที่เหลือส่งเว็บแม่
-            const masterAmount = entry.amount - agentCommission - parentCommission;
-            
-            // อัปเดต entry ด้วยค่า commission
-            await supabase
-              .from('entries')
-              .update({
-                agent_id: agentId,
-                agent_commission: agentCommission,
-                parent_commission: parentCommission,
-                master_amount: masterAmount,
-              })
-              .eq('id', entry.id);
-          }
+          const chain = chainCache.get(entry.customer_id) ?? null;
+          if (!chain) continue;
+
+          const snapshot = buildAgentSnapshotFields(chain, entry.amount);
+
+          await supabase
+            .from('entries')
+            .update(snapshot)
+            .eq('id', entry.id);
         } catch (commErr) {
           console.error('Commission calculation error for entry:', entry.id, commErr);
         }

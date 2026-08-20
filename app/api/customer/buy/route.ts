@@ -9,6 +9,7 @@ import {
   verifyCustomerAccess,
   logSecurityEvent 
 } from '@/lib/security/api-security';
+import { resolveCustomerAgentChain, buildAgentSnapshotFields } from '@/lib/agent-snapshot';
 
 export async function POST(request: NextRequest) {
   try {
@@ -118,6 +119,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Resolve สายงานเอเย่นต์ของลูกค้าครั้งเดียว (agent + parent จากตาราง agents)
+    // เพื่อ snapshot ลงทุก entry — ถ้าลูกค้าไม่มี agent ผูกไว้ agentChain = null
+    const agentChain = await resolveCustomerAgentChain(supabase, customer_id);
+
     // Create entries (auto system - ลูกค้าแทงเอง)
     const entriesToInsert = entryItems.map((item: { number: string; bet_type?: string; betType?: string; amount: number }) => ({
       lottery_id,
@@ -126,8 +131,9 @@ export async function POST(request: NextRequest) {
       number: item.number,
       bet_type: item.bet_type || item.betType,
       amount: item.amount,
-      total_amount: item.amount, // Also set total_amount for stats
       source_type: 'auto', // ลูกค้าแทงเองผ่านระบบออโต้
+      // snapshot สายงานเอเย่นต์ + ค่าคอม/ถือสู้ ณ เวลาที่แทง
+      ...(agentChain ? buildAgentSnapshotFields(agentChain, item.amount) : {}),
     }));
 
     const { data: createdEntries, error: entriesError } = await supabase
