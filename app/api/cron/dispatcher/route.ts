@@ -119,11 +119,26 @@ export function buildJobRegistry(): CronJobDef[] {
   ];
 }
 
+/**
+ * เลือก window จาก (ลำดับความสำคัญ):
+ *   1. x-vercel-cron-schedule header — Vercel ส่ง cron expression ที่ trigger มาให้
+ *      (วิธีที่ docs รับรองสำหรับ path เดียวหลาย schedule) → evening=`0 19 * * *`, maintenance=`0 3 * * *`
+ *   2. query param ?window= — สำหรับ manual / external scheduler trigger
+ *   3. fallback: อนุมานจากชั่วโมง UTC (evening ช่วงเย็น, maintenance ช่วงเช้ามืด)
+ */
 function resolveWindow(request: Request, now: Date): CronWindow {
+  const schedule = request.headers.get('x-vercel-cron-schedule');
+  if (schedule) {
+    // maintenance ตั้งเวลาเช้ามืด UTC (ชั่วโมง < 12), evening ช่วงเย็น (>= 12)
+    const hourMatch = schedule.trim().match(/^\S+\s+(\d{1,2})\s/);
+    if (hourMatch) {
+      const hour = Number(hourMatch[1]);
+      return hour >= 12 ? 'evening' : 'maintenance';
+    }
+  }
   const url = new URL(request.url);
   const q = url.searchParams.get('window');
   if (q === 'evening' || q === 'maintenance') return q;
-  // fallback: อนุมานจากชั่วโมง UTC (maintenance ช่วงเช้ามืด UTC, evening ช่วงเย็น)
   const h = now.getUTCHours();
   return h >= 12 ? 'evening' : 'maintenance';
 }

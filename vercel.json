@@ -2,11 +2,11 @@
   "buildCommand": "next build",
   "crons": [
     {
-      "path": "/api/cron/dispatcher?window=evening",
+      "path": "/api/cron/dispatcher",
       "schedule": "0 19 * * *"
     },
     {
-      "path": "/api/cron/dispatcher?window=maintenance",
+      "path": "/api/cron/dispatcher",
       "schedule": "0 3 * * *"
     }
   ]
