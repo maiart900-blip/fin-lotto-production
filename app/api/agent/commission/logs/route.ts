@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         amount,
         status,
         created_at,
-        customers(name)
+        customers!commission_logs_customer_id_fkey(name)
       `, { count: 'exact' })
       .gte('created_at', startDate)
       .order('created_at', { ascending: false })
