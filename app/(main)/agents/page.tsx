@@ -626,6 +626,17 @@ export default function AgentsPage() {
                 onChange={(e) => setNewCommissionRate(e.target.value)}
               />
             </div>
+            <div className="space-y-2">
+              <Label>ถือสู้ / สัดส่วน PT (%)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={newSharePercent}
+                onChange={(e) => setNewSharePercent(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">กำหนดสัดส่วนที่เอเย่นต์ถือสู้เอง (0% = ส่งขึ้นสายบนทั้งหมด)</p>
+            </div>
             
             {/* ระบบที่เปิดใช้งาน */}
             <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
@@ -688,6 +699,17 @@ export default function AgentsPage() {
                 value={newCommissionRate}
                 onChange={(e) => setNewCommissionRate(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>ถือสู้ / สัดส่วน PT (%)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={newSharePercent}
+                onChange={(e) => setNewSharePercent(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">กำหนดสัดส่วนที่เอเย่นต์ถือสู้เอง (0% = ส่งขึ้นสายบนทั้งหมด)</p>
             </div>
             
             {/* ระบบที่เปิดใช้งาน */}
