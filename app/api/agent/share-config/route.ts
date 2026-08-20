@@ -57,9 +57,12 @@ export async function PATCH(request: NextRequest) {
           .eq('id', parentId)
           .single();
 
-        if (parent && share_percent > (parent.share_percent || 100)) {
+        // ใช้ ?? เพื่อให้ parent share = 0 ถูกบังคับจริง (0 || 100 = 100 คือบั๊ก)
+        // parent share = null/undefined = ยังไม่ตั้งค่า => เพดาน 100
+        const parentCap = parent?.share_percent ?? 100;
+        if (parent && share_percent > parentCap) {
           return NextResponse.json({
-            error: `share_percent cannot exceed parent's share (${parent.share_percent}%)`
+            error: `share_percent cannot exceed parent's share (${parentCap}%)`
           }, { status: 400 });
         }
       }
@@ -154,8 +157,8 @@ export async function GET(request: NextRequest) {
       parent,
       downline: downline || [],
       limits: {
-        max_share: parent?.share_percent || 100,
-        min_share: downline?.length ? Math.max(...downline.map((d: any) => d.share_percent || 0)) : 0,
+        max_share: parent?.share_percent ?? 100,
+        min_share: downline?.length ? Math.max(...downline.map((d: any) => d.share_percent ?? 0)) : 0,
       },
     });
   } catch (error: any) {
