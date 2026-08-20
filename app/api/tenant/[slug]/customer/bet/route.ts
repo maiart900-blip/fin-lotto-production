@@ -78,13 +78,26 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to create bet' }, { status: 500 });
     }
 
+    // Map bet types จาก UI เว็บลูก -> ค่ามาตรฐานของ entries (entries_bet_type_check)
+    // ค่าที่ entries ยอมรับ: 3top,3tod,3flip,2top,2bot,2flip,1top,1bot,win2,win3
+    const ENTRY_BET_TYPE_MAP: Record<string, string> = {
+      run3top: '1top', // วิ่งบน
+      run3bot: '1bot', // วิ่งล่าง
+      runtop: '1top',
+      runbot: '1bot',
+      '1up': '1top',
+      '2up': '2top',
+      '3up': '3top',
+    };
+    const normalizeEntryBetType = (bt: string) => ENTRY_BET_TYPE_MAP[bt] ?? bt;
+
     // Create entry records for risk management (ส่งขึ้นเว็บแม่)
     const entryRecords = bets.map((bet: any) => ({
       tenant_id: tenant.id, // Critical: scope entries to tenant
       lottery_id: lottery_id,
       customer_id: customer.id,
       number: bet.number,
-      bet_type: bet.bet_type,
+      bet_type: normalizeEntryBetType(bet.bet_type),
       amount: bet.amount,
       status: 'pending',
       source_type: 'tenant', // ระบุว่ามาจากเว็บลูก
