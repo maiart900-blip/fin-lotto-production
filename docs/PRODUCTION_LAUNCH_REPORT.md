@@ -156,7 +156,7 @@ The following system settings are configured for controlled launch:
 
 | Role | Name | Date |
 |------|------|------|
-| Development | v0 | 2024-05-26 |
+| Development | FIN LOTTO Development Team | 2024-05-26 |
 | QA Verification | Pending | - |
 | Operations | Pending | - |
 | Business Owner | Pending | - |

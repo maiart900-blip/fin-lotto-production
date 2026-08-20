@@ -300,7 +300,7 @@ We apologize for any inconvenience.
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | 2026-05-26 | v0 | Initial version |
+| 1.0 | 2026-05-26 | FIN LOTTO Development Team | Initial version |
 
 **Next Review Date:** 2026-08-26
 

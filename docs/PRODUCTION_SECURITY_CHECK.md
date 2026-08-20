@@ -86,7 +86,7 @@ if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
 
 1. **Type Safety Warnings**: Non-blocking TypeScript warnings exist in utility libraries. Recommend addressing in future sprint.
 
-2. **Debug Logs**: Some `[v0]` prefixed logs remain for production monitoring. Can be removed after stable launch.
+2. **Debug Logs**: Some prefixed debug logs may remain for production monitoring. Can be removed after stable launch.
 
 3. **CORS**: Verify production domains are correctly configured before launch.
 

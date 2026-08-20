@@ -8,7 +8,7 @@
 -- BACKUP METADATA
 -- ================
 -- Backup Type: Full Schema + Critical Data
--- Created By: v0 Automated Backup
+-- Created By: FIN LOTTO Automated Backup
 -- Stable Release: PR #27 (commit 141cab8)
 
 -- ============================================
