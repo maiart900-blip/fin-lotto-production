@@ -18,10 +18,6 @@
       "schedule": "0 20 * * 0"
     },
     {
-      "path": "/api/cron/auto-recovery",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron/reconciliation",
       "schedule": "0 19 * * *"
     },
