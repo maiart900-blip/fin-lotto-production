@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import bcrypt from 'bcryptjs';
 import * as OTPAuth from 'otpauth';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuth, requireAgentOrHigher } from '@/lib/api-auth';
 import { cookies } from 'next/headers';
 
 // 4-TIER AGENT HIERARCHY: Mother Web -> Master -> Agent -> Sub-Agent
@@ -179,6 +179,11 @@ export async function GET(request: Request) {
 // POST - สร้างเอเย่นต์ใหม่ลง agents table
 export async function POST(request: Request) {
   try {
+    // Auth guard - admin หรือ agent (สร้าง sub-agent) เท่านั้น
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    const { user: creator } = authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     const { 
@@ -230,6 +235,14 @@ export async function POST(request: Request) {
     
     // Use currentAgentId as upline if agent is creating sub-agent and no upline specified
     const upline_id = requestedUplineId || (isCreatorAgent ? currentAgentId : null);
+
+    // Resolve tenant scope จาก session ผู้สร้าง (multi-tenant isolation)
+    // - creator มี tenant_id (tenant admin หรือ agent): บังคับใช้ tenant นั้น
+    // - super_admin/master (null): ระบุ target tenant ผ่าน body ได้ หรือเป็น master (null)
+    const creatorIsMaster = creator.tenant_id == null;
+    const resolvedTenantId = creatorIsMaster
+      ? ((body.tenant_id as string | null | undefined) ?? null)
+      : creator.tenant_id;
     
     console.log('Creating agent - upline detection:', { 
       requestedUplineId, 
@@ -282,10 +295,18 @@ export async function POST(request: Request) {
     if (upline_id) {
       const { data: upline } = await supabase
         .from('agents')
-        .select('level, parent_agent_id')
+        .select('level, parent_agent_id, tenant_id')
         .eq('id', upline_id)
         .single();
-      
+
+      // upline ต้องอยู่ tenant เดียวกับ agent ใหม่ (กันผูกสายข้าม tenant)
+      if (upline && (upline.tenant_id ?? null) !== resolvedTenantId) {
+        return NextResponse.json(
+          { error: 'เอเย่นต์แม่ (upline) อยู่คนละ tenant ไม่สามารถผูกสายข้าม tenant ได้' },
+          { status: 400 }
+        );
+      }
+
       // Calculate level: parent level + 1 (default to 2 if parent has no level)
       hierarchyLevel = ((upline?.level ?? 1) + 1);
       
@@ -368,6 +389,7 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role: agentRole,
         level: hierarchyLevel,
+        tenant_id: resolvedTenantId, // ผูก tenant จาก session ผู้สร้าง (multi-tenant isolation)
         parent_id: upline_id || null,
         parent_agent_id: upline_id || null,
         commission_rate: commission_rate ?? defaultRate,
@@ -454,6 +476,11 @@ export async function POST(request: Request) {
 // PUT - อัพเดทเอเย่นต์ใน agents table
 export async function PUT(request: Request) {
   try {
+    // Auth guard - admin หรือ agent เท่านั้น
+    const authResult = await requireAgentOrHigher();
+    if (authResult instanceof NextResponse) return authResult;
+    const { user: editor } = authResult;
+
     const supabase = await createClient();
     const body = await request.json();
     const { customer_id, agent_id, commission_rate, share_percent, action, enable_auto, enable_manual_key } = body;
@@ -462,6 +489,23 @@ export async function PUT(request: Request) {
     
     if (!targetId) {
       return NextResponse.json({ error: 'กรุณาระบุ agent_id' }, { status: 400 });
+    }
+
+    // Ownership/tenant check - กัน cross-tenant IDOR
+    // tenant admin/agent แก้ได้เฉพาะ agent ใน tenant ตัวเอง; super_admin/master (null) แก้ได้ทั้งหมด
+    const { data: targetAgent } = await supabase
+      .from('agents')
+      .select('id, tenant_id')
+      .eq('id', targetId)
+      .maybeSingle();
+
+    if (!targetAgent) {
+      return NextResponse.json({ error: 'ไม่พบเอเย่นต์' }, { status: 404 });
+    }
+
+    const editorIsMaster = editor.tenant_id == null;
+    if (!editorIsMaster && (targetAgent.tenant_id ?? null) !== editor.tenant_id) {
+      return NextResponse.json({ error: 'ไม่มีสิทธิ์แก้ไขเอเย่นต์นอก tenant ของคุณ' }, { status: 403 });
     }
     
     // Suspend/Activate agent

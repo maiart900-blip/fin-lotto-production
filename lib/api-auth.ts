@@ -103,7 +103,7 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     if (adminRoles.includes(userRole)) {
       const { data: user, error: userError } = await supabase
         .from('users')
-        .select('id, username, role, is_active')
+        .select('id, username, role, is_active, tenant_id, parent_id')
         .eq('id', userId)
         .single();
       
@@ -119,6 +119,8 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
             user_type: getUserTypeFromRole(user.role),
             source_table: 'users',
             is_active: user.is_active,
+            tenant_id: user.tenant_id ?? null,
+            parent_id: user.parent_id ?? null,
           },
         };
       }
@@ -128,7 +130,7 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     if (userRole === 'agent' || userRole === 'partner' || userRole === 'agent_key' || userRole === 'sub_agent' || userRole === 'master_agent') {
       const { data: agent } = await supabase
         .from('agents')
-        .select('id, code, role, status, parent_agent_id')
+        .select('id, code, role, status, parent_agent_id, tenant_id')
         .eq('id', userId)
         .single();
       
@@ -143,6 +145,7 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
             source_table: 'agents',
             is_active: true,
             parent_id: agent.parent_agent_id,
+            tenant_id: agent.tenant_id ?? null,
           },
         };
       }
@@ -185,7 +188,7 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
     // Also check users table as fallback for any role
     const { data: fallbackUser } = await supabase
       .from('users')
-      .select('id, username, role, is_active')
+      .select('id, username, role, is_active, tenant_id, parent_id')
       .eq('id', userId)
       .single();
     
@@ -196,7 +199,11 @@ export async function getAuthenticatedUser(): Promise<AuthResult> {
           id: fallbackUser.id,
           username: fallbackUser.username,
           role: fallbackUser.role as UserRole,
+          user_type: getUserTypeFromRole(fallbackUser.role),
+          source_table: 'users',
           is_active: fallbackUser.is_active,
+          tenant_id: fallbackUser.tenant_id ?? null,
+          parent_id: fallbackUser.parent_id ?? null,
         },
       };
     }

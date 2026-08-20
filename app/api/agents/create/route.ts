@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     // Auth guard - require admin for creating agents
     const authResult = await requireAdmin();
     if (authResult instanceof NextResponse) return authResult;
+    const { user: creator } = authResult;
 
     const supabase = await createClient();
     const body = await request.json();
@@ -34,7 +35,16 @@ export async function POST(request: NextRequest) {
       enable_auto = false,
       role = 'agent_key',
       owner_id,
+      tenant_id: bodyTenantId, // super_admin (master) เท่านั้นที่ระบุ target tenant ได้
     } = body;
+
+    // Resolve tenant scope จาก session ผู้สร้าง (multi-tenant isolation)
+    // - tenant admin (มี tenant_id): agent ใหม่ถูกผูกกับ tenant ของ admin เสมอ (บังคับ, กัน cross-tenant)
+    // - super_admin/master (tenant_id null): เป็น master agent (null) หรือระบุ target tenant ผ่าน body ได้
+    const creatorIsMaster = creator.tenant_id == null;
+    const resolvedTenantId = creatorIsMaster
+      ? (bodyTenantId ?? null)
+      : creator.tenant_id;
     
     // Validate required fields
     if (!name?.trim()) {
@@ -108,10 +118,23 @@ export async function POST(request: NextRequest) {
     if (parent_agent_id) {
       const { data: parentAgent } = await supabase
         .from('agents')
-        .select('level')
+        .select('level, tenant_id')
         .eq('id', parent_agent_id)
         .single();
-      
+
+      if (!parentAgent) {
+        return NextResponse.json({ error: 'ไม่พบเอเย่นต์แม่ (parent)' }, { status: 400 });
+      }
+
+      // parent ต้องอยู่ tenant เดียวกับ agent ใหม่ (กันผูกข้ามสาย/ข้าม tenant)
+      const parentTenant = parentAgent.tenant_id ?? null;
+      if (parentTenant !== resolvedTenantId) {
+        return NextResponse.json(
+          { error: 'เอเย่นต์แม่อยู่คนละ tenant ไม่สามารถผูกสายข้าม tenant ได้' },
+          { status: 400 }
+        );
+      }
+
       agentLevel = (parentAgent?.level || 0) + 1;
     }
     
@@ -135,6 +158,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         role: role,
         level: agentLevel,
+        tenant_id: resolvedTenantId, // ผูก tenant จาก session ผู้สร้าง (multi-tenant isolation)
         parent_id: parent_agent_id || null,
         parent_agent_id: parent_agent_id || null,
         owner_id: owner_id || null,
@@ -176,6 +200,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         display_name: name,
         phone: phone || null,
+        tenant_id: resolvedTenantId, // ผูก tenant เดียวกับ agents row (login scope)
         role: 'agent', // All agents have 'agent' role for login
         user_type: 'manual_key_agent',
         agent_tier: agentTierMap[level] || agentTierMap[role] || 'agent',
