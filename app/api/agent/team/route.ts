@@ -3,19 +3,21 @@ import { NextResponse } from 'next/server';
 import { requireAgentOrHigher } from '@/lib/api-auth';
 
 // API สำหรับดึงข้อมูลทีมของ Agent (Scoped Data - เฉพาะสายงานของตัวเอง)
+// Identity มาจาก session เท่านั้น — admin/super_admin override ดู agent อื่นได้
 export async function GET(request: Request) {
   try {
     // Auth guard - require agent or higher
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
+    const { user } = authResult;
 
     const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
+    const requestedAgentId = searchParams.get('agent_id');
     const range = searchParams.get('range') || 'today';
 
-    if (!agentId) {
-      return NextResponse.json({ error: 'Agent ID required' }, { status: 400 });
-    }
+    // IDOR guard: เฉพาะ admin/super_admin ที่ระบุ agent_id คนอื่นได้
+    const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+    const agentId = isAdmin && requestedAgentId ? requestedAgentId : user.id;
 
     const supabase = await createClient();
 
@@ -67,26 +69,27 @@ export async function GET(request: Request) {
 
     if (entries && entries.length > 0) {
       totalBets = entries.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
-      // Assume 10% commission rate for demo
-      totalCommission = totalBets * 0.1;
 
-      // Today's stats
+      // Today's turnover
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const todayEntries = entries.filter((e: any) => new Date(e.created_at) >= todayStart);
       todayTurnover = todayEntries.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
-      todayCommission = todayTurnover * 0.1;
     }
 
-    // Get commission transactions for this agent
+    // คอมมิชชั่นจริงจาก credit_transactions เท่านั้น (ไม่มีอัตราปลอม)
     const { data: commissions } = await supabase
       .from('credit_transactions')
-      .select('amount')
+      .select('amount, created_at')
       .eq('user_id', agentId)
       .eq('type', 'commission')
       .gte('created_at', startDate.toISOString());
 
     if (commissions && commissions.length > 0) {
       totalCommission = commissions.reduce((sum: number, c: any) => sum + Math.abs(Number(c.amount) || 0), 0);
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      todayCommission = commissions
+        .filter((c: any) => new Date(c.created_at) >= todayStart)
+        .reduce((sum: number, c: any) => sum + Math.abs(Number(c.amount) || 0), 0);
     }
 
     // 3. Calculate member stats
@@ -94,7 +97,7 @@ export async function GET(request: Request) {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const newMembersThisWeek = members.filter((m: any) => new Date(m.created_at) >= weekAgo).length;
 
-    // 4. Get per-member betting stats
+    // 4. Get per-member betting stats (turnover จริง; commission จาก credit_transactions ของ member)
     const membersWithStats = await Promise.all(
       members.map(async (member: any) => {
         const { data: memberEntries } = await supabase
@@ -104,10 +107,19 @@ export async function GET(request: Request) {
 
         const totalMemberBets = memberEntries?.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0) || 0;
 
+        const { data: memberComm } = await supabase
+          .from('credit_transactions')
+          .select('amount')
+          .eq('user_id', member.id)
+          .eq('type', 'commission');
+
+        const totalMemberCommission =
+          memberComm?.reduce((sum: number, c: any) => sum + Math.abs(Number(c.amount) || 0), 0) || 0;
+
         return {
           ...member,
           total_bets: totalMemberBets,
-          total_commission: totalMemberBets * 0.1,
+          total_commission: totalMemberCommission,
         };
       })
     );
@@ -120,11 +132,11 @@ export async function GET(request: Request) {
       totalCommission,
       todayTurnover,
       todayCommission,
-      weeklyTurnover: totalBets, // Same as range if week
+      weeklyTurnover: totalBets,
       weeklyCommission: totalCommission,
       monthlyTurnover: totalBets,
       monthlyCommission: totalCommission,
-      profitLoss: totalCommission, // Agent's profit is their commission
+      profitLoss: totalCommission,
       newMembersThisWeek,
     };
 

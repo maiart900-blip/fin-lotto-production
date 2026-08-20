@@ -1,31 +1,33 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAgentContext } from '@/lib/agent-context';
 
 /**
  * GET /api/agent/sub-agent-profit-loss
- * 
+ *
  * Fetches Sub-Agent Profit/Loss Summary for Manual Key entries (today only)
  * Strictly isolated from Auto API data - source_type = 'manual_key' filter applied
- * 
+ *
+ * Identity มาจาก session เท่านั้น (parent agent = agent ที่ login).
+ * admin/super_admin ระบุ target agent_id ได้ (ตรวจ downline server-side ผ่าน context)
+ *
  * Query params:
- *   - agent_id: The parent agent's ID
+ *   - agent_id: (admin only) target parent agent id
  *   - source_type: Must be 'manual_key' for data isolation
  */
 export async function GET(request: Request) {
   try {
-    // Auth guard
-    const authResult = await requireAuth();
-    if (authResult instanceof NextResponse) return authResult;
-
-    const supabase = await createClient();
     const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
+    const targetAgentId = searchParams.get('agent_id');
     const sourceType = searchParams.get('source_type') || 'manual_key';
 
-    if (!agentId) {
-      return NextResponse.json({ error: 'agent_id required' }, { status: 400 });
-    }
+    // resolve identity จาก session (admin override + downline check อยู่ใน helper)
+    const ctxResult = await requireAgentContext(targetAgentId);
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agentId = context.agentId;
+
+    const supabase = await createClient();
 
     // Get today's date range
     const today = new Date();
@@ -36,12 +38,16 @@ export async function GET(request: Request) {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowISO = tomorrow.toISOString();
 
-    // 1. Get all sub-agents under this agent
-    const { data: subAgents, error: subAgentsError } = await supabase
+    // 1. Get all sub-agents under this agent (scope ด้วย tenant)
+    let subAgentsQuery = supabase
       .from('agents')
       .select('id, name, code, share_percent, commission_rate')
       .eq('parent_agent_id', agentId)
       .eq('is_active', true);
+    subAgentsQuery = context.tenantId === null
+      ? subAgentsQuery.is('tenant_id', null)
+      : subAgentsQuery.eq('tenant_id', context.tenantId);
+    const { data: subAgents, error: subAgentsError } = await subAgentsQuery;
 
     if (subAgentsError) {
       console.error('[SubAgentProfitLoss] Error fetching sub-agents:', subAgentsError);
@@ -113,7 +119,9 @@ export async function GET(request: Request) {
     // 4. Build response with profit/loss calculations
     const result = subAgents.map(sa => {
       const data = subAgentMap.get(sa.id) || { credits_used: 0, customer_winnings: 0, total_tickets: 0 };
-      const sharePercent = sa.share_percent || 10; // Default 10% to company
+      // ค่าถือสู้จริงจาก DB (0 = ไม่ถือสู้; ไม่มี fallback ปลอม เช่น 10)
+      const sharePercent = Number(sa.share_percent) || 0;
+      const shareConfigured = sa.share_percent !== null && sa.share_percent !== undefined;
 
       // Calculate values
       const creditsUsed = data.credits_used;
@@ -132,6 +140,7 @@ export async function GET(request: Request) {
         agent_profit: agentProfit,
         total_tickets: data.total_tickets,
         share_percent: sharePercent,
+        share_configured: shareConfigured,
       };
     });
 

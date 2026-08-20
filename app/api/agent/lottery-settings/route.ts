@@ -1,21 +1,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAgentOrHigher } from '@/lib/api-auth';
+import { requireAgentContext } from '@/lib/agent-context';
 
-// GET - ดึงการตั้งค่าหวยของเอเย่น
+// GET - ดึงการตั้งค่าหวยของเอเย่น (identity จาก session)
 export async function GET(request: NextRequest) {
   try {
-    // Auth guard - require agent or higher
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
+    const { searchParams } = new URL(request.url);
+    const targetAgentId = searchParams.get('agent_id'); // admin only
+
+    const ctxResult = await requireAgentContext(targetAgentId);
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agentId = context.agentId;
 
     const supabase = await createClient();
-    const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
-
-    if (!agentId) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
-    }
 
     // ดึงข้อมูลเอเย่น
     const { data: agent, error: agentError } = await supabase
@@ -75,19 +73,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST/PATCH - อัพเดทการตั้งค่าหวยของเอเย่น - AGENT OR HIGHER
+// POST/PATCH - อัพเดทการตั้งค่าหวยของเอเย่น (agent_id มาจาก session)
 export async function POST(request: NextRequest) {
   try {
-    // Auth guard - require agent or higher for updating settings
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
+    const ctxResult = await requireAgentContext();
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agent_id = context.agentId;
 
     const supabase = await createClient();
     const body = await request.json();
-    const { agent_id, lottery_id, status, close_time, custom_payout_rate, max_per_number } = body;
+    const { lottery_id, status, close_time, custom_payout_rate, max_per_number } = body;
 
-    if (!agent_id || !lottery_id) {
-      return NextResponse.json({ error: 'agent_id and lottery_id are required' }, { status: 400 });
+    if (!lottery_id) {
+      return NextResponse.json({ error: 'lottery_id is required' }, { status: 400 });
     }
 
     // ตรวจสอบว่าหวยจากเว็บแม่เปิดอยู่หรือไม่

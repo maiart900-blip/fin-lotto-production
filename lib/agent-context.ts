@@ -60,8 +60,11 @@ export async function requireAgentContext(
 
   const { user } = auth;
   const admin = isAdminRole(user.role);
+  // user_type === 'agent' คือสัญญาณที่เชื่อถือได้จาก getAuthenticatedUser (ครอบคลุม master_agent
+  // ที่ isAgentRole ไม่รวม) — เสริมด้วย isAgentRole สำหรับ role ที่ resolve จาก customers table
+  const isAgent = user.user_type === 'agent' || isAgentRole(user.role);
 
-  if (!isAgentRole(user.role) && !admin) {
+  if (!isAgent && !admin) {
     return NextResponse.json(
       { success: false, error: 'Forbidden - agent access required', code: 'FORBIDDEN' },
       { status: 403 }

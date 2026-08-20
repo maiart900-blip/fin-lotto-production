@@ -1,28 +1,30 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAgentOrHigher } from '@/lib/api-auth';
+import { requireAgentContext } from '@/lib/agent-context';
 
-// API สำหรับดึงข้อมูล attendance ของ sub-agents ใต้สาย
+// API สำหรับดึงข้อมูล attendance ของ sub-agents ใต้สาย (identity จาก session)
 export async function GET(request: Request) {
   try {
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-
     const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
+    const targetAgentId = searchParams.get('agent_id'); // admin only
     const month = searchParams.get('month'); // format: YYYY-MM
 
-    if (!agentId) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
-    }
+    const ctxResult = await requireAgentContext(targetAgentId);
+    if (ctxResult instanceof NextResponse) return ctxResult;
+    const { context } = ctxResult;
+    const agentId = context.agentId;
 
     const supabase = await createClient();
 
-    // ดึง sub-agents ที่อยู่ใต้สาย agent นี้
-    const { data: subAgents } = await supabase
+    // ดึง sub-agents ที่อยู่ใต้สาย agent นี้ (scope ด้วย tenant)
+    let subAgentsQuery = supabase
       .from('agents')
       .select('id, name, code')
       .eq('parent_agent_id', agentId);
+    subAgentsQuery = context.tenantId === null
+      ? subAgentsQuery.is('tenant_id', null)
+      : subAgentsQuery.eq('tenant_id', context.tenantId);
+    const { data: subAgents } = await subAgentsQuery;
 
     const subAgentIds = subAgents?.map(s => s.id) || [];
 

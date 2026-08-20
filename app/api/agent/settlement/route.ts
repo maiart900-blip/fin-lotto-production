@@ -87,15 +87,14 @@ export async function GET(request: Request) {
     const agentShare = shareConfigured ? Math.round(profit * (sharePercent! / 100)) : 0;
     const masterShare = shareConfigured ? profit - agentShare : 0;
 
-    // ดึงประวัติการส่งยอด (scope ด้วย tenant)
-    let settlementsQuery = supabase
+    // ดึงประวัติการส่งยอด (scope ผ่าน agent_id ที่ผ่าน tenant scope แล้ว
+    // หมายเหตุ: agent_settlements ไม่มีคอลัมน์ tenant_id — isolation ทำผ่าน agent_id)
+    const { data: settlements } = await supabase
       .from('agent_settlements')
       .select('*')
       .eq('agent_id', agentId)
       .order('created_at', { ascending: false })
       .limit(10);
-    settlementsQuery = applyTenantScope(settlementsQuery, context);
-    const { data: settlements } = await settlementsQuery;
 
     const pendingAmount = masterShare > 0 ? masterShare : 0;
 
@@ -147,12 +146,12 @@ export async function POST(request: Request) {
 
     const supabase = await createClient();
 
-    // สร้างรายการส่งยอด — agent_id + tenant_id จาก session (กัน spoofing)
+    // สร้างรายการส่งยอด — agent_id จาก session (กัน spoofing)
+    // หมายเหตุ: agent_settlements ไม่มีคอลัมน์ tenant_id — isolation ทำผ่าน agent_id ที่ scope แล้ว
     const { data, error } = await supabase
       .from('agent_settlements')
       .insert({
         agent_id: context.agentId,
-        tenant_id: context.tenantId,
         product_type: 'lottery',
         amount: Number(amount),
         period_start: period_start || new Date().toISOString(),
