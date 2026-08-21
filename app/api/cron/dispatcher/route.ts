@@ -28,7 +28,7 @@ import { GET as cleanupGET } from '@/app/api/cron/cleanup/route';
 import { GET as dataRetentionGET } from '@/app/api/cron/data-retention/route';
 
 export const runtime = 'nodejs';
-export const maxDuration = 800;
+export const maxDuration = 300;
 
 function cronEnv() {
   return { CRON_SECRET: process.env.CRON_SECRET, RECOVERY_SECRET: process.env.RECOVERY_SECRET };
