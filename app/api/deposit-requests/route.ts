@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Deposit requests fetch error:', error);
+      console.error('[v0] Deposit requests fetch error:', error);
       return NextResponse.json({ 
         requests: [], 
         summary: {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ requests: data || [], summary });
   } catch (error) {
-    console.error('Error fetching deposit requests:', error);
+    console.error('[v0] Error fetching deposit requests:', error);
     return NextResponse.json({ 
       requests: [], 
       summary: {
@@ -100,13 +100,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Create deposit request error:', error);
+      console.error('[v0] Create deposit request error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error creating deposit request:', error);
+    console.error('[v0] Error creating deposit request:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

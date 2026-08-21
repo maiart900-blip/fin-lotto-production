@@ -1,14 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { TOTP } from 'otplib';
-
-// Configure TOTP with extended time window
-// window: 2 = accepts codes from 2 periods before/after (±60 seconds total)
-const totp = new TOTP({
-  window: 2, // Accept codes ±60 seconds (2 periods before/after)
-  step: 30,  // Standard 30-second period
-});
+import { verifySync } from 'otplib';
 
 // POST - Verify TOTP code and enable 2FA
 export async function POST(request: Request) {
@@ -50,16 +43,14 @@ export async function POST(request: Request) {
       }, { status: 429 });
     }
 
-    // Verify TOTP code using otplib TOTP class (with window: 2)
-    const isValid = totp.verify({ token: code, secret: settings.secret_key });
+    // Verify TOTP code using otplib verifySync
+    const isValid = verifySync({ token: code, secret: settings.secret_key });
 
     if (!isValid) {
-      // Smart Account Lockout:
-      // - Max 5 failed attempts
-      // - Lock duration: 5 minutes (not 30)
+      // Increment failed attempts
       const failedAttempts = (settings.failed_attempts || 0) + 1;
       const lockUntil = failedAttempts >= 5 
-        ? new Date(Date.now() + 5 * 60 * 1000).toISOString()  // 5 minutes lock
+        ? new Date(Date.now() + 30 * 60 * 1000).toISOString() 
         : null;
 
       await supabase
@@ -80,7 +71,7 @@ export async function POST(request: Request) {
 
       if (failedAttempts >= 5) {
         return NextResponse.json({ 
-          error: 'กรอกรหัสผิดหลายครั้ง บัญชีถูกล็อค 5 นาที' 
+          error: 'กรอกรหัสผิดหลายครั้ง บัญชีถูกล็อค 30 นาที' 
         }, { status: 429 });
       }
 

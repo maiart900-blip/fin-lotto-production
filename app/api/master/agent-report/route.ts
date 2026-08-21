@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireSuperAdmin } from '@/lib/api-auth';
 
 // GET - สรุปยอดตามสายงาน (Agent Report)
 export async function GET(request: NextRequest) {
   try {
-    // Auth guard - require super_admin for master agent reports
-    const authResult = await requireSuperAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agent_id');

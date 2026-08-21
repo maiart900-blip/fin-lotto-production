@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Deposit issues fetch error:', error);
+      console.error('[v0] Deposit issues fetch error:', error);
       // Return empty data instead of throwing
       return NextResponse.json({ 
         issues: [], 
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ issues: data || [], summary });
   } catch (error) {
-    console.error('Error fetching deposit issues:', error);
+    console.error('[v0] Error fetching deposit issues:', error);
     // Return empty data on error - don't throw 500
     return NextResponse.json({ 
       issues: [], 

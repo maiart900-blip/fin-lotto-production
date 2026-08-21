@@ -147,7 +147,7 @@ export function EditUserModal({ user, open, onClose, onSuccess }: EditUserModalP
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Update error:', error);
+      console.error('[v0] Update error:', error);
       toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการบันทึก');
     } finally {
       setIsLoading(false);

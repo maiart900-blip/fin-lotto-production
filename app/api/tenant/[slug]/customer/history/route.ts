@@ -19,13 +19,13 @@ export async function GET(
     const type = searchParams.get('type') || 'all';
 
     const cookieStore = await cookies();
-    const token = cookieStore.get('tenant_token')?.value;
+    const token = cookieStore.get(`tenant_${slug}_token`)?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Not logged in' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { id: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { id: string };
 
     // Get tenant
     const { data: tenant } = await supabase

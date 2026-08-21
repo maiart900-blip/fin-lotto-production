@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import useSWR from 'swr';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface BannerImage {
   id: string;
@@ -15,47 +15,8 @@ interface BannerImage {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-// Default luxury placeholder banner component
-function DefaultLuxuryBanner() {
-  return (
-    <div className="w-full aspect-[21/9] relative overflow-hidden rounded-xl bg-gradient-to-br from-black via-neutral-900 to-black">
-      {/* Animated background effects */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 left-1/4 w-[300px] h-[200px] bg-amber-500/10 rounded-full blur-[80px] animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-[250px] h-[150px] bg-amber-600/10 rounded-full blur-[60px] animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
-      
-      {/* Gold border glow */}
-      <div className="absolute inset-0 border border-amber-500/30 rounded-xl" />
-      <div className="absolute inset-[1px] border border-amber-500/10 rounded-xl" />
-      
-      {/* Content */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="relative mb-3">
-          <div className="absolute inset-0 blur-xl bg-amber-500/30 rounded-full scale-150" />
-          <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 via-yellow-300 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40">
-            <Sparkles className="w-8 h-8 text-black" />
-          </div>
-        </div>
-        <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400">
-          FIN LOTTO R+
-        </h3>
-        <p className="text-amber-500/70 text-sm mt-1">จ่ายจริง โอนไว มั่นคง 100%</p>
-        <div className="flex items-center gap-2 mt-3">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-green-400 text-xs">ระบบพร้อมให้บริการ</span>
-        </div>
-      </div>
-      
-      {/* Corner decorations */}
-      <div className="absolute top-0 left-0 w-16 h-16 border-l-2 border-t-2 border-amber-500/30 rounded-tl-xl" />
-      <div className="absolute bottom-0 right-0 w-16 h-16 border-r-2 border-b-2 border-amber-500/30 rounded-br-xl" />
-    </div>
-  );
-}
-
 export function BannerCarousel() {
-  const { data: images, isLoading } = useSWR<BannerImage[]>(
+  const { data: images } = useSWR<BannerImage[]>(
     '/api/web-images?category=banner',
     fetcher,
     { refreshInterval: 60000 }
@@ -63,19 +24,9 @@ export function BannerCarousel() {
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
-  // Filter banners that have images and haven't failed to load
-  const banners = images?.filter(img => 
-    img.image_url && 
-    img.image_url.length > 0 && 
-    !failedImages.has(img.id)
-  ) || [];
-
-  // Handle image load error
-  const handleImageError = (bannerId: string) => {
-    setFailedImages(prev => new Set([...prev, bannerId]));
-  };
+  // Filter banners that have images
+  const banners = images?.filter(img => img.image_url && img.image_url.length > 0) || [];
 
   const nextSlide = useCallback(() => {
     if (banners.length === 0) return;
@@ -101,16 +52,8 @@ export function BannerCarousel() {
     }
   }, [banners.length, currentIndex]);
 
-  // Show loading skeleton
-  if (isLoading) {
-    return (
-      <div className="w-full aspect-[21/9] rounded-xl bg-neutral-900 animate-pulse" />
-    );
-  }
-
-  // Show default luxury banner if no active banners
   if (banners.length === 0) {
-    return <DefaultLuxuryBanner />;
+    return null;
   }
 
   return (
@@ -137,7 +80,6 @@ export function BannerCarousel() {
                   fill
                   className="object-cover"
                   priority={index === 0}
-                  onError={() => handleImageError(banner.id)}
                 />
               </a>
             ) : (
@@ -147,7 +89,6 @@ export function BannerCarousel() {
                 fill
                 className="object-cover"
                 priority={index === 0}
-                onError={() => handleImageError(banner.id)}
               />
             )}
           </div>

@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { auditLogger } from '@/lib/audit-logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +28,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Withdraw requests fetch error:', error);
+      console.error('[v0] Withdraw requests fetch error:', error);
       // Return empty data instead of throwing
       return NextResponse.json({ 
         requests: [], 
@@ -63,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ requests: data || [], summary });
   } catch (error) {
-    console.error('Error fetching withdraw requests:', error);
+    console.error('[v0] Error fetching withdraw requests:', error);
     // Return empty data on error - don't throw 500
     return NextResponse.json({ 
       requests: [], 
@@ -145,48 +144,15 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, status, reject_reason, admin_note, approved_by, slip_url, transferred_at, transfer_account_id } = body;
 
-    // =====================================================
-    // OPTIMISTIC LOCKING - Prevent double approval
-    // =====================================================
-    
-    // Get current request with explicit locking check
-    const { data: currentRequest, error: fetchError } = await supabase
+    // Get current request
+    const { data: currentRequest } = await supabase
       .from('withdraw_requests')
-      .select('*, customer:customers(id, credit_balance, name)')
+      .select('*, customer:customers(id, credit_balance)')
       .eq('id', id)
       .single();
 
-    if (fetchError || !currentRequest) {
+    if (!currentRequest) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
-    }
-
-    // CRITICAL: Check if status transition is valid
-    // Only 'pending' can be approved/rejected
-    // 'processing' means another admin is already handling it
-    if (status === 'approved' || status === 'processing') {
-      if (currentRequest.status === 'processing') {
-        // Already being processed by another admin
-        return NextResponse.json({ 
-          error: 'รายการนี้กำลังถูกดำเนินการโดยแอดมินคนอื่น กรุณารอสักครู่หรือรีเฟรชหน้าจอ',
-          code: 'ALREADY_PROCESSING',
-          lockedBy: currentRequest.processing_by,
-          lockedAt: currentRequest.processing_at,
-        }, { status: 409 }); // 409 Conflict
-      }
-      
-      if (currentRequest.status === 'approved') {
-        return NextResponse.json({ 
-          error: 'รายการนี้ได้รับการอนุมัติแล้ว',
-          code: 'ALREADY_APPROVED',
-        }, { status: 409 });
-      }
-      
-      if (currentRequest.status === 'rejected') {
-        return NextResponse.json({ 
-          error: 'รายการนี้ถูกปฏิเสธไปแล้ว',
-          code: 'ALREADY_REJECTED',
-        }, { status: 409 });
-      }
     }
 
     const updates: Record<string, unknown> = {
@@ -194,74 +160,19 @@ export async function PUT(request: NextRequest) {
     };
     
     // Add optional fields if provided
+    if (status !== undefined) updates.status = status;
     if (admin_note !== undefined) updates.admin_note = admin_note;
     if (slip_url !== undefined) updates.slip_url = slip_url;
     if (transferred_at !== undefined) updates.transferred_at = transferred_at;
     if (transfer_account_id !== undefined) updates.transfer_account_id = transfer_account_id;
 
-    // =====================================================
-    // STATUS TRANSITIONS WITH LOCKING
-    // =====================================================
-    
-    if (status === 'processing') {
-      // Lock the request - mark as "being processed"
-      updates.status = 'processing';
-      updates.processing_by = approved_by;
-      updates.processing_at = new Date().toISOString();
-      
-      // Use optimistic locking: only update if still pending
-      const { data, error } = await supabase
-        .from('withdraw_requests')
-        .update(updates)
-        .eq('id', id)
-        .eq('status', 'pending') // Only if still pending!
-        .select()
-        .single();
-      
-      if (error || !data) {
-        // Someone else already changed it
-        return NextResponse.json({ 
-          error: 'รายการนี้ถูกดำเนินการโดยแอดมินคนอื่นแล้ว กรุณารีเฟรชหน้าจอ',
-          code: 'RACE_CONDITION',
-        }, { status: 409 });
-      }
-      
-      // Log the lock action
-      await auditLogger.logAdmin(
-        approved_by,
-        'wallet_withdraw',
-        'withdraw_requests',
-        id,
-        `เริ่มตรวจสอบคำขอถอนเงิน ${Number(currentRequest.amount).toLocaleString()} บาท`,
-        { customerId: currentRequest.customer_id, amount: currentRequest.amount }
-      );
-      
-      return NextResponse.json(data);
-    }
-
     if (status === 'rejected') {
-      updates.status = 'rejected';
       updates.reject_reason = reject_reason;
-      updates.processing_by = null;
-      updates.processing_at = null;
-      
-      // Log rejection
-      await auditLogger.logAdmin(
-        approved_by,
-        'wallet_withdraw',
-        'withdraw_requests',
-        id,
-        `ปฏิเสธคำขอถอนเงิน ${Number(currentRequest.amount).toLocaleString()} บาท - เหตุผล: ${reject_reason}`,
-        { customerId: currentRequest.customer_id, amount: currentRequest.amount, reason: reject_reason }
-      );
     }
 
     if (status === 'approved') {
-      updates.status = 'approved';
       updates.approved_by = approved_by;
       updates.approved_at = new Date().toISOString();
-      updates.processing_by = null;
-      updates.processing_at = null;
 
       // Deduct credit from customer
       const newCredit = Number(currentRequest.customer.credit_balance) - Number(currentRequest.amount);
@@ -284,41 +195,16 @@ export async function PUT(request: NextRequest) {
         balance_after: newCredit,
         created_by: approved_by,
       });
-      
-      // Log approval
-      await auditLogger.logFinancial(
-        approved_by,
-        'wallet_withdraw',
-        Number(currentRequest.amount),
-        id,
-        Number(currentRequest.customer.credit_balance),
-        newCredit,
-        { 
-          customerId: currentRequest.customer_id,
-          customerName: currentRequest.customer.name,
-          bankName: currentRequest.bank_name,
-          accountNumber: currentRequest.account_number,
-        }
-      );
     }
 
-    // Use optimistic locking for final update
-    const allowedPreviousStatuses = status === 'approved' ? ['pending', 'processing'] : ['pending', 'processing'];
-    
     const { data, error } = await supabase
       .from('withdraw_requests')
       .update(updates)
       .eq('id', id)
-      .in('status', allowedPreviousStatuses)
       .select()
       .single();
 
-    if (error || !data) {
-      return NextResponse.json({ 
-        error: 'รายการนี้ถูกเปลี่ยนสถานะโดยแอดมินคนอื่นแล้ว กรุณารีเฟรชหน้าจอ',
-        code: 'STATUS_CHANGED',
-      }, { status: 409 });
-    }
+    if (error) throw error;
 
     return NextResponse.json(data);
   } catch (error) {

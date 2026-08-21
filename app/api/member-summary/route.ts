@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     const { data: users, error: usersError } = await usersQuery;
 
     if (usersError) {
-      console.error('Member summary users error:', usersError.message);
+      console.error('[v0] Member summary users error:', usersError.message);
       return NextResponse.json({ members: [], summary: getEmptySummary() });
     }
 
@@ -154,7 +154,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ members: memberStats, summary });
   } catch (error) {
-    console.error('Member summary error:', error);
+    console.error('[v0] Member summary error:', error);
     return NextResponse.json({ members: [], summary: getEmptySummary() });
   }
 }

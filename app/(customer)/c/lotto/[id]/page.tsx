@@ -451,7 +451,7 @@ export default function LottoBettingPage() {
     if (added > 0 || merged > 0) {
       const parts = [];
       if (added > 0) parts.push(`เพิ่ม ${added} เลข`);
-      if (merged > 0) parts.push(`รวม ${merged} เลข`);
+      if (merged > 0) parts.push(`รวม ${merged} ��ลข`);
       toast.success(parts.join(', '));
     } else if (skipped > 0) {
       toast.warning('เลขทั้งหมดมีอยู่ในตะกร้าแล้ว');
@@ -873,9 +873,9 @@ export default function LottoBettingPage() {
       addedCount = newItems.length;
       if (addedCount > 0) {
         setBetItems(prev => [...prev, ...newItems]);
-        toast.success(`เพิ่มเลขวิน บน+ล่าง+กลับ (${addedCount} รายการ)`);
+        toast.success(`เ���ิ่มเลขวิน บน+ล่าง+กลับ (${addedCount} รายการ)`);
       } else {
-        toast.warning('เลขทั้งหมดมีอยู่ในตะกร้าแล้วหรือถูกอั้น');
+        toast.warning('เลขทั้งหมดมีอยู่ในตะกร้าแล้วหรือถูกอั้���');
       }
       return;
     }
@@ -1046,7 +1046,7 @@ export default function LottoBettingPage() {
       setBetItems([...betItems, ...newItems]);
       toast.success(`เพิ่ม ${newItems.length} รายการ${skipped > 0 ? ` (ข้าม ${skipped} รายการซ้ำ/อั้น)` : ''}`);
     } else {
-      toast.warning('ไม่มีรายการใหม่ที่จะเพิ่ม');
+      toast.warning('ไม่มีรายการใหม่ที่จ��เพิ่ม');
     }
   };
 
@@ -1244,14 +1244,14 @@ export default function LottoBettingPage() {
         return;
       }
       
-      // Validation 6: เครดิตต้องพอ
+      // Validation 6: เครดิตต้อง���อ
       const customerBalance = Number(customer.credit_balance) || 0;
       if (customerBalance < totals.total) {
         toast.error(`เครดิตไม่เพียงพอ (มี ${customerBalance.toLocaleString()} ต้องการ ${totals.total.toLocaleString()} บาท) กรุณาเติมเงิน`);
         return;
       }
       
-      // Validation 7: หวยยังไม่ปิด
+      // Validation 7: หวย���ังไม่ปิด
       if (isClosed) {
         toast.error('หวยปิดรับแทงแล้ว');
         return;
@@ -1272,24 +1272,30 @@ export default function LottoBettingPage() {
     setIsSubmitting(true);
     
     try {
-      // Transform betItems to the format expected by /api/customer/buy
-      const entries = betItems.map(item => ({
-        number: item.number,
-        bet_type: item.bet_type,
-        amount: (Number(item.amount_top) || 0) + (Number(item.amount_bottom) || 0) + (Number(item.amount_tod) || 0),
-      }));
-      
       const payload = {
         lottery_id: lotteryId,
-        entries: entries,
+        customer_id: customer.id,
+        items: betItems.map(item => ({
+          number: item.number,
+          bet_type: item.bet_type,
+          amount_top: Number(item.amount_top) || 0,
+          amount_bottom: Number(item.amount_bottom) || 0,
+          amount_tod: Number(item.amount_tod) || 0,
+          is_reverse: item.is_reverse || false,
+          original_number: item.original_number || item.number,
+          source_type: item.source_type || 'manual',
+          source_input: item.source_input,
+        })),
+        total_amount: totals.total,
       };
       
-      const res = await fetch('/api/customer/buy', {
+      
+      const res = await fetch('/api/bets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload),
       });
+      
       
       const data = await res.json();
       
@@ -1298,7 +1304,7 @@ export default function LottoBettingPage() {
         throw new Error(errorMsg);
       }
       
-      toast.success(`ส่งโพยสำเร็จ! (${data.entry_count || betItems.length} รายการ, ${(data.total_amount || totals.total).toLocaleString()} บาท)`);
+      toast.success(`ส่งโพยสำเร็จ! (${data.item_count || betItems.length} รายการ, ${(data.total_amount || totals.total).toLocaleString()} บาท)`);
       setBetItems([]);
       setShowConfirmDialog(false);
       
@@ -1592,7 +1598,7 @@ export default function LottoBettingPage() {
                     }`}
                   >
                     <div className="text-sm font-bold">เลขวิน</div>
-                    <div className="text-xs opacity-80">จับคู��ทุกตัว</div>
+                    <div className="text-xs opacity-80">จับคู่ทุกตัว</div>
                   </button>
                 </div>
               </CardContent>
@@ -1745,7 +1751,7 @@ export default function LottoBettingPage() {
                             onCheckedChange={(c) => setInclude2Bot(!!c)}
                             className="border-emerald-400 data-[state=checked]:bg-emerald-400"
                           />
-                          <span className="text-emerald-300 text-sm">2 ต���ว��่าง (x95)</span>
+                          <span className="text-emerald-300 text-sm">2 ���ัวล่าง (x95)</span>
                         </label>
                       </div>
                       <p className="text-fuchsia-300/70 text-xs">
@@ -2127,7 +2133,7 @@ export default function LottoBettingPage() {
                                   </div>
                                 </div>
                               )}
-                              {/* Show "โต๊ด" for: 3tod, 3top_tod */}
+                              {/* Show "โต���ด" for: 3tod, 3top_tod */}
                               {['3tod', '3top_tod'].includes(item.bet_type) && (
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-2">
@@ -2222,56 +2228,56 @@ export default function LottoBettingPage() {
         </div>
       </div>
 
-      {/* Confirm Dialog - Premium White & Gold Theme */}
+      {/* Confirm Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="bg-white border-4 border-[#D4AF37] text-black max-w-md shadow-2xl">
+        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-[#B8860B] flex items-center gap-2 text-xl font-bold">
-              <CheckCircle className="w-6 h-6" />
+            <DialogTitle className="text-amber-400 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
               ยืนยันการส่งโพย
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="bg-gray-50 rounded-xl p-4 border-2 border-[#D4AF37]/30">
-              <div className="flex justify-between mb-3">
-                <span className="text-gray-600">หวย</span>
-                <span className="text-black font-semibold">{lottery?.name}</span>
+            <div className="bg-slate-700/50 rounded-lg p-4">
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-400">หวย</span>
+                <span className="text-white">{lottery.name}</span>
               </div>
-              <div className="flex justify-between mb-3">
-                <span className="text-gray-600">จำนวนรายการ</span>
-                <span className="text-black font-semibold">{totals.count} รายการ</span>
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-400">จำนวนรายการ</span>
+                <span className="text-white">{totals.count} รายการ</span>
               </div>
-              <div className="flex justify-between mb-3">
-                <span className="text-gray-600">ยอดรวม</span>
-                <span className="text-[#B8860B] font-bold text-lg">{totals.total.toLocaleString()} บาท</span>
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-400">ยอดรวม</span>
+                <span className="text-amber-400 font-semibold">{totals.total.toLocaleString()} บาท</span>
               </div>
-              <div className="border-t-2 border-[#D4AF37]/20 mt-3 pt-3">
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-600">เครดิตก่อนแทง</span>
-                  <span className="text-black font-medium">{(customer?.credit_balance || 0).toLocaleString()} บาท</span>
+              <div className="border-t border-slate-600 mt-3 pt-3">
+                <div className="flex justify-between mb-1">
+                  <span className="text-gray-400">เครดิตก่อนแทง</span>
+                  <span className="text-white">{(customer?.credit_balance || 0).toLocaleString()} บาท</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">เครดิตหลังแทง</span>
-                  <span className="text-green-600 font-bold">
+                  <span className="text-gray-400">เครดิตหลังแทง</span>
+                  <span className="text-emerald-400 font-semibold">
                     {((customer?.credit_balance || 0) - totals.total).toLocaleString()} บาท
                   </span>
                 </div>
               </div>
             </div>
-            <p className="text-sm text-gray-500 text-center">
+            <p className="text-sm text-gray-400 text-center">
               สามารถยกเลิกโพยได้ภายใน 30 นาที
             </p>
           </div>
-          <DialogFooter className="gap-3 mt-4">
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
-              className="border-2 border-gray-300 text-gray-700 hover:bg-gray-100 font-medium"
+              className="border-slate-600 text-gray-300"
               onClick={() => setShowConfirmDialog(false)}
             >
               ยกเลิก
             </Button>
             <Button
-              className="bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#996515] text-white min-w-[140px] font-bold shadow-lg shadow-[#D4AF37]/30 border-2 border-[#B8860B]"
+              className="bg-gradient-to-r from-amber-500 to-orange-500 text-white min-w-[120px]"
               onClick={confirmSubmit}
               disabled={isSubmitting}
             >

@@ -88,7 +88,7 @@ export async function GET() {
              customer?.system_type === 'auto';
     }) || [];
 
-    console.log('Today Entries (auto):', { 
+    console.log('[v0] Today Entries (auto):', { 
       totalFetched: todayEntries?.length,
       autoFiltered: autoEntries.length,
       sample: autoEntries.slice(0, 3),
@@ -120,7 +120,7 @@ export async function GET() {
     // Filter pending entries from auto customers
     const pendingPayouts = pendingData?.reduce((sum, e) => sum + Number(e.payout_amount || 0), 0) || 0;
 
-    console.log('Pending Payouts:', { pendingPayouts, pendingCount });
+    console.log('[v0] Pending Payouts:', { pendingPayouts, pendingCount });
 
     // Monthly stats - bets from auto customers this month
     const { data: monthlyBets } = await supabase
@@ -144,7 +144,7 @@ export async function GET() {
     const monthlyWinnings = autoMonthlyBets.reduce((sum, bet) => sum + Number(bet.total_win_amount || 0), 0);
     const monthlyProfit = monthlyAmount - monthlyWinnings;
 
-    console.log('Monthly Stats:', { monthlyAmount, monthlyWinnings, monthlyProfit, count: autoMonthlyBets.length });
+    console.log('[v0] Monthly Stats:', { monthlyAmount, monthlyWinnings, monthlyProfit, count: autoMonthlyBets.length });
 
     // Monthly stats from entries (source_type = 'auto')
     const { data: monthlyEntries } = await supabase
@@ -172,7 +172,7 @@ export async function GET() {
     const monthlyEntriesWinnings = autoMonthlyEntries.reduce((sum, e) => sum + Number(e.payout_amount || 0), 0);
     const monthlyEntriesProfit = monthlyEntriesAmount - monthlyEntriesWinnings;
 
-    console.log('Monthly Entries Stats:', { monthlyEntriesAmount, count: autoMonthlyEntries.length });
+    console.log('[v0] Monthly Entries Stats:', { monthlyEntriesAmount, count: autoMonthlyEntries.length });
 
     return NextResponse.json({
       totalAgents: totalAgents || 0,

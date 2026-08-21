@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       expiresAt: new Date(payload.exp * 1000).toISOString(),
     });
   } catch (err) {
-    console.error('Master token error:', err);
+    console.error('[v0] Master token error:', err);
     return NextResponse.json({ error: 'Token generation failed' }, { status: 500 });
   }
 }
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
       }, { status: 401 });
     }
   } catch (err) {
-    console.error('Token verify error:', err);
+    console.error('[v0] Token verify error:', err);
     return NextResponse.json({ error: 'Verification failed' }, { status: 500 });
   }
 }
@@ -144,7 +144,7 @@ export async function DELETE() {
     
     return NextResponse.json({ success: true, message: 'Token revoked' });
   } catch (err) {
-    console.error('Token revoke error:', err);
+    console.error('[v0] Token revoke error:', err);
     return NextResponse.json({ error: 'Revoke failed' }, { status: 500 });
   }
 }

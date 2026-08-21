@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { sendAdminNotificationAsync } from '@/lib/notifications/admin-notify';
 
 export async function GET() {
   const supabase = await createClient();
@@ -119,14 +118,6 @@ export async function POST(request: Request) {
       console.error('Insert withdraw_requests error:', insertError);
       throw insertError;
     }
-    
-    // Fire-and-forget: Send admin notification (async, doesn't block response)
-    sendAdminNotificationAsync('withdraw', {
-      amount: Number(amount),
-      userId: customerId.slice(0, 8) + '...',
-      withdrawType: 'หวย',
-      requestId: newRequest?.id,
-    });
     
     
     return NextResponse.json({ 

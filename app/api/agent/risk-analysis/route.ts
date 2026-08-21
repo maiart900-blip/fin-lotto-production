@@ -1,35 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAgentContext } from '@/lib/agent-context';
 
 // API สำหรับเอเย่นส่งเลขไปวิเคราะห์ความเสี่ยงที่เว็บกลาง
-// identity มาจาก session เท่านั้น (ไม่รับ agent_id จาก body)
+// ใช้ข้อมูลจากเว็บกลางในการคำนวณความเสี่ยง
+// ไม่แก้ไข API analysis เดิม
 
 export async function POST(request: NextRequest) {
   try {
-    const ctxResult = await requireAgentContext();
-    if (ctxResult instanceof NextResponse) return ctxResult;
-    const { context } = ctxResult;
-    const agent_id = context.agentId;
-
     const body = await request.json();
-    const { lottery_id, entries, date } = body;
+    const { agent_id, lottery_id, entries, date } = body;
 
-    if (!lottery_id || !entries || !Array.isArray(entries)) {
+    if (!agent_id || !lottery_id || !entries || !Array.isArray(entries)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const supabase = await createClient();
 
-    // ดึงข้อมูลเอเย่น (scope ด้วย tenant)
-    let agentQuery = supabase
+    // ดึงข้อมูลเอเย่น
+    const { data: agent } = await supabase
       .from('agents')
       .select('id, name, share_percent')
-      .eq('id', agent_id);
-    agentQuery = context.tenantId === null
-      ? agentQuery.is('tenant_id', null)
-      : agentQuery.eq('tenant_id', context.tenantId);
-    const { data: agent } = await agentQuery.single();
+      .eq('id', agent_id)
+      .single();
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
@@ -51,16 +43,12 @@ export async function POST(request: NextRequest) {
     const startOfDay = `${today}T00:00:00`;
     const endOfDay = `${today}T23:59:59`;
 
-    let existingQuery = supabase
+    const { data: existingEntries } = await supabase
       .from('entries')
       .select('number, bet_type, amount')
       .eq('lottery_id', lottery_id)
       .gte('created_at', startOfDay)
       .lte('created_at', endOfDay);
-    existingQuery = context.tenantId === null
-      ? existingQuery.is('tenant_id', null)
-      : existingQuery.eq('tenant_id', context.tenantId);
-    const { data: existingEntries } = await existingQuery;
 
     // รวมเลขที่เอเย่นจะแทงกับเลขที่มีอยู่แล้ว
     const numberTotals: Record<string, { 
@@ -164,41 +152,32 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - ดึงข้อมูลวิเคราะห์ความเสี่ยงของเอเย่น (identity จาก session)
+// GET - ดึงข้อมูลวิเคราะห์ความเสี่ยงของเอเย่น
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const targetAgentId = searchParams.get('agent_id'); // admin only
+    const agentId = searchParams.get('agent_id');
     const lotteryId = searchParams.get('lottery_id');
     const date = searchParams.get('date');
 
-    const ctxResult = await requireAgentContext(targetAgentId);
-    if (ctxResult instanceof NextResponse) return ctxResult;
-    const { context } = ctxResult;
-    const agentId = context.agentId;
-
-    if (!lotteryId) {
-      return NextResponse.json({ error: 'lottery_id is required' }, { status: 400 });
+    if (!agentId || !lotteryId) {
+      return NextResponse.json({ error: 'agent_id and lottery_id are required' }, { status: 400 });
     }
 
     const supabase = await createClient();
 
-    // ดึง entries ของเอเย่นวันนี้ (scope ด้วย tenant)
+    // ดึง entries ของเอเย่นวันนี้
     const today = date || new Date().toISOString().split('T')[0];
     const startOfDay = `${today}T00:00:00`;
     const endOfDay = `${today}T23:59:59`;
 
-    let entriesQuery = supabase
+    const { data: entries } = await supabase
       .from('entries')
       .select('number, bet_type, amount')
       .eq('agent_id', agentId)
       .eq('lottery_id', lotteryId)
       .gte('created_at', startOfDay)
       .lte('created_at', endOfDay);
-    entriesQuery = context.tenantId === null
-      ? entriesQuery.is('tenant_id', null)
-      : entriesQuery.eq('tenant_id', context.tenantId);
-    const { data: entries } = await entriesQuery;
 
     // ดึง payout rates
     const { data: rates } = await supabase

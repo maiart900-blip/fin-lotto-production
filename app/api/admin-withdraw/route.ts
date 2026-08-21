@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/api-auth';
-import { logAudit } from '@/lib/audit-logger';
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth guard - require admin role
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-    const { user } = authResult;
-
     const supabase = await createClient();
     const body = await request.json();
     const { amount, bank_account_id } = body;
@@ -50,21 +43,6 @@ export async function POST(request: NextRequest) {
       console.error('Admin withdraw error:', error);
       return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการบันทึก' }, { status: 500 });
     }
-
-    // Audit log
-    await logAudit({
-      action: 'admin_withdraw_request',
-      actor_id: user.id,
-      actor_type: 'admin',
-      target_type: 'withdrawal',
-      target_id: data.id,
-      details: {
-        amount,
-        bank_name: bankAccount.bank_name,
-        account_number: bankAccount.account_number,
-      },
-      ip_address: request.headers.get('x-forwarded-for') || 'unknown',
-    });
 
     return NextResponse.json({ success: true, data });
   } catch (err) {

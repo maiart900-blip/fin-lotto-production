@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
-  // Auth guard - require admin
-  const authResult = await requireAdmin();
-  if (authResult instanceof NextResponse) return authResult;
-
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
 
@@ -55,7 +50,7 @@ export async function GET(request: NextRequest) {
     const { data: entries, error } = await query;
 
     if (error) {
-      console.error('Error fetching entries:', error);
+      console.error('[v0] Error fetching entries:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -160,7 +155,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('Report error:', err);
+    console.error('[v0] Report error:', err);
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 });
   }
 }

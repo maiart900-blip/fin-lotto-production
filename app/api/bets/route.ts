@@ -2,25 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAuditLog, getClientIP, getUserAgent } from '@/lib/audit-log';
-import { requireAuth } from '@/lib/api-auth';
-import { deepStripSensitiveFields } from '@/lib/api-serializers';
-import { 
-  applyRateLimit, 
-  adminBetSchema, 
-  validateRequestBody,
-  verifyResourceOwnership,
-  logSecurityEvent 
-} from '@/lib/security/api-security';
 
 export async function GET(request: NextRequest) {
-  // SECURITY: Rate limit read operations
-  const rateLimitResponse = await applyRateLimit('api');
-  if (rateLimitResponse) return rateLimitResponse;
-  
-  // Auth guard - require authentication
-  const authResult = await requireAuth();
-  if (authResult instanceof NextResponse) return authResult;
-
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
   
@@ -46,97 +29,38 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query.limit(100);
   
   if (error) {
-    console.error('Error fetching bets:', error);
+    console.error('[v0] Error fetching bets:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   
-  // Strip sensitive fields but keep all operational data including nested relations
-  console.log('Bets fetched:', data?.length, 'source_type filter:', source_type);
-  return NextResponse.json(deepStripSensitiveFields(data || []));
+  console.log('[v0] Bets fetched:', data?.length, 'source_type filter:', source_type);
+  return NextResponse.json(data);
 }
 
 export async function POST(request: NextRequest) {
-  // SECURITY: Rate limit financial write operations (30 per minute)
-  const rateLimitResponse = await applyRateLimit('api_write', 'bet_create');
-  if (rateLimitResponse) {
-    await logSecurityEvent('rate_limit', { 
-      endpoint: '/api/bets',
-      reason: 'Bet creation rate limited'
-    });
-    return rateLimitResponse;
-  }
-  
-  // Auth guard - require authentication for placing bets
-  const authResult = await requireAuth();
-  if (authResult instanceof NextResponse) return authResult;
-  const { user } = authResult;
-
   const supabase = await createClient();
   const cookieStore = await cookies();
   const customerId = cookieStore.get('customer_id')?.value;
   const adminId = cookieStore.get('admin_id')?.value; // แอดมินผู้รับโพย
   
-  // Fallback to user.id if no customer_id/admin_id cookie
-  const effectiveCustomerId = customerId || user?.id;
-  const effectiveAdminId = adminId || (user?.role && ['admin', 'super_admin', 'manager'].includes(user.role) ? user.id : null);
-  
-  if (!effectiveCustomerId && !effectiveAdminId) {
-    return NextResponse.json({ error: 'Unauthorized - no valid session' }, { status: 401 });
+  if (!customerId && !adminId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
   try {
-    // SECURITY: Validate input with Zod schema (Anti-SQL Injection)
-    const validation = await validateRequestBody(request, adminBetSchema);
-    if (!validation.success) {
-      await logSecurityEvent('validation_failure', {
-        endpoint: '/api/bets',
-        user_id: user?.id,
-        reason: 'Invalid bet request format'
-      });
-      return validation.response;
-    }
+    const body = await request.json();
+    const { lottery_id, items, customer_name, tenant_id, target_customer_id, source_type, agent_id } = body;
     
-    const { 
-      lottery_id, 
-      items, 
-      customer_name, 
-      tenant_id, 
-      target_customer_id, 
-      source_type, 
-      agent_id,
-      idempotency_key 
-    } = validation.data;
-    
-    // ใช้ target_customer_id ถ้าแอดมินคีย์ให้ลูกค้า หรือใช้ effectiveCustomerId ปกติ
-    const actualCustomerId = target_customer_id || effectiveCustomerId;
+    // ใช้ target_customer_id ถ้าแอดมินคีย์ให้ลูกค้า หรือใช้ customerId ปกติ
+    const actualCustomerId = target_customer_id || customerId;
     
     // Determine source_type: manual_key (คีย์หวย) or auto (ลูกค้าแทงเอง)
-    const betSourceType = source_type || (effectiveAdminId ? 'manual_key' : 'auto');
+    const betSourceType = source_type || (adminId ? 'manual_key' : 'auto');
     
-    console.log('Creating bet:', { lottery_id, actualCustomerId, betSourceType, agent_id, adminId: effectiveAdminId });
+    console.log('[v0] Creating bet:', { lottery_id, actualCustomerId, betSourceType, agent_id, adminId });
     
-    // items and lottery_id already validated by Zod schema above
-    if (!items || items.length === 0) {
-      return NextResponse.json({ error: 'Missing items' }, { status: 400 });
-    }
-
-    // Check for duplicate request using idempotency_key
-    if (idempotency_key) {
-      const { data: existingBet } = await supabase
-        .from('bets')
-        .select('id')
-        .eq('idempotency_key', idempotency_key)
-        .single();
-      
-      if (existingBet) {
-        console.log('Duplicate bet request detected:', idempotency_key);
-        return NextResponse.json({ 
-          success: true, 
-          bet_id: existingBet.id,
-          duplicate: true,
-          message: 'Bet already processed'
-        });
-      }
+    if (!lottery_id || !items || items.length === 0) {
+      return NextResponse.json({ error: 'Missing lottery_id or items' }, { status: 400 });
     }
     
     // Check lottery exists and is open
@@ -160,10 +84,7 @@ export async function POST(request: NextRequest) {
       totalAmount += (item.amount_top || 0) + (item.amount_bottom || 0) + (item.amount_tod || 0);
     }
     
-    // Check customer balance with row-level locking (select for update via RPC)
-    // Note: Supabase doesn't support SELECT FOR UPDATE directly, so we use a combination of:
-    // 1. Check balance first
-    // 2. Update with a condition to prevent race conditions
+    // Check customer balance
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .select('credit_balance, name')
@@ -177,30 +98,6 @@ export async function POST(request: NextRequest) {
     if (customer.credit_balance < totalAmount) {
       return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
     }
-
-    // ATOMIC OPERATION: Deduct balance first with condition check
-    // This prevents race conditions by only updating if balance >= totalAmount
-    const newBalance = customer.credit_balance - totalAmount;
-    const { data: updatedCustomer, error: updateError } = await supabase
-      .from('customers')
-      .update({ 
-        credit_balance: newBalance, 
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', actualCustomerId)
-      .gte('credit_balance', totalAmount) // Atomic check: only update if balance sufficient
-      .select('credit_balance')
-      .single();
-    
-    if (updateError || !updatedCustomer) {
-      console.error('Balance deduction failed - race condition or insufficient balance');
-      return NextResponse.json({ 
-        error: 'Balance deduction failed. Please try again.',
-        code: 'BALANCE_RACE_CONDITION'
-      }, { status: 409 });
-    }
-    
-    const finalBalance = updatedCustomer.credit_balance;
     
     // Create bet with new fields
     const cancelDeadline = new Date();
@@ -220,21 +117,13 @@ export async function POST(request: NextRequest) {
         is_checked: false,
         total_win_amount: 0,
         source_type: betSourceType, // 'manual_key' or 'auto'
-        idempotency_key: idempotency_key || null, // For duplicate request protection
-        keyed_by: effectiveAdminId || null, // Admin who keyed the bet (if any)
       })
       .select()
       .single();
     
-    console.log('Bet created:', { bet_id: bet?.id, source_type: betSourceType });
+    console.log('[v0] Bet created:', { bet_id: bet?.id, source_type: betSourceType });
     
     if (betError) {
-      // ROLLBACK: คืนเงินให้ลูกค้า
-      console.error('Bet creation failed, rolling back balance');
-      await supabase
-        .from('customers')
-        .update({ credit_balance: customer.credit_balance })
-        .eq('id', actualCustomerId);
       return NextResponse.json({ error: betError.message }, { status: 500 });
     }
     
@@ -265,13 +154,13 @@ export async function POST(request: NextRequest) {
       payoutRates?.map(p => [p.bet_type, parseFloat(p.rate)]) || []
     );
     
-    console.log('Payout rates:', Object.fromEntries(payoutRateMap));
+    console.log('[v0] Payout rates:', Object.fromEntries(payoutRateMap));
     
     // Create bet items with correct payout rates
     const betItems = items.map((item: any) => {
       const dbBetType = mapBetType(item.bet_type);
       const payoutRate = payoutRateMap.get(dbBetType) || 0;
-      console.log('Bet item:', { number: item.number, frontendType: item.bet_type, dbType: dbBetType, payoutRate });
+      console.log('[v0] Bet item:', { number: item.number, frontendType: item.bet_type, dbType: dbBetType, payoutRate });
       
       return {
         bet_id: bet.id,
@@ -291,13 +180,8 @@ export async function POST(request: NextRequest) {
       .insert(betItems);
     
     if (itemsError) {
-      // ROLLBACK: ลบ bet และคืนเงินให้ลูกค้า
-      console.error('Bet items creation failed, rolling back');
+      // Rollback bet
       await supabase.from('bets').delete().eq('id', bet.id);
-      await supabase
-        .from('customers')
-        .update({ credit_balance: customer.credit_balance })
-        .eq('id', actualCustomerId);
       return NextResponse.json({ error: itemsError.message }, { status: 500 });
     }
     
@@ -325,7 +209,13 @@ export async function POST(request: NextRequest) {
       }
     })).catch(() => {});
     
-    // Note: Balance already deducted atomically above
+    // Deduct balance
+    const newBalance = customer.credit_balance - totalAmount;
+    await supabase
+      .from('customers')
+      .update({ credit_balance: newBalance, updated_at: new Date().toISOString() })
+      .eq('id', actualCustomerId);
+    
     // Log credit transaction
     await supabase
       .from('credit_transactions')
@@ -334,7 +224,7 @@ export async function POST(request: NextRequest) {
         amount: -totalAmount,
         type: 'bet',
         description: `แทงหวย ${lottery.name}`,
-        balance_after: finalBalance,
+        balance_after: newBalance,
         reference_id: bet.id,
         reference_type: 'bet',
       });
@@ -349,8 +239,8 @@ export async function POST(request: NextRequest) {
         lottery_name: lottery.name,
         item_count: items.length,
         total_amount: totalAmount,
-        new_balance: finalBalance,
-        created_by: effectiveAdminId || actualCustomerId,
+        new_balance: newBalance,
+        created_by: adminId || actualCustomerId,
         customer_name: customer_name || customer.name,
       },
       ipAddress: getClientIP(request),
@@ -361,7 +251,7 @@ export async function POST(request: NextRequest) {
       success: true,
       bet_id: bet.id,
       total_amount: totalAmount,
-      new_balance: finalBalance,
+      new_balance: newBalance,
       item_count: items.length,
     });
     

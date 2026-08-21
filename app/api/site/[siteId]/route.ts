@@ -57,7 +57,7 @@ export async function GET(
     
     return NextResponse.json(tenantConfig);
   } catch (error) {
-    console.error('Error fetching tenant config:', error);
+    console.error('[v0] Error fetching tenant config:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -112,7 +112,7 @@ export async function PATCH(
     
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error updating tenant config:', error);
+    console.error('[v0] Error updating tenant config:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

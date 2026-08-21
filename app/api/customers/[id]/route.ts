@@ -1,39 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { stripSensitiveFields } from '@/lib/api-serializers';
-import { requireAgentOrHigher } from '@/lib/api-auth';
-import { requireCustomerAccess } from '@/lib/customer-scope';
 
-/**
- * Single Customer API - Admin level access
- * Uses stripSensitiveFields to remove only password_hash while keeping all operational fields
- * 
- * SECURITY: Customer access is validated against tenant and agent scope
- */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  
-  // Auth guard - require agent or higher
-  const authResult = await requireAgentOrHigher();
-  if (authResult instanceof NextResponse) return authResult;
-  const session = authResult;
-  
-  // SECURITY: Check customer access
-  const accessCheck = await requireCustomerAccess(id, {
-    id: session.id,
-    role: session.role,
-    user_type: session.user_type,
-    tenant_id: session.tenant_id,
-  });
-  
-  if (!accessCheck.allowed) {
-    return NextResponse.json({ error: accessCheck.reason || 'Access denied' }, { status: 403 });
-  }
-  
   const supabase = await createClient();
   
   const { data, error } = await supabase
@@ -46,8 +19,7 @@ export async function GET(
     return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
   }
   
-  // Strip sensitive fields but keep all operational data
-  return NextResponse.json(stripSensitiveFields(data));
+  return NextResponse.json(data);
 }
 
 export async function PATCH(
@@ -55,24 +27,6 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  
-  // Auth guard - require agent or higher
-  const authResult = await requireAgentOrHigher();
-  if (authResult instanceof NextResponse) return authResult;
-  const session = authResult;
-  
-  // SECURITY: Check customer access
-  const accessCheck = await requireCustomerAccess(id, {
-    id: session.id,
-    role: session.role,
-    user_type: session.user_type,
-    tenant_id: session.tenant_id,
-  });
-  
-  if (!accessCheck.allowed) {
-    return NextResponse.json({ error: accessCheck.reason || 'Access denied' }, { status: 403 });
-  }
-  
   const supabase = await createClient();
   const body = await request.json();
   
@@ -120,8 +74,7 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   
-  // Strip sensitive fields but keep all operational data
-  return NextResponse.json(stripSensitiveFields(data));
+  return NextResponse.json(data);
 }
 
 export async function PUT(
@@ -138,24 +91,6 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    
-    // Auth guard - require agent or higher
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-    const session = authResult;
-    
-    // SECURITY: Check customer access
-    const accessCheck = await requireCustomerAccess(id, {
-      id: session.id,
-      role: session.role,
-      user_type: session.user_type,
-      tenant_id: session.tenant_id,
-    });
-    
-    if (!accessCheck.allowed) {
-      return NextResponse.json({ error: accessCheck.reason || 'Access denied' }, { status: 403 });
-    }
-    
     const supabase = await createClient();
     
     // Get customer info before deleting

@@ -97,18 +97,13 @@ export default function GovernancePage() {
 
   const handleWorkflowAction = async (id: string, action: 'approve' | 'reject') => {
     try {
-      // ดึง admin ID จาก localStorage
-      const adminId = typeof window !== 'undefined' 
-        ? localStorage.getItem('admin_id') || localStorage.getItem('user_id') || 'admin' 
-        : 'admin';
-      
       const res = await fetch('/api/admin/governance/approval-workflows', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id,
           action,
-          actor_id: adminId,
+          actor_id: 'admin', // TODO: ใช้ actual admin ID
           rejection_reason: action === 'reject' ? 'Rejected by admin' : undefined
         })
       });

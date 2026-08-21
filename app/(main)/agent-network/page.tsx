@@ -50,7 +50,8 @@ import {
   ArrowDownRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { fetcher } from '@/lib/fetcher';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 interface Agent {
   id: string;

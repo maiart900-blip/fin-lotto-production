@@ -73,13 +73,11 @@ interface TopupRequest {
   amount: number;
   bank_name: string;
   slip_url: string | null;
-  slip_hash?: string | null; // For duplicate detection
   status: 'pending' | 'approved' | 'rejected';
   reject_reason: string | null;
   approved_by: string | null;
   approved_at: string | null;
   created_at: string;
-  is_duplicate_slip?: boolean; // Flag for duplicate slip warning
   customer: {
     id: string;
     name: string;
@@ -108,11 +106,6 @@ export default function TopupRequestsPage() {
   const [processing, setProcessing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hasNewRequest, setHasNewRequest] = useState(false);
-  const [slipVerificationChecks, setSlipVerificationChecks] = useState({
-    amountMatch: false,      // จำนวนเงินตรงกัน
-    dateTimeValid: false,    // วันเวลาถูกต้อง
-    slipNotDuplicate: false, // สลิปไม่ซ้ำ
-  });
   const prevCountRef = useRef<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
@@ -197,27 +190,8 @@ export default function TopupRequestsPage() {
     (r.approved_at ? new Date(r.approved_at).toDateString() === today : false)
   ).length;
   
-  // Verification check helpers
-  const allSlipVerificationsPassed = Object.values(slipVerificationChecks).every(v => v);
-  const verificationCount = Object.values(slipVerificationChecks).filter(v => v).length;
-  
-  const resetSlipVerification = () => {
-    setSlipVerificationChecks({
-      amountMatch: false,
-      dateTimeValid: false,
-      slipNotDuplicate: false,
-    });
-  };
-  
   const handleApprove = async (request: TopupRequest) => {
     if (processing) return;
-    
-    // Check if all verifications passed
-    if (!allSlipVerificationsPassed) {
-      toast.error(`ต้องยืนยันการตรวจสอบสลิปครบ 3 ข้อก่อนอนุมัติ (ผ่านแล้ว ${verificationCount}/3)`);
-      return;
-    }
-    
     setProcessing(true);
     
     try {
@@ -228,7 +202,6 @@ export default function TopupRequestsPage() {
           id: request.id,
           status: 'approved',
           approved_by: user?.id,
-          verification_audit: slipVerificationChecks, // Include verification audit
         }),
       });
       
@@ -240,7 +213,6 @@ export default function TopupRequestsPage() {
       toast.success('อนุมัติคำขอเติมเงินเรียบร้อย');
       mutate();
       setShowDetailDialog(false);
-      resetSlipVerification();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด');
     } finally {
@@ -605,63 +577,6 @@ export default function TopupRequestsPage() {
                       className="w-full max-h-[300px] object-contain bg-muted"
                     />
                   </div>
-                  {selectedRequest.is_duplicate_slip && (
-                    <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded flex items-center gap-2 text-red-700">
-                      <AlertTriangle className="size-4" />
-                      <span className="text-sm font-medium">คำเตือน: พบสลิปซ้ำในระบบ</span>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Slip Verification Checklist - Only for pending requests */}
-              {selectedRequest.status === 'pending' && (
-                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-                  <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                    <CheckCircle className="size-4" />
-                    ตรวจสอบสลิปก่อนอนุมัติ ({verificationCount}/3)
-                  </h4>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-3 cursor-pointer hover:bg-blue-100 p-2 rounded">
-                      <input
-                        type="checkbox"
-                        checked={slipVerificationChecks.amountMatch}
-                        onChange={(e) => setSlipVerificationChecks(prev => ({ ...prev, amountMatch: e.target.checked }))}
-                        className="size-4 rounded border-blue-300 text-blue-600"
-                      />
-                      <span className="text-sm">
-                        <strong>1. จำนวนเงินตรงกัน</strong> - ยอดในสลิปตรงกับที่ขอเติม
-                      </span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer hover:bg-blue-100 p-2 rounded">
-                      <input
-                        type="checkbox"
-                        checked={slipVerificationChecks.dateTimeValid}
-                        onChange={(e) => setSlipVerificationChecks(prev => ({ ...prev, dateTimeValid: e.target.checked }))}
-                        className="size-4 rounded border-blue-300 text-blue-600"
-                      />
-                      <span className="text-sm">
-                        <strong>2. วัน-เวลาถูกต้อง</strong> - สลิปไม่ล่าช้าเกินกำหนด
-                      </span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer hover:bg-blue-100 p-2 rounded">
-                      <input
-                        type="checkbox"
-                        checked={slipVerificationChecks.slipNotDuplicate}
-                        onChange={(e) => setSlipVerificationChecks(prev => ({ ...prev, slipNotDuplicate: e.target.checked }))}
-                        className="size-4 rounded border-blue-300 text-blue-600"
-                      />
-                      <span className="text-sm">
-                        <strong>3. สลิปไม่ซ้ำ</strong> - ยืนยันว่าไม่เคยใช้สลิปนี้
-                      </span>
-                    </label>
-                  </div>
-                  {!allSlipVerificationsPassed && (
-                    <p className="text-sm text-amber-600 mt-3 flex items-center gap-1">
-                      <AlertTriangle className="size-3" />
-                      ต้องตรวจสอบครบทุกข้อก่อนกดอนุมัติ
-                    </p>
-                  )}
                 </div>
               )}
               
@@ -697,14 +612,14 @@ export default function TopupRequestsPage() {
                 <Button
                   className="flex-1 bg-green-600 hover:bg-green-700"
                   onClick={() => handleApprove(selectedRequest)}
-                  disabled={processing || !allSlipVerificationsPassed}
+                  disabled={processing}
                 >
                   {processing ? (
                     <Loader2 className="size-4 mr-2 animate-spin" />
                   ) : (
                     <CheckCircle className="size-4 mr-2" />
                   )}
-                  อนุมัติ ({verificationCount}/3)
+                  อนุมัติ
                 </Button>
               </div>
             )}

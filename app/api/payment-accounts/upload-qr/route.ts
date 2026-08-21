@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       originalUrl: blob.url,
     });
   } catch (error) {
-    console.error('Upload QR error:', error);
+    console.error('[v0] Upload QR error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'อัปโหลดไม่สำเร็จ กรุณาลองใหม่', details: errorMessage },

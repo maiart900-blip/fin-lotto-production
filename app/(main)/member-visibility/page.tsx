@@ -42,7 +42,8 @@ import {
   isMenuRestricted,
   type MenuSection,
 } from '@/lib/menu-config';
-import { fetcher } from '@/lib/fetcher';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 interface Member {
   id: string;
@@ -57,20 +58,19 @@ interface Member {
 }
 
 export default function MemberVisibilityPage() {
-  // Fetch members (staff/team) from customers table where agent_level = 'member'
-  // Members are staff working under agents, NOT customers/bettors
-  const { data, mutate, isLoading } = useSWR('/api/customers?agent_level=member&limit=100', fetcher);
-  // API returns array directly: Customer[]
-  const members: Member[] = (Array.isArray(data) ? data : []).map((customer: any) => ({
-    id: customer.id,
-    username: customer.username,
-    name: customer.name || customer.display_name,
-    system_type: customer.system_type || 'manual_key',
-    agent_level: customer.agent_level || 'member',
-    status: customer.is_active !== false ? 'active' : 'inactive',
-    visible_menus: Array.isArray(customer.visible_menus) ? customer.visible_menus : [],
-    can_key_lottery: customer.can_key_lottery !== false,
-    can_approve_transactions: customer.can_approve_transactions || false,
+  // Use agents API to get all agents (not customers)
+  const { data, mutate, isLoading } = useSWR('/api/agents', fetcher);
+  // API returns { agents: [], summary: {}, pagination: {} }
+  const members: Member[] = (data?.agents || []).map((agent: any) => ({
+    id: agent.id,
+    username: agent.code,
+    name: agent.name,
+    system_type: agent.system_type || (agent.enable_auto && agent.enable_manual_key ? 'both' : agent.enable_auto ? 'auto' : 'manual_key'),
+    agent_level: agent.role,
+    status: agent.is_active !== false ? 'active' : 'inactive',
+    visible_menus: [],
+    can_key_lottery: agent.enable_manual_key !== false,
+    can_approve_transactions: false,
   }));
   
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
@@ -130,20 +130,18 @@ export default function MemberVisibilityPage() {
       setSelectedMember(memberId);
       
       try {
-        // Use customer menu-permissions API for members (staff)
-        const res = await fetch(`/api/menu-permissions?target_id=${memberId}&target_type=member`, {
-          credentials: 'include',
-        });
+        // Use new agent permissions API
+        const res = await fetch(`/api/agents/${memberId}/permissions`);
         const data = await res.json();
         
-        if (data.permissions && data.permissions.length > 0) {
-          setVisibleMenus(data.permissions);
+        if (data.success && data.visible_menus) {
+          setVisibleMenus(data.visible_menus);
         } else {
           setVisibleMenus(member.visible_menus || getDefaultPermissions('member'));
         }
         
-        setCanKeyLottery(data.canKeyLottery ?? member.can_key_lottery ?? true);
-        setCanApproveTransactions(data.canApproveTransactions ?? member.can_approve_transactions ?? false);
+        setCanKeyLottery(data.agent?.enable_manual_key ?? member.can_key_lottery ?? true);
+        setCanApproveTransactions(data.permissions?.['financial']?.can_approve || member.can_approve_transactions || false);
       } catch {
         setVisibleMenus(member.visible_menus || getDefaultPermissions('member'));
         setCanKeyLottery(member.can_key_lottery !== false);
@@ -225,17 +223,16 @@ export default function MemberVisibilityPage() {
     
     setSaving(true);
     try {
-      // Use menu-permissions API for members (staff)
-      const res = await fetch('/api/menu-permissions', {
-        method: 'POST',
+      // Use new agent permissions API
+      const res = await fetch(`/api/agents/${selectedMember}/permissions`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
-          target_id: selectedMember,
-          target_type: 'member',
-          permissions: visibleMenus,
-          canKeyLottery: canKeyLottery,
-          canApproveTransactions: canApproveTransactions,
+          visible_menus: visibleMenus,
+          enable_manual_key: canKeyLottery,
+          permissions: {
+            financial: { can_approve: canApproveTransactions },
+          },
         }),
       });
 

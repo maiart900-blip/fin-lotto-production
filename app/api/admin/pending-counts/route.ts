@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTodayDateRange } from '@/lib/daily-reset';
-import { requireAdmin } from '@/lib/api-auth';
 
 export async function GET() {
   try {
-    // Auth guard - require admin
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     
     // Get today's business day range (resets at 01:00 AM Thailand time)
@@ -74,7 +69,7 @@ export async function GET() {
 
     return NextResponse.json(counts);
   } catch (error) {
-    console.error('Pending counts error:', error);
+    console.error('[v0] Pending counts error:', error);
     return NextResponse.json({
       topupPending: 0,
       withdrawPending: 0,

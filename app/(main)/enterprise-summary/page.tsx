@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import useSWR from 'swr';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,63 +14,16 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 // Enterprise Platform Summary for Super Admin
 export default function EnterpriseSummaryPage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [totalVolume, setTotalVolume] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ดึงข้อมูลจาก APIs
-  const { data: dashboardStats, mutate: mutateDashboard } = useSWR('/api/dashboard/stats', fetcher);
-  const { data: sitesData, mutate: mutateSites } = useSWR('/api/sites', fetcher);
-  const { data: agentsData, mutate: mutateAgents } = useSWR('/api/agents', fetcher);
-  const { data: customersData, mutate: mutateCustomers } = useSWR('/api/customers', fetcher);
-
-  // Extract arrays from API responses
-  const sites = sitesData?.sites || sitesData || [];
-  const agents = agentsData?.agents || agentsData || [];
-  const customers = Array.isArray(customersData) ? customersData : [];
-
-  // Map data จาก APIs - ถ้าไม่มีข้อมูลจะแสดง 0
-  const platformStats = {
-    totalSites: sites.length,
-    activeSites: sites.filter((s: any) => s.is_active).length,
-    suspendedSites: sites.filter((s: any) => !s.is_active).length,
-    totalMembers: customers.length,
-    activeMembers: customers.filter((c: any) => c.is_active).length,
-    totalAgents: agents.length,
-    activeAgents: agents.filter((a: any) => a.is_active).length,
-    totalVolume: dashboardStats?.total?.totalBets || 0,
-    todayVolume: dashboardStats?.today?.totalBets || 0,
-    todayProfit: dashboardStats?.today?.netProfit || 0,
-    pendingWithdrawals: dashboardStats?.total?.totalWithdrawals || 0,
-    systemHealth: 99.5,
-  };
-
-  // Top sites from API - ถ้าไม่มีข้อมูลจะแสดง empty array
-  const topSites = sites.slice(0, 5).map((s: any, i: number) => ({
-    id: i + 1,
-    name: s.name || s.site_name || 'Unknown',
-    domain: s.domain || '-',
-    volume: 0,
-    profit: 0,
-    members: 0,
-    status: s.is_active ? 'active' : 'inactive',
-  }));
-
-  // Recent alerts - empty for now (would need real-time API)
-  const recentAlerts: { type: string; message: string; time: string }[] = [];
-
   // Animated counter effect
   useEffect(() => {
     setIsLoaded(true);
-    const target = platformStats.totalVolume || 0;
-    if (target === 0) {
-      setTotalVolume(0);
-      return;
-    }
+    const target = 2847650000; // 2.8 billion
     const duration = 2000;
     const steps = 60;
     const increment = target / steps;
@@ -87,7 +39,38 @@ export default function EnterpriseSummaryPage() {
     }, duration / steps);
 
     return () => clearInterval(timer);
-  }, [platformStats.totalVolume]);
+  }, []);
+
+  // Mock data
+  const platformStats = {
+    totalSites: 47,
+    activeSites: 42,
+    suspendedSites: 5,
+    totalMembers: 125847,
+    activeMembers: 89456,
+    totalAgents: 3421,
+    activeAgents: 2890,
+    totalVolume: 2847650000,
+    todayVolume: 156780000,
+    todayProfit: 23540000,
+    pendingWithdrawals: 12500000,
+    systemHealth: 98.5,
+  };
+
+  const topSites = [
+    { id: 1, name: 'LuckyLotto888', domain: 'luckylotto888.com', volume: 456780000, profit: 68520000, members: 23450, status: 'active' },
+    { id: 2, name: 'VIPLotto', domain: 'viplotto.net', volume: 389450000, profit: 58420000, members: 19870, status: 'active' },
+    { id: 3, name: 'GoldNumber', domain: 'goldnumber.co', volume: 312560000, profit: 46890000, members: 15640, status: 'active' },
+    { id: 4, name: 'StarLotto', domain: 'starlotto.com', volume: 278900000, profit: 41840000, members: 12340, status: 'active' },
+    { id: 5, name: 'DiamondBet', domain: 'diamondbet.asia', volume: 245670000, profit: 36850000, members: 11230, status: 'active' },
+  ];
+
+  const recentAlerts = [
+    { type: 'warning', message: 'เลข 888 ใกล้เต็มเพดาน (95%)', time: '2 นาทีที่แล้ว' },
+    { type: 'success', message: 'Settlement Site #12 เสร็จสิ้น', time: '15 นาทีที่แล้ว' },
+    { type: 'info', message: 'เว็บลูกใหม่ DiamondBet เปิดใช้งาน', time: '1 ชั่วโมงที่แล้ว' },
+    { type: 'warning', message: 'เอเย่นต์ A001 เครดิตใกล้หมด', time: '2 ชั่วโมงที่แล้ว' },
+  ];
 
   const formatNumber = (num: number) => {
     if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
@@ -96,10 +79,9 @@ export default function EnterpriseSummaryPage() {
     return num.toLocaleString();
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setIsRefreshing(true);
-    await Promise.all([mutateDashboard(), mutateSites(), mutateAgents(), mutateCustomers()]);
-    setIsRefreshing(false);
+    setTimeout(() => setIsRefreshing(false), 2000);
   };
 
   return (

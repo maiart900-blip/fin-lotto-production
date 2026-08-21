@@ -399,7 +399,7 @@ export default function SubSitesPage() {
           <DialogHeader>
             <DialogTitle className="text-[#D4AF37] flex items-center gap-2">
               <Plus className="size-5" />
-              สร้างเว็บลูกใหม่
+              ส���้างเว็บลูกใหม่
             </DialogTitle>
           </DialogHeader>
 

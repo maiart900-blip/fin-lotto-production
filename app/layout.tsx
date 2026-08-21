@@ -15,9 +15,8 @@ export const viewport: Viewport = {
   themeColor: '#000000', // Pure Black for Premium Midnight Gold theme
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  viewportFit: 'cover', // Full screen on notched devices
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export const metadata: Metadata = {
@@ -25,30 +24,13 @@ export const metadata: Metadata = {
     default: 'FIN LOTTO R+ | เว็บหวยออนไลน์ระดับพรีเมี่ยม',
     template: '%s | FIN LOTTO R+',
   },
-  description: 'FIN LOTTO R+ แพลตฟอร์มลอตเตอรี่ออนไลน์ระดับพรีเมียม มั่นคง ปลอดภัย ฝาก-ถอนออโต้ 24 ชม. รองรับหวยทุกประเภท จ่ายสูงบาทละ 900 พร้อมระบบอัตโนมัติเต็มรูปแบบ',
-  keywords: [
-    'ลอตเตอรี่ออนไลน์',
-    'แพลตฟอร์มลอตเตอรี่',
-    'หวยออนไลน์',
-    'แทงหวยออนไลน์',
-    'ฝากถอนออโต้',
-    'หวยจ่ายสูง',
-    'เว็บหวยพรีเมียม',
-    'หวย',
-    'ลอตเตอรี่',
-    'FIN LOTTO',
-    'หวยรัฐบาล',
-    'หวยหุ้น',
-    'หวยลาว',
-    'หวยฮานอย',
-    'หวยยี่กี',
-    'ฝากถอน 24 ชั่วโมง',
-  ],
+  description: 'FIN LOTTO R+ เว็บหวยออนไลน์ระดับพรีเมี่ยม จ่ายสูงบาทละ 900 มั่นคง ปลอดภัย ฝาก-ถอนออโต้ 24 ชม.',
+  keywords: ['หวยออนไลน์', 'แทงหวย', 'หวย', 'ลอตเตอรี่', 'FIN LOTTO', 'หวยรัฐบาล', 'หวยหุ้น', 'หวยลาว', 'หวยฮานอย'],
   authors: [{ name: 'FIN LOTTO R+' }],
   creator: 'FIN LOTTO R+',
   publisher: 'FIN LOTTO R+',
   generator: 'Next.js',
-  manifest: '/api/manifest', // Dynamic manifest endpoint
+  manifest: '/manifest.json',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://finlottop.com'),
   alternates: {
     canonical: '/',
@@ -58,8 +40,8 @@ export const metadata: Metadata = {
     locale: 'th_TH',
     url: '/',
     siteName: 'FIN LOTTO R+',
-    title: 'FIN LOTTO R+ | แพลตฟอร์มลอตเตอรี่ออนไลน์ระดับพรีเมียม',
-    description: 'แพลตฟอร์มลอตเตอรี่ออนไลน์ระดับพรีเมียม มั่นคง ปลอดภัย ฝาก-ถอนออโต้ 24 ชม. จ่ายสูงบาทละ 900',
+    title: 'FIN LOTTO R+ | เว็บหวยออนไลน์ระดับพรีเมี่ยม',
+    description: 'FIN LOTTO R+ เว็บหวยออนไลน์ระดับพรีเมี่ยม จ่ายสูงบาทละ 900 มั่นคง ปลอดภัย ฝาก-ถอนออโต้ 24 ชม.',
     images: [
       {
         url: '/og-image.png',
@@ -71,8 +53,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FIN LOTTO R+ | แพลตฟอร์มลอตเตอรี่ออนไลน์ระดับพรีเมียม',
-    description: 'แพลตฟอร์มลอตเตอรี่ออนไลน์ระดับพรีเมียม มั่นคง ปลอดภัย ฝาก-ถอนออโต้ 24 ชม.',
+    title: 'FIN LOTTO R+ | เว็บหวยออนไลน์ระดับพรีเมี่ยม',
+    description: 'FIN LOTTO R+ เว็บหวยออนไลน์ระดับพรีเมี่ยม จ่ายสูงบาทละ 900 มั่นคง ปลอดภัย',
     images: ['/og-image.png'],
   },
   robots: {

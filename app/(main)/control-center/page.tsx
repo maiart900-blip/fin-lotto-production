@@ -83,8 +83,15 @@ export default function ControlCenterPage() {
     { refreshInterval: 5000 }
   );
 
-  // ใช้ข้อมูลจาก API เท่านั้น - ถ้าไม่มีข้อมูลจะแสดง empty state
-  const riskNumbers: RiskNumber[] = riskData?.numbers || [];
+  // Mock risk numbers for demo
+  const riskNumbers: RiskNumber[] = riskData?.numbers || [
+    { number: '69', totalBets: 125000, potentialPayout: 10625000, riskLevel: 'critical', action: 'blocked' },
+    { number: '96', totalBets: 98000, potentialPayout: 8330000, riskLevel: 'high', action: 'reduced', adjustedRate: 70 },
+    { number: '88', totalBets: 75000, potentialPayout: 6375000, riskLevel: 'high', action: 'reduced', adjustedRate: 75 },
+    { number: '00', totalBets: 65000, potentialPayout: 5525000, riskLevel: 'medium', action: 'normal' },
+    { number: '11', totalBets: 55000, potentialPayout: 4675000, riskLevel: 'medium', action: 'normal' },
+    { number: '77', totalBets: 45000, potentialPayout: 3825000, riskLevel: 'low', action: 'normal' },
+  ];
 
   const handleModeChange = async (mode: 'auto' | 'manual' | 'hybrid') => {
     setSystemMode(prev => ({ ...prev, mode }));

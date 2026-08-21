@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/api-auth';
 
 interface BotSettings {
   id: string;
@@ -63,10 +62,6 @@ async function sendToFacebook(pageId: string, accessToken: string, message: stri
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth guard - require admin for announcing results
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     const body = await request.json();
     const { lottery_id, result_id, result_data } = body;

@@ -15,7 +15,7 @@ export async function GET() {
       .eq('is_active', true);
     
     if (error) {
-      console.error('Gateway health check error:', error.message);
+      console.error('[v0] Gateway health check error:', error.message);
       return NextResponse.json({ 
         status: 'error', 
         message: error.message,
@@ -90,7 +90,7 @@ export async function GET() {
       checkedAt: new Date().toISOString(),
     });
   } catch (err) {
-    console.error('Gateway health check failed:', err);
+    console.error('[v0] Gateway health check failed:', err);
     return NextResponse.json({ 
       status: 'error', 
       message: 'Health check failed',
@@ -285,7 +285,7 @@ export async function POST(request: Request) {
     // Check all gateways - redirect to GET
     return NextResponse.redirect(new URL('/api/gateway/health', request.url));
   } catch (err) {
-    console.error('Manual health check failed:', err);
+    console.error('[v0] Manual health check failed:', err);
     return NextResponse.json({ error: 'Health check failed' }, { status: 500 });
   }
 }

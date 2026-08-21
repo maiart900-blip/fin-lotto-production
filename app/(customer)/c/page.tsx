@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -17,25 +17,9 @@ import {
   FileText,
   Wallet,
   Radio,
-  Sparkles,
-  Gamepad2,
-  Dices,
-  Zap,
-  Shield,
-  Gift,
-  TrendingUp,
-  Star,
-  Crown,
-  Copy,
-  Check,
-  Moon,
-  Gem,
-  Cloud,
 } from 'lucide-react';
 import useSWR from 'swr';
 import { BannerCarousel } from '@/components/customer/banner-carousel';
-import { FeatureBar } from '@/components/customer/feature-bar';
-import { toast } from 'sonner';
 
 interface CustomerData {
   id: string;
@@ -61,7 +45,6 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 export default function CustomerDashboard() {
   const { data: customerData } = useSWR<CustomerData>('/api/customer/me', fetcher);
   const { data: settings } = useSWR('/api/settings', fetcher);
-  const [copied, setCopied] = useState(false);
   
   const turnoverEnabled = settings?.turnover_enabled ?? false;
   const { data: siteSettings } = useSWR<SiteSettings>('/api/site-settings', fetcher);
@@ -75,45 +58,28 @@ export default function CustomerDashboard() {
     }).format(balance || 0);
   };
 
-  const copyReferralCode = () => {
-    if (customer?.referral_code) {
-      navigator.clipboard.writeText(customer.referral_code);
-      setCopied(true);
-      toast.success('คัดลอกรหัสแนะนำแล้ว');
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  // Auto System Menu Items (Casino/Slots/Sports - No Agent)
-  const autoSystemItems = [
-    { icon: Dices, label: 'หวยออโต้', href: '/c/lotteries', color: 'from-amber-500 to-amber-600', description: 'ฝากถอนอัตโนมัติ' },
-    { icon: Gamepad2, label: 'คาสิโน', href: '/c/casino', color: 'from-red-500 to-pink-600', description: 'บาคาร่า รูเล็ต' },
-    { icon: Sparkles, label: 'สล็อต', href: '/c/slots', color: 'from-purple-500 to-violet-600', description: 'เกมสล็อตออนไลน์' },
-    { icon: Trophy, label: 'กีฬา', href: '/c/arcade', color: 'from-green-500 to-emerald-600', description: 'แทงบอลออนไลน์' },
-  ];
-
-  // Quick Action Items
-  const quickMenuItems = [
+  // Menu items for quick actions
+  const menuItems = [
     { icon: Ticket, label: 'แทงหวย', href: '/c/lotteries', color: 'text-amber-400' },
     { icon: Trophy, label: 'ผลรางวัล', href: '/c/results', color: 'text-amber-400' },
     { icon: Radio, label: 'ดูไลฟ์สด', href: '/c/live', color: 'text-red-500' },
     { icon: FileText, label: 'รายการโพย', href: '/c/tickets', color: 'text-amber-400' },
+    { icon: History, label: 'ประวัติการเล่น', href: '/c/history', color: 'text-amber-400' },
   ];
 
   return (
     <div className="min-h-screen bg-black pb-24 premium-bg-pattern" style={{ fontFamily: "'Kanit', sans-serif" }}>
       {/* Animated Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[400px] bg-amber-500/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-40 right-0 w-[400px] h-[400px] bg-amber-600/3 rounded-full blur-[100px]" />
-        <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-blue-500/3 rounded-full blur-[80px]" />
+        <div className="absolute top-0 left-1/4 w-[400px] h-[300px] bg-amber-500/5 rounded-full blur-[100px]" />
+        <div className="absolute bottom-40 right-0 w-[300px] h-[300px] bg-amber-600/3 rounded-full blur-[80px]" />
       </div>
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-amber-500/20">
+      <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-amber-500/20">
         <div className="flex items-center justify-between px-4 h-16">
-          <button className="w-10 h-10 rounded-xl bg-neutral-900/80 border border-amber-500/30 flex items-center justify-center hover:bg-neutral-800 hover:border-amber-500/50 transition-all group">
-            <Menu className="w-5 h-5 text-amber-400 group-hover:text-amber-300" />
+          <button className="w-10 h-10 rounded-xl bg-neutral-900/80 border border-amber-500/30 flex items-center justify-center hover:bg-neutral-800 hover:border-amber-500/50 transition-all">
+            <Menu className="w-5 h-5 text-amber-400" />
           </button>
           
           <div className="relative">
@@ -135,58 +101,41 @@ export default function CustomerDashboard() {
             )}
           </div>
           
-          <button className="w-10 h-10 rounded-xl bg-neutral-900/80 border border-amber-500/30 flex items-center justify-center relative hover:bg-neutral-800 hover:border-amber-500/50 transition-all group">
-            <Bell className="w-5 h-5 text-amber-400 group-hover:text-amber-300" />
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-red-600 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-lg shadow-red-500/30 animate-pulse">3</span>
+          <button className="w-10 h-10 rounded-xl bg-neutral-900/80 border border-amber-500/30 flex items-center justify-center relative hover:bg-neutral-800 hover:border-amber-500/50 transition-all">
+            <Bell className="w-5 h-5 text-amber-400" />
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-red-600 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-lg shadow-red-500/30">3</span>
           </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10">
+      <main className="px-4 pt-5 space-y-5 relative z-10">
         {/* Banner Carousel */}
-        <div className="px-4 pt-5">
-          <BannerCarousel />
-        </div>
+        <BannerCarousel />
         
-        {/* Feature Bar */}
-        <div className="mt-4">
-          <FeatureBar />
-        </div>
-        
-        <div className="px-4 pt-5 space-y-5 pb-24">
-        
-        {/* User Profile Card - Ultra Premium Glassmorphic */}
-        <div className="glass-card p-4">
+        {/* User Profile Card - Premium */}
+        <div className="premium-card p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 via-yellow-300 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 reflective-shine">
-                  <User className="w-7 h-7 text-black" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center border-2 border-black">
-                  <Crown className="w-3 h-3 text-black" />
-                </div>
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 via-yellow-300 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                <User className="w-7 h-7 text-black" />
               </div>
               <div>
-                <p className="text-neutral-400 text-sm">Welcome back</p>
+                <p className="text-neutral-400 text-sm">สวัสดีครับ</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-white font-bold text-lg">{customer?.name || 'FIN PLAYER'}</span>
-                  <span className="vip-badge flex items-center gap-1">
-                    <Star className="w-3 h-3" />
-                    VIP {customer?.vip_level || 1}
+                  <span className="text-white font-semibold text-lg">{customer?.name || 'FIN PLAYER'}</span>
+                  <span className="vip-badge">
+                    VIP {customer?.vip_level || 8}
                   </span>
                 </div>
               </div>
             </div>
-            <Link href="/c/profile">
-              <ChevronRight className="w-5 h-5 text-amber-500/50 hover:text-amber-400 transition-colors" />
-            </Link>
+            <ChevronRight className="w-5 h-5 text-amber-500/50" />
           </div>
         </div>
 
         {/* Wallet Balance Card - Premium with Glow */}
-        <div className="glass-card-gold p-5 glow-pulse">
+        <div className="premium-card p-5 glow-pulse">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/30 to-amber-600/20 border border-amber-500/40 flex items-center justify-center">
@@ -194,29 +143,25 @@ export default function CustomerDashboard() {
               </div>
               <div>
                 <p className="text-neutral-400 text-sm">ยอดเงินคงเหลือ</p>
-                <p className="text-3xl font-bold gold-amount">
+                <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400">
                   {formatBalance(customer?.credit_balance || 0)} <span className="text-base font-normal text-neutral-400">บาท</span>
                 </p>
               </div>
             </div>
-            <Link href="/c/topup">
-              <button className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/30 btn-gold-glow">
-                <Plus className="w-6 h-6 text-black" />
-              </button>
-            </Link>
+            <button className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500/30 to-amber-600/20 border border-amber-500/40 flex items-center justify-center hover:from-amber-500/40 hover:to-amber-600/30 transition-all">
+              <Plus className="w-6 h-6 text-amber-400" />
+            </button>
           </div>
           
           {/* Deposit & Withdraw Buttons */}
           <div className="grid grid-cols-2 gap-3">
             <Link href="/c/topup">
-              <button className="btn-luxury w-full h-12 rounded-xl text-base reflective-shine">
-                <Zap className="w-4 h-4 mr-2 inline" />
+              <button className="btn-luxury w-full h-12 rounded-xl text-base">
                 เติมเงิน
               </button>
             </Link>
             <Link href="/c/withdraw">
-              <button className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-neutral-800 to-neutral-700 border border-amber-500/40 text-amber-400 hover:from-neutral-700 hover:to-neutral-600 hover:border-amber-500/60 transition-all shadow-lg flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 mr-2" />
+              <button className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-neutral-800 to-neutral-700 border border-amber-500/40 text-amber-400 hover:from-neutral-700 hover:to-neutral-600 hover:border-amber-500/60 transition-all shadow-lg">
                 ถอนเงิน
               </button>
             </Link>
@@ -226,17 +171,14 @@ export default function CustomerDashboard() {
           {turnoverEnabled && customer?.required_turnover && customer.required_turnover > 0 && (
             <div className="mt-4 pt-4 border-t border-amber-500/20">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-neutral-400 flex items-center gap-1">
-                  <Shield className="w-3 h-3" />
-                  ยอดเทิร์นโอเวอร์
-                </span>
+                <span className="text-xs text-neutral-400">ยอดเทิร์นโอเวอร์</span>
                 <span className={`text-xs font-medium ${(customer?.current_turnover || 0) >= customer.required_turnover ? 'text-green-400' : 'text-amber-400'}`}>
                   {((customer?.current_turnover || 0) / customer.required_turnover * 100).toFixed(0)}%
                 </span>
               </div>
-              <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-neutral-800 rounded-full overflow-hidden">
                 <div 
-                  className={`h-full transition-all duration-500 ${(customer?.current_turnover || 0) >= customer.required_turnover ? 'bg-gradient-to-r from-green-500 to-emerald-400' : 'bg-gradient-to-r from-amber-500 to-amber-400'}`}
+                  className={`h-full transition-all duration-500 ${(customer?.current_turnover || 0) >= customer.required_turnover ? 'bg-green-500' : 'bg-gradient-to-r from-amber-500 to-amber-400'}`}
                   style={{ width: `${Math.min(100, ((customer?.current_turnover || 0) / customer.required_turnover) * 100)}%` }}
                 />
               </div>
@@ -252,272 +194,62 @@ export default function CustomerDashboard() {
           )}
         </div>
 
-        {/* Referral Code Card */}
-        {customer?.referral_code && (
-          <div className="glass-card p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-violet-600/20 border border-purple-500/30 flex items-center justify-center">
-                  <Gift className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-neutral-400">รหัสแนะนำเพื่อน</p>
-                  <p className="font-mono font-bold text-white tracking-wider">{customer.referral_code}</p>
-                </div>
-              </div>
-              <button 
-                onClick={copyReferralCode}
-                className="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 transition-all flex items-center gap-2"
-              >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span className="text-sm">{copied ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ======================================
-            SYSTEM SEPARATION UI
-            Auto System vs Manual Key Lottery
-            ====================================== */}
-        
-        {/* Section: Auto System (Casino/Slots/Sports/Auto Lottery) */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-600/20 border border-amber-500/30 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-amber-400" />
-            </div>
-            <div>
-              <h2 className="font-bold text-white text-base">ระบบเว็บออโต้</h2>
-              <p className="text-[10px] text-neutral-500">ฝาก-ถอนอัตโนมัติ ไม่ต้องผ่านเอเย่นต์</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            {autoSystemItems.map((item, index) => (
-              <Link key={index} href={item.href}>
-                <div className="glass-card p-4 hover:scale-[1.02] transition-all group">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg`}>
-                    <item.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-white font-semibold text-sm">{item.label}</h3>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">{item.description}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* ======================================
-            PREMIUM MYSTICAL FEATURES
-            Fortune, Lucky Numbers, Dream Interpretation
-            ====================================== */}
-        
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/30 to-violet-600/30 border border-purple-500/40 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-            </div>
-            <div>
-              <h2 className="font-bold text-white text-base">เสริมดวงโชคลาภ</h2>
-              <p className="text-[10px] text-neutral-500">ทำนายเลขเด็ด ดูดวง หาเลขจากฝัน</p>
-            </div>
-          </div>
-          
-          {/* Premium Dream Interpretation Card with Search */}
-          <Link href="/c/dream-interpret">
-            <div className="relative overflow-hidden rounded-2xl border-2 border-indigo-500/50 bg-gradient-to-br from-indigo-900/40 via-purple-900/30 to-blue-900/40 p-5 hover:scale-[1.02] transition-all group shadow-lg shadow-indigo-500/20">
-              {/* Animated glow effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity animate-pulse" />
-              
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-500/40 group-hover:scale-110 transition-transform">
-                    <Moon className="w-8 h-8 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold text-lg">ทำนายฝัน</h3>
-                    <p className="text-indigo-300 text-xs">พิมพ์ความฝันเพื่อหาเลขเด็ด</p>
-                  </div>
-                </div>
-                
-                {/* Interactive Search Preview */}
-                <div className="relative">
-                  <div className="flex items-center gap-2 bg-black/50 rounded-xl px-4 py-3 border border-indigo-500/30 group-hover:border-indigo-400/50 transition-all">
-                    <Cloud className="w-5 h-5 text-indigo-400" />
-                    <span className="text-neutral-400 text-sm flex-1">ฝันว่า... พิมพ์ความฝันที่นี่</span>
-                    <ChevronRight className="w-5 h-5 text-indigo-400 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                  <div className="absolute -bottom-2 left-4 right-4 h-4 bg-gradient-to-t from-indigo-500/10 to-transparent blur-sm" />
-                </div>
-              </div>
-            </div>
-          </Link>
-          
-          {/* Lucky Numbers Card with Live Numbers */}
-          <Link href="/c/lucky-numbers">
-            <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/50 bg-gradient-to-br from-amber-900/40 via-yellow-900/30 to-orange-900/40 p-5 hover:scale-[1.02] transition-all group shadow-lg shadow-amber-500/20">
-              {/* Animated glow effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity animate-pulse" />
-              
-              <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center shadow-xl shadow-amber-500/40 group-hover:scale-110 transition-transform">
-                      <Star className="w-8 h-8 text-white animate-spin" style={{ animationDuration: '4s' }} />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-bold text-lg">เลขเด่นวันนี้</h3>
-                      <p className="text-amber-300 text-xs">เลขมาแรง อัปเดตทุกวัน</p>
-                    </div>
-                  </div>
-                  <div className="px-3 py-1 rounded-full bg-green-500/20 border border-green-500/40">
-                    <span className="text-green-400 text-xs font-bold animate-pulse">LIVE</span>
-                  </div>
-                </div>
-                
-                {/* Live Lucky Numbers Display */}
-                <div className="flex gap-2 justify-center">
-                  {['08', '15', '23', '42', '69'].map((num, i) => (
-                    <div 
-                      key={i} 
-                      className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center font-bold text-black text-lg shadow-lg shadow-amber-500/30 animate-bounce"
-                      style={{ animationDelay: `${i * 0.1}s`, animationDuration: '2s' }}
-                    >
-                      {num}
-                    </div>
-                  ))}
-                </div>
-                <p className="text-center text-amber-300/70 text-[10px] mt-3">* กดเพื่อดูเลขเด่นทั้งหมด</p>
-              </div>
-            </div>
-          </Link>
-          
-          {/* Fortune/Horoscope Card with Zodiac Preview */}
-          <Link href="/c/fortune">
-            <div className="relative overflow-hidden rounded-2xl border-2 border-purple-500/50 bg-gradient-to-br from-purple-900/40 via-violet-900/30 to-pink-900/40 p-5 hover:scale-[1.02] transition-all group shadow-lg shadow-purple-500/20">
-              {/* Animated glow effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity animate-pulse" />
-              
-              <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-xl shadow-purple-500/40 group-hover:scale-110 transition-transform">
-                      <Gem className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-bold text-lg">ดูดวงวันนี้</h3>
-                      <p className="text-purple-300 text-xs">ดวงโชคลาภ สีมงคล เลขนำโชค</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Lucky Preview Badges */}
-                <div className="flex flex-wrap gap-2">
-                  <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/40 flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-yellow-400" />
-                    <span className="text-yellow-300 text-xs font-medium">สีมงคล: เหลือง</span>
-                  </div>
-                  <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-violet-500/20 border border-purple-500/40 flex items-center gap-2">
-                    <Star className="w-4 h-4 text-purple-400" />
-                    <span className="text-purple-300 text-xs font-medium">เลขนำโชค: 9, 36</span>
-                  </div>
-                  <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/40 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-green-400" />
-                    <span className="text-green-300 text-xs font-medium">ดวงการเงิน: ดีมาก</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Link>
-        </div>
-
         {/* Quick Menu - Premium */}
-        <div className="space-y-3">
-          <h2 className="font-bold text-white text-base flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            เมนูลัด
-          </h2>
-          <div className="grid grid-cols-4 gap-3">
-            {quickMenuItems.map((item, index) => (
-              <Link key={index} href={item.href}>
-                <div className="glass-card p-3 flex flex-col items-center gap-2 hover:scale-105 transition-transform">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center">
-                    <item.icon className={`w-6 h-6 ${item.color}`} />
-                  </div>
-                  <span className="text-white text-xs text-center font-medium">{item.label}</span>
+        <div className="grid grid-cols-4 gap-3">
+          {menuItems.map((item, index) => (
+            <Link key={index} href={item.href}>
+              <div className="premium-card p-3 flex flex-col items-center gap-2 hover:scale-105 transition-transform">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center">
+                  <item.icon className={`w-6 h-6 ${item.color}`} />
                 </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Live Stream Section */}
-        <Link href="/c/live">
-          <div className="glass-card overflow-hidden group hover:scale-[1.01] transition-all">
-            <div className="relative h-32 bg-gradient-to-r from-red-600/20 to-pink-600/20 flex items-center justify-center">
-              <div className="absolute inset-0 bg-[url('/images/live-bg.jpg')] bg-cover bg-center opacity-30" />
-              <div className="relative text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-red-400 font-bold text-sm uppercase tracking-wider">LIVE NOW</span>
-                </div>
-                <Radio className="w-10 h-10 text-white mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                <p className="text-white font-semibold">ถ่ายทอดสดผลหวย</p>
-                <p className="text-xs text-neutral-400">ดูการออกรางวัลแบบเรียลไทม์</p>
+                <span className="text-white text-xs text-center font-medium">{item.label}</span>
               </div>
-            </div>
-          </div>
-        </Link>
-
+            </Link>
+          ))}
         </div>
+
+
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900/95 backdrop-blur-xl border-t border-amber-500/20">
+      <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900/95 backdrop-blur-sm border-t border-amber-500/20">
         <div className="flex items-center justify-around h-16 px-2 max-w-md mx-auto">
           <Link href="/c" className="flex flex-col items-center gap-1">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-              <Home className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-amber-400 text-[10px] font-medium">หน้าหลัก</span>
+            <Home className="w-5 h-5 text-amber-400" />
+            <span className="text-amber-400 text-xs">หน้าหลัก</span>
           </Link>
           
           <Link href="/c/lotteries" className="flex flex-col items-center gap-1">
-            <div className="w-8 h-8 rounded-lg bg-neutral-800 flex items-center justify-center">
-              <Ticket className="w-4 h-4 text-neutral-400" />
-            </div>
-            <span className="text-neutral-400 text-[10px]">แทงหวย</span>
+            <Ticket className="w-5 h-5 text-neutral-400" />
+            <span className="text-neutral-400 text-xs">แทงหวย</span>
           </Link>
           
           {/* Center Diamond Button */}
-          <Link href="/c/tickets" className="relative -mt-6">
+          <Link href="/c/rewards" className="relative -mt-6">
             <div 
-              className="w-16 h-16 rounded-2xl rotate-45 flex items-center justify-center reflective-shine"
+              className="w-16 h-16 rounded-2xl rotate-45 flex items-center justify-center"
               style={{
                 background: 'linear-gradient(135deg, #FFD700 0%, #B8860B 50%, #DAA520 100%)',
-                boxShadow: '0 4px 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.3)',
+                boxShadow: '0 4px 20px rgba(255, 215, 0, 0.5)',
               }}
             >
               <div className="-rotate-45">
-                <FileText className="w-7 h-7 text-black" />
+                <svg className="w-7 h-7 text-black" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                </svg>
               </div>
             </div>
-            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-amber-400 text-[10px] whitespace-nowrap font-medium">โพยของฉัน</span>
+            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-amber-400 text-xs whitespace-nowrap">โพยของฉัน</span>
           </Link>
           
           <Link href="/c/transactions" className="flex flex-col items-center gap-1">
-            <div className="w-8 h-8 rounded-lg bg-neutral-800 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-neutral-400" />
-            </div>
-            <span className="text-neutral-400 text-[10px]">รายการ</span>
+            <Clock className="w-5 h-5 text-neutral-400" />
+            <span className="text-neutral-400 text-xs">รายการเติมเงิน</span>
           </Link>
           
           <Link href="/c/profile" className="flex flex-col items-center gap-1">
-            <div className="w-8 h-8 rounded-lg bg-neutral-800 flex items-center justify-center">
-              <User className="w-4 h-4 text-neutral-400" />
-            </div>
-            <span className="text-neutral-400 text-[10px]">โปรไฟล์</span>
+            <User className="w-5 h-5 text-neutral-400" />
+            <span className="text-neutral-400 text-xs">โปรไฟล์</span>
           </Link>
         </div>
       </nav>

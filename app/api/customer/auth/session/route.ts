@@ -45,7 +45,7 @@ export async function GET() {
       }
     });
   } catch (error) {
-    console.error('Session check error:', error);
+    console.error('[v0] Session check error:', error);
     return NextResponse.json({ 
       authenticated: false,
       customer: null 

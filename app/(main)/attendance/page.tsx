@@ -41,8 +41,11 @@ import {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+// Mock admin ID - ในระบบจริงควรดึงจาก session
+const MOCK_ADMIN_ID = '00000000-0000-0000-0000-000000000001';
+
 export default function AttendancePage() {
-  const [adminId, setAdminId] = useState<string | null>(null);
+  const [adminId, setAdminId] = useState(MOCK_ADMIN_ID);
   const [adminType, setAdminType] = useState<'manual_key' | 'auto' | 'withdraw'>('manual_key');
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -54,36 +57,18 @@ export default function AttendancePage() {
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [overrideReason, setOverrideReason] = useState('');
 
-  // ดึง admin ID จาก localStorage on mount
-  useEffect(() => {
-    let userStr = localStorage.getItem('lottery_session');
-    if (!userStr) {
-      userStr = localStorage.getItem('user');
-    }
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setAdminId(user.id);
-      } catch {
-        // Invalid user data
-      }
-    }
-  }, []);
-
   // ดึงข้อมูลการเข้างานวันนี้
   const today = new Date().toISOString().split('T')[0];
   const { data: todayAttendance, mutate: mutateTodayAttendance } = useSWR(
-    adminId ? `/api/admin-attendance?admin_id=${adminId}&date=${today}` : null,
+    `/api/admin-attendance?admin_id=${adminId}&date=${today}`,
     fetcher
   );
 
   // ดึงประวัติการเข้างาน
   const { data: attendanceHistory, mutate: mutateHistory } = useSWR(
-    adminId
-      ? (dateFilter 
-          ? `/api/admin-attendance?admin_id=${adminId}&date=${dateFilter}`
-          : `/api/admin-attendance?admin_id=${adminId}`)
-      : null,
+    dateFilter 
+      ? `/api/admin-attendance?admin_id=${adminId}&date=${dateFilter}`
+      : `/api/admin-attendance?admin_id=${adminId}`,
     fetcher
   );
 

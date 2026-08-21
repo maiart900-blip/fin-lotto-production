@@ -34,13 +34,13 @@ export async function GET(request: Request) {
     const { data, error } = await query;
     
     if (error) {
-      console.error('Forwarding GET error:', error);
+      console.error('[v0] Forwarding GET error:', error);
       return NextResponse.json([]);
     }
     
     return NextResponse.json(data || []);
   } catch (err) {
-    console.error('Forwarding GET exception:', err);
+    console.error('[v0] Forwarding GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       .single();
     
     if (error) {
-      console.error('Forwarding create error:', error);
+      console.error('[v0] Forwarding create error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
     
     return NextResponse.json(data);
   } catch (err) {
-    console.error('Forwarding POST exception:', err);
+    console.error('[v0] Forwarding POST exception:', err);
     return NextResponse.json({ error: 'Failed to create forwarding entry' }, { status: 500 });
   }
 }
@@ -179,13 +179,13 @@ export async function PUT(request: Request) {
       .single();
     
     if (error) {
-      console.error('Forwarding update error:', error);
+      console.error('[v0] Forwarding update error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
     return NextResponse.json(data);
   } catch (err) {
-    console.error('Forwarding PUT exception:', err);
+    console.error('[v0] Forwarding PUT exception:', err);
     return NextResponse.json({ error: 'Failed to update forwarding entry' }, { status: 500 });
   }
 }

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
         .single();
 
       if (error) {
-        console.error('User credit GET error:', error.message);
+        console.error('[v0] User credit GET error:', error.message);
         return NextResponse.json(null);
       }
 
@@ -48,13 +48,13 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Users credit GET error:', error.message);
+      console.error('[v0] Users credit GET error:', error.message);
       return NextResponse.json([]);
     }
 
     return NextResponse.json(data || []);
   } catch (err) {
-    console.error('User credits GET exception:', err);
+    console.error('[v0] User credits GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
         .single();
 
       if (transferError) {
-        console.error('Transfer record error:', transferError.message);
+        console.error('[v0] Transfer record error:', transferError.message);
       }
 
       // Also record in credit_transactions for customer
@@ -208,7 +208,7 @@ export async function POST(request: Request) {
         .single();
 
       if (transferError) {
-        console.error('Transfer record error:', transferError.message);
+        console.error('[v0] Transfer record error:', transferError.message);
       }
 
       return NextResponse.json({
@@ -219,7 +219,7 @@ export async function POST(request: Request) {
       });
     }
   } catch (err) {
-    console.error('User credits POST exception:', err);
+    console.error('[v0] User credits POST exception:', err);
     return NextResponse.json({ error: 'Transfer failed' }, { status: 500 });
   }
 }

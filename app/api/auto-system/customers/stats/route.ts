@@ -7,7 +7,7 @@ export async function GET() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    console.log('Auto Customers Stats - Starting fetch');
+    console.log('[v0] Auto Customers Stats - Starting fetch');
 
     // Get total auto customers (source_type = 'auto' OR system_type = 'auto')
     const { count: total, data: allAutoCustomers, error: totalError } = await supabase
@@ -15,7 +15,7 @@ export async function GET() {
       .select('id, name, is_active, agent_level, created_at, source_type, system_type', { count: 'exact' })
       .or('source_type.eq.auto,system_type.eq.auto');
 
-    console.log('Total Auto Customers:', { count: total, sample: allAutoCustomers?.slice(0, 3), error: totalError });
+    console.log('[v0] Total Auto Customers:', { count: total, sample: allAutoCustomers?.slice(0, 3), error: totalError });
 
     // Get online (active) auto customers
     const online = allAutoCustomers?.filter(c => c.is_active === true).length || 0;
@@ -29,7 +29,7 @@ export async function GET() {
       return createdAt >= today;
     }).length || 0;
 
-    console.log('Auto Customers Breakdown:', { total, online, vip, newToday });
+    console.log('[v0] Auto Customers Breakdown:', { total, online, vip, newToday });
 
     // Get total bets today from auto customers
     const customerIds = allAutoCustomers?.map(c => c.id) || [];
@@ -44,7 +44,7 @@ export async function GET() {
 
       totalBetsToday = (betsData || []).reduce((sum, bet) => sum + Number(bet.total_amount || 0), 0);
       
-      console.log('Today Bets for Auto Customers:', { 
+      console.log('[v0] Today Bets for Auto Customers:', { 
         count: betsData?.length, 
         totalBetsToday, 
         error: betsError 
@@ -61,7 +61,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Auto customers stats error:', error);
+    console.error('[v0] Auto customers stats error:', error);
     return NextResponse.json({
       stats: {
         total: 0,

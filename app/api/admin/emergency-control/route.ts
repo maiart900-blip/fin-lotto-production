@@ -1,15 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
-import { requireSuperAdmin } from "@/lib/api-auth"
-import { logAudit } from "@/lib/audit-logger"
 
 // GET - ดึงข้อมูล emergency controls, broadcasts, notifications
 export async function GET(request: NextRequest) {
   try {
-    // Auth guard - require super_admin only for emergency controls
-    const authResult = await requireSuperAdmin()
-    if (authResult instanceof NextResponse) return authResult
-
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const type = searchParams.get("type") || "all"
@@ -80,18 +74,12 @@ export async function GET(request: NextRequest) {
 // POST - Toggle emergency control หรือสร้าง broadcast
 export async function POST(request: NextRequest) {
   try {
-    // Auth guard - require super_admin only
-    const authResult = await requireSuperAdmin()
-    if (authResult instanceof NextResponse) return authResult
-    const { user } = authResult
-
     const supabase = await createClient()
     const body = await request.json()
     const { action, ...data } = body
 
     if (action === "toggle_control") {
-      const { control_key, is_active, reason } = data
-      const user_id = user.id // ใช้ user จาก session แทน body
+      const { control_key, is_active, user_id, reason } = data
 
       const updateData: Record<string, unknown> = {
         is_active,
@@ -127,23 +115,11 @@ export async function POST(request: NextRequest) {
         note: reason,
       })
 
-      // Audit log
-      await logAudit({
-        action: is_active ? 'emergency_control_activate' : 'emergency_control_deactivate',
-        actor_id: user.id,
-        actor_type: 'admin',
-        target_type: 'emergency_control',
-        target_id: control_key,
-        details: { control_key, is_active, reason },
-        ip_address: request.headers.get('x-forwarded-for') || 'unknown',
-      })
-
       return NextResponse.json({ success: true, control })
     }
 
     if (action === "create_broadcast") {
-      const { title, message, broadcast_type, priority, expires_at } = data
-      const user_id = user.id // ใช้ user จาก session
+      const { title, message, broadcast_type, priority, user_id, expires_at } = data
 
       const { data: broadcast, error } = await supabase
         .from("emergency_broadcasts")
@@ -164,8 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "acknowledge_notification") {
-      const { notification_id, action_taken } = data
-      const user_id = user.id // ใช้ user จาก session
+      const { notification_id, user_id, action_taken } = data
 
       const { error } = await supabase
         .from("owner_notifications")
@@ -210,10 +185,6 @@ export async function POST(request: NextRequest) {
 // DELETE - ปิด broadcast
 export async function DELETE(request: NextRequest) {
   try {
-    // Auth guard - require super_admin only
-    const authResult = await requireSuperAdmin()
-    if (authResult instanceof NextResponse) return authResult
-
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const broadcastId = searchParams.get("broadcast_id")

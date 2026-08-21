@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import useSWR from 'swr';
+import { useState } from 'react';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -22,8 +21,7 @@ import {
   Crown,
   User,
   Building2,
-  Percent,
-  Loader2
+  Percent
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,9 +35,7 @@ import {
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
-// Agent node interface
+// Mock hierarchical agent data
 interface AgentNode {
   id: string;
   username: string;
@@ -57,6 +53,127 @@ interface AgentNode {
   memberCount: number;
   children?: AgentNode[];
 }
+
+const mockAgentTree: AgentNode[] = [
+  {
+    id: 'M001',
+    username: 'master_a',
+    name: 'มาสเตอร์ A',
+    level: 'master',
+    credit: 1000000,
+    creditUsed: 750000,
+    creditLimit: 1000000,
+    todayBets: 250000,
+    commission: 30,
+    pt: 20,
+    isLocked: false,
+    winLoss: 45000,
+    outstanding: 120000,
+    memberCount: 45,
+    children: [
+      {
+        id: 'A001',
+        username: 'agent_1',
+        name: 'เอเย่นต์ 1',
+        level: 'agent',
+        credit: 300000,
+        creditUsed: 220000,
+        creditLimit: 300000,
+        todayBets: 85000,
+        commission: 25,
+        pt: 15,
+        isLocked: false,
+        winLoss: 12000,
+        outstanding: 35000,
+        memberCount: 18,
+        children: [
+          {
+            id: 'S001',
+            username: 'sub_agent_1',
+            name: 'ซับเอเย่นต์ 1-1',
+            level: 'sub-agent',
+            credit: 50000,
+            creditUsed: 48000,
+            creditLimit: 50000,
+            todayBets: 25000,
+            commission: 20,
+            pt: 10,
+            isLocked: true,
+            winLoss: -5000,
+            outstanding: 15000,
+            memberCount: 5,
+          },
+          {
+            id: 'S002',
+            username: 'sub_agent_2',
+            name: 'ซับเอเย่นต์ 1-2',
+            level: 'sub-agent',
+            credit: 80000,
+            creditUsed: 45000,
+            creditLimit: 80000,
+            todayBets: 18000,
+            commission: 20,
+            pt: 10,
+            isLocked: false,
+            winLoss: 8000,
+            outstanding: 8000,
+            memberCount: 7,
+          },
+        ],
+      },
+      {
+        id: 'A002',
+        username: 'agent_2',
+        name: 'เอเย่นต์ 2',
+        level: 'agent',
+        credit: 200000,
+        creditUsed: 180000,
+        creditLimit: 200000,
+        todayBets: 65000,
+        commission: 25,
+        pt: 15,
+        isLocked: false,
+        winLoss: 18000,
+        outstanding: 42000,
+        memberCount: 12,
+      },
+    ],
+  },
+  {
+    id: 'M002',
+    username: 'master_b',
+    name: 'มาสเตอร์ B',
+    level: 'master',
+    credit: 500000,
+    creditUsed: 320000,
+    creditLimit: 500000,
+    todayBets: 120000,
+    commission: 28,
+    pt: 18,
+    isLocked: false,
+    winLoss: -15000,
+    outstanding: 85000,
+    memberCount: 28,
+    children: [
+      {
+        id: 'A003',
+        username: 'agent_3',
+        name: 'เอเย่นต์ 3',
+        level: 'agent',
+        credit: 150000,
+        creditUsed: 95000,
+        creditLimit: 150000,
+        todayBets: 45000,
+        commission: 22,
+        pt: 12,
+        isLocked: false,
+        winLoss: -8000,
+        outstanding: 28000,
+        memberCount: 10,
+      },
+    ],
+  },
+];
 
 // Tree Node Component
 function AgentTreeNode({ 
@@ -299,34 +416,6 @@ export default function ManualDownlinePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<AgentNode | null>(null);
 
-  // ดึงข้อมูลจาก API
-  const { data: downlineData, isLoading } = useSWR('/api/agent/downline', fetcher);
-  const { data: agentsData } = useSWR('/api/agents', fetcher);
-
-  // Map API response to AgentNode format - ถ้าไม่มีข้อมูลจะเป็น empty array
-  const agentTree: AgentNode[] = (downlineData?.tree || []).map((node: any) => mapToAgentNode(node));
-
-  // Helper function to map API data to AgentNode
-  function mapToAgentNode(data: any): AgentNode {
-    return {
-      id: data.id || '',
-      username: data.username || data.name || '',
-      name: data.name || data.username || '',
-      level: data.level || data.role || 'agent',
-      credit: data.credit || data.credit_balance || 0,
-      creditUsed: data.credit_used || 0,
-      creditLimit: data.credit_limit || data.credit || 0,
-      todayBets: data.today_bets || 0,
-      commission: data.commission || data.commission_rate || 0,
-      pt: data.pt || data.position_taking || 0,
-      isLocked: data.is_locked || !data.is_active || false,
-      winLoss: data.win_loss || data.profit_loss || 0,
-      outstanding: data.outstanding || 0,
-      memberCount: data.member_count || data.downline_count || 0,
-      children: data.children ? data.children.map((c: any) => mapToAgentNode(c)) : undefined,
-    };
-  }
-
   // Calculate totals
   const calculateTotals = (agents: AgentNode[]): { 
     totalCredit: number; 
@@ -354,7 +443,7 @@ export default function ManualDownlinePage() {
     return totals;
   };
 
-  const totals = calculateTotals(agentTree);
+  const totals = calculateTotals(mockAgentTree);
 
   const handleManageCredit = (agent: AgentNode) => {
     setSelectedAgent(agent);
@@ -459,26 +548,14 @@ export default function ManualDownlinePage() {
 
       {/* Tree View */}
       <div className="space-y-3">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-8 animate-spin text-amber-400" />
-            <span className="ml-3 text-slate-400">กำลังโหลดข้อมูล...</span>
-          </div>
-        ) : agentTree.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <Users className="size-12 mx-auto mb-3 opacity-50" />
-            <p>ไม่พบข้อมูลสายงาน</p>
-          </div>
-        ) : (
-          agentTree.map((agent) => (
-            <AgentTreeNode 
-              key={agent.id} 
-              agent={agent}
-              onManageCredit={handleManageCredit}
-              onToggleLock={handleToggleLock}
-            />
-          ))
-        )}
+        {mockAgentTree.map((agent) => (
+          <AgentTreeNode 
+            key={agent.id} 
+            agent={agent}
+            onManageCredit={handleManageCredit}
+            onToggleLock={handleToggleLock}
+          />
+        ))}
       </div>
 
       {/* Legend */}

@@ -1,17 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/api-auth';
 
 /**
  * API สำหรับ Broadcast การเปลี่ยนแปลงหวยไปทุกเว็บลูก
- * ADMIN ONLY - ใช้สำหรับ sync ข้อมูลหวยไปยัง sub-sites
+ * - เมื่อเพิ่มหวยใหม่
+ * - เมื่อเปลี่ยนสถานะเปิด/ปิด
+ * - เมื่อเปลี่ยนเวลาเปิด-ปิด
  */
 export async function POST(request: Request) {
   try {
-    // Auth guard - require admin for broadcasting
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     const { action, lottery, lotteryId } = await request.json();
     
@@ -91,7 +88,7 @@ export async function POST(request: Request) {
       message: `Notified ${tenantsToNotify.length} sub-sites`,
     });
   } catch (err) {
-    console.error('Lottery broadcast error:', err);
+    console.error('[v0] Lottery broadcast error:', err);
     return NextResponse.json({ 
       success: false, 
       error: 'Broadcast failed' 
@@ -100,14 +97,10 @@ export async function POST(request: Request) {
 }
 
 /**
- * GET: ดูสถานะ Sync ของทุกเว็บลูก - ADMIN ONLY
+ * GET: ดูสถานะ Sync ของทุกเว็บลูก
  */
 export async function GET() {
   try {
-    // Auth guard - require admin for viewing sync status
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     
     const { data: tenants } = await supabase
@@ -139,7 +132,7 @@ export async function GET() {
       syncEnabled: tenants?.filter(t => t.sync_lottery_status).length || 0,
     });
   } catch (err) {
-    console.error('Broadcast status error:', err);
+    console.error('[v0] Broadcast status error:', err);
     return NextResponse.json({ success: false, error: 'Failed to get status' }, { status: 500 });
   }
 }

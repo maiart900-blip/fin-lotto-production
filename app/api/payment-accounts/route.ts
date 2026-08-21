@@ -6,7 +6,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenant_id');
     const accountType = searchParams.get('account_type') || 'deposit';
-    const includeDeleted = searchParams.get('include_deleted') === 'true';
     
     const supabase = await createClient();
     let query = supabase
@@ -23,22 +22,17 @@ export async function GET(request: Request) {
     if (accountType) {
       query = query.eq('account_type', accountType);
     }
-    
-    // Filter out soft-deleted accounts unless explicitly requested
-    if (!includeDeleted) {
-      query = query.is('deleted_at', null);
-    }
 
     const { data, error } = await query;
 
     if (error) {
-      console.error('Payment accounts GET error:', error.message);
+      console.error('[v0] Payment accounts GET error:', error.message);
       return NextResponse.json([]);
     }
 
     return NextResponse.json(data || []);
   } catch (err) {
-    console.error('Payment accounts GET exception:', err);
+    console.error('[v0] Payment accounts GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -125,13 +119,13 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('Payment accounts POST error:', error.message);
+      console.error('[v0] Payment accounts POST error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error('Payment accounts POST exception:', err);
+    console.error('[v0] Payment accounts POST exception:', err);
     return NextResponse.json({ error: 'Failed to create payment account' }, { status: 500 });
   }
 }
@@ -187,13 +181,13 @@ export async function PUT(request: Request) {
       .single();
 
     if (error) {
-      console.error('Payment accounts PUT error:', error.message);
+      console.error('[v0] Payment accounts PUT error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error('Payment accounts PUT exception:', err);
+    console.error('[v0] Payment accounts PUT exception:', err);
     return NextResponse.json({ error: 'Failed to update payment account' }, { status: 500 });
   }
 }
@@ -209,26 +203,19 @@ export async function DELETE(request: Request) {
 
     const supabase = await createClient();
 
-    // SOFT DELETE: Instead of deleting, mark as deleted
-    // This preserves foreign key relationships with topup_requests
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('payment_accounts')
-      .update({
-        is_active: false,
-        deleted_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
+      .delete()
+      .eq('id', id);
 
     if (error) {
-      console.error('Payment accounts SOFT DELETE error:', error.message);
+      console.error('[v0] Payment accounts DELETE error:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, message: 'บัญชีถูกปิดใช้งานเรียบร้อย (Soft Delete)' });
+    return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('Payment accounts DELETE exception:', err);
+    console.error('[v0] Payment accounts DELETE exception:', err);
     return NextResponse.json({ error: 'Failed to delete payment account' }, { status: 500 });
   }
 }

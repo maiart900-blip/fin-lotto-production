@@ -1,8 +1,7 @@
 // FIN LOTTO R+ Service Worker
-// Version: 2.0.0 - Dynamic Tenant Support
+// Version: 1.0.0
 
-const CACHE_NAME = 'finlotto-v2';
-const STATIC_CACHE = 'finlotto-static-v2';
+const CACHE_NAME = 'finlotto-v1';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately
@@ -10,7 +9,7 @@ const PRECACHE_ASSETS = [
   '/',
   '/c',
   '/c/login',
-  '/api/manifest',
+  '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
   '/apple-touch-icon.png',
@@ -21,9 +20,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Precaching assets');
-      return cache.addAll(PRECACHE_ASSETS).catch(err => {
-        console.warn('[SW] Precache failed:', err);
-      });
+      return cache.addAll(PRECACHE_ASSETS);
     })
   );
   self.skipWaiting();
@@ -35,7 +32,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME && name !== STATIC_CACHE)
+          .filter((name) => name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     })
@@ -147,20 +144,3 @@ async function syncOfflineBets() {
   // Get offline bets from IndexedDB and sync
   console.log('[SW] Syncing offline bets...');
 }
-
-// Handle messages from app (CHECK_UPDATE, SKIP_WAITING)
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'CHECK_UPDATE') {
-    self.registration.update();
-  }
-  
-  if (event.data?.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data?.type === 'CLEAR_CACHE') {
-    caches.keys().then((names) => {
-      names.forEach(name => caches.delete(name));
-    });
-  }
-});

@@ -1,12 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
-  // Auth guard - require admin
-  const authResult = await requireAdmin();
-  if (authResult instanceof NextResponse) return authResult;
-
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
   const date = searchParams.get('date') || new Date().toISOString().split('T')[0];

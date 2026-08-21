@@ -88,10 +88,10 @@ export default function ResultsPage() {
     winners: Array<{ number: string; bet_type: string; amount: number; payout: number }>;
   } | null>(null);
   
-  // History filters - default to TODAY only
-  const today = new Date().toISOString().split('T')[0];
+  // History filters
   const [historyLotteryFilter, setHistoryLotteryFilter] = useState('all');
-  const [historyDateFilter, setHistoryDateFilter] = useState<'today' | 'all'>('today');
+  const [historyDateFrom, setHistoryDateFrom] = useState('');
+  const [historyDateTo, setHistoryDateTo] = useState('');
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedResultDetail, setSelectedResultDetail] = useState<any>(null);
   const [resultDetailData, setResultDetailData] = useState<{
@@ -144,7 +144,7 @@ export default function ResultsPage() {
     }
 
     // Debug log
-    console.log('Saving result:', {
+    console.log('[v0] Saving result:', {
       lottery_id: selectedLotteryId,
       draw_date: selectedDate,
       three_top: threeTop,
@@ -166,7 +166,7 @@ export default function ResultsPage() {
       });
 
       const data = await res.json();
-      console.log('API response:', { status: res.status, data });
+      console.log('[v0] API response:', { status: res.status, data });
 
       if (!res.ok) {
         // แสดง error message จริงจาก API
@@ -174,7 +174,7 @@ export default function ResultsPage() {
         const errorDetails = data.details ? ` (${data.details})` : '';
         const errorCode = data.code ? ` [${data.code}]` : '';
         toast.error(`${errorMsg}${errorDetails}${errorCode}`);
-        console.error('Save failed:', data);
+        console.error('[v0] Save failed:', data);
         return;
       }
 
@@ -203,7 +203,7 @@ export default function ResultsPage() {
       mutate(`/api/results?lottery_id=${selectedLotteryId}&date=${selectedDate}`);
       mutate('/api/results?limit=20'); // Refresh history
     } catch (err: any) {
-      console.error('Save exception:', err);
+      console.error('[v0] Save exception:', err);
       toast.error(err?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
       setIsSaving(false);
@@ -222,7 +222,7 @@ export default function ResultsPage() {
       return;
     }
 
-    console.log('Processing winners for result:', {
+    console.log('[v0] Processing winners for result:', {
       result_id: existingResult.id,
       lottery_id: selectedLotteryId,
       draw_date: selectedDate,
@@ -241,7 +241,7 @@ export default function ResultsPage() {
       });
 
       const data = await res.json();
-      console.log('Process API response:', data);
+      console.log('[v0] Process API response:', data);
 
       if (!res.ok) {
         const errorMsg = data.error || data.message || 'Failed to process';
@@ -270,7 +270,7 @@ export default function ResultsPage() {
       mutate(`/api/results?lottery_id=${selectedLotteryId}&date=${selectedDate}`);
       mutate('/api/results?limit=20'); // Refresh history
     } catch (err: any) {
-      console.error('Process exception:', err);
+      console.error('[v0] Process exception:', err);
       toast.error(err?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
       setIsProcessing(false);
@@ -282,13 +282,8 @@ export default function ResultsPage() {
   const runTop = threeTop ? threeTop.slice(-1) : '-';
   const runBot = twoBot ? twoBot.slice(-1) : '-';
   
-  // Filter results by date first (today only by default)
-  const dateFilteredResults = historyDateFilter === 'today'
-    ? resultsHistory.filter((r: any) => r.draw_date === today)
-    : resultsHistory;
-  
   // Group results by lottery for history display
-  const groupedResults = dateFilteredResults.reduce((acc: Record<string, any[]>, result: any) => {
+  const groupedResults = resultsHistory.reduce((acc: Record<string, any[]>, result: any) => {
     const lottery = lotteries.find((l: any) => l.id === result.lottery_id);
     const lotteryName = lottery?.name || 'ไม่ระบุ';
     if (!acc[lotteryName]) {
@@ -635,39 +630,22 @@ export default function ResultsPage() {
               ประวัติผลหวยย้อนหลัง
             </CardTitle>
             
-            {/* Filters */}
-            <div className="flex items-center gap-4 flex-wrap">
-              {/* Date Filter - Today / All */}
-              <div className="flex items-center gap-2">
-                <Label className="text-sm whitespace-nowrap">วันที่:</Label>
-                <Select value={historyDateFilter} onValueChange={(v) => setHistoryDateFilter(v as 'today' | 'all')}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="today">วันนี้เท่านั้น</SelectItem>
-                    <SelectItem value="all">ทั้งหมด</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Filter by Lottery */}
-              <div className="flex items-center gap-2">
-                <Label className="text-sm whitespace-nowrap">หวย:</Label>
-                <Select value={historyLotteryFilter} onValueChange={setHistoryLotteryFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="ทั้งหมด" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">ทั้งหมด</SelectItem>
-                    {Object.keys(groupedResults).map((lotteryName) => (
-                      <SelectItem key={lotteryName} value={lotteryName}>
-                        {lotteryName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Filter by Lottery */}
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">เลือกหวย:</Label>
+              <Select value={historyLotteryFilter} onValueChange={setHistoryLotteryFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="ทั้งหมด" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  {Object.keys(groupedResults).map((lotteryName) => (
+                    <SelectItem key={lotteryName} value={lotteryName}>
+                      {lotteryName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>

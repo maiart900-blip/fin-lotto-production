@@ -77,21 +77,6 @@ export default function WalletManagerPage() {
   const [showAddBank, setShowAddBank] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  
-  // Edit dialog state
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
-  const [editFormData, setEditFormData] = useState({
-    account_name: '',
-    account_number: '',
-    account_type: 'both',
-    is_active: true,
-  });
-  
-  // Delete confirmation state
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deletingAccount, setDeletingAccount] = useState<BankAccount | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -167,80 +152,6 @@ export default function WalletManagerPage() {
   };
 
   const totalBalance = bankAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-
-  // Open edit dialog
-  const handleOpenEdit = (account: BankAccount) => {
-    setEditingAccount(account);
-    setEditFormData({
-      account_name: account.account_name,
-      account_number: account.account_number,
-      account_type: account.account_type,
-      is_active: account.is_active,
-    });
-    setShowEditDialog(true);
-  };
-
-  // Submit edit
-  const handleEditSubmit = async () => {
-    if (!editingAccount) return;
-    
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/bank-accounts/${editingAccount.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        toast.success('แก้ไขบัญชีสำเร็จ');
-        setShowEditDialog(false);
-        setEditingAccount(null);
-        mutate();
-      } else {
-        toast.error(data.error || 'เกิดข้อผิดพลาด');
-      }
-    } catch {
-      toast.error('เกิดข้อผิดพลาดในการแก้ไข');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Open delete confirmation
-  const handleOpenDelete = (account: BankAccount) => {
-    setDeletingAccount(account);
-    setShowDeleteDialog(true);
-  };
-
-  // Confirm delete
-  const handleConfirmDelete = async () => {
-    if (!deletingAccount) return;
-    
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/bank-accounts/${deletingAccount.id}`, {
-        method: 'DELETE',
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        toast.success('ลบบัญชีสำเร็จ');
-        setShowDeleteDialog(false);
-        setDeletingAccount(null);
-        mutate();
-      } else {
-        toast.error(data.error || 'เกิดข้อผิดพลาด');
-      }
-    } catch {
-      toast.error('เกิดข้อผิดพลาดในการลบ');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 space-y-6 -m-6">
@@ -468,7 +379,7 @@ export default function WalletManagerPage() {
               <div className="text-center py-12">
                 <Building2 className="size-12 mx-auto text-gray-300 mb-4" />
                 <p className="text-gray-500">ยังไม่มีบัญชีธนาคาร</p>
-                <p className="text-sm text-gray-400 mt-1">กดปุ่ม "เพิ่มบัญชี" เพ���่อเริ่มต้น</p>
+                <p className="text-sm text-gray-400 mt-1">กดปุ่ม "เพิ่มบัญชี" เพื่อเริ่มต้น</p>
               </div>
             ) : (
               <Table>
@@ -542,22 +453,10 @@ export default function WalletManagerPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="size-8 p-0 hover:bg-blue-100"
-                            onClick={() => handleOpenEdit(account)}
-                            title="แก้ไข"
-                          >
-                            <Settings className="size-4 text-blue-600" />
+                          <Button size="sm" variant="ghost" className="size-8 p-0">
+                            <Settings className="size-4" />
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="size-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-100"
-                            onClick={() => handleOpenDelete(account)}
-                            title="ลบ"
-                          >
+                          <Button size="sm" variant="ghost" className="size-8 p-0 text-red-500 hover:text-red-600">
                             <Trash2 className="size-4" />
                           </Button>
                         </div>
@@ -587,116 +486,11 @@ export default function WalletManagerPage() {
             <div className="text-center py-12">
               <ArrowUpDown className="size-12 mx-auto text-gray-300 mb-4" />
               <p className="text-gray-500">ยังไม่มีการตั้งค่า Money Routing</p>
-              <p className="text-sm text-gray-400 mt-1">กรุณาตั้งค่า Routing Rules สำหรับการกระจายเงิน</p>
+              <p className="text-sm text-gray-400 mt-1">กรุณาเพิ่มบัญชีธนาคารก่อน</p>
             </div>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-blue-600">แก้ไขบัญชีธนาคาร</DialogTitle>
-            <DialogDescription>
-              แก้ไขข้อมูลบัญชี: {editingAccount?.bank_name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>ชื่อบัญชี *</Label>
-              <Input 
-                value={editFormData.account_name}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, account_name: e.target.value }))}
-                placeholder="ชื่อบัญชี"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>เลขบัญชี *</Label>
-              <Input 
-                value={editFormData.account_number}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, account_number: e.target.value }))}
-                placeholder="XXX-X-XXXXX-X"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>ประเภทการใช้งาน</Label>
-              <Select 
-                value={editFormData.account_type} 
-                onValueChange={(v) => setEditFormData(prev => ({ ...prev, account_type: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกประเภท" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="deposit">รับฝากเท่านั้น</SelectItem>
-                  <SelectItem value="withdrawal">ถอนเท่านั้น</SelectItem>
-                  <SelectItem value="both">ทั้งฝากและถอน</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>สถานะ</Label>
-              <Select 
-                value={editFormData.is_active ? 'active' : 'inactive'} 
-                onValueChange={(v) => setEditFormData(prev => ({ ...prev, is_active: v === 'active' }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกสถานะ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active (เปิดใช้งาน)</SelectItem>
-                  <SelectItem value="inactive">Inactive (ปิดใช้งาน)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>ยกเลิก</Button>
-            <Button 
-              onClick={handleEditSubmit}
-              disabled={isSubmitting}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
-            >
-              {isSubmitting ? <Loader2 className="size-4 mr-2 animate-spin" /> : null}
-              บันทึกการแก้ไข
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-red-600">ยืนยันการลบบัญชี</DialogTitle>
-            <DialogDescription>
-              คุณต้องการลบบัญชีธนาคารนี้หรือไม่?
-            </DialogDescription>
-          </DialogHeader>
-          {deletingAccount && (
-            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-              <p className="font-semibold text-red-800">{deletingAccount.bank_name}</p>
-              <p className="text-sm text-red-600">เลขบัญชี: {deletingAccount.account_number}</p>
-              <p className="text-sm text-red-600">ชื่อบัญชี: {deletingAccount.account_name}</p>
-              <p className="text-xs text-red-500 mt-2">
-                คำเตือน: การลบบัญชีจะไม่สามารถกู้คืนได้
-              </p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>ยกเลิก</Button>
-            <Button 
-              onClick={handleConfirmDelete}
-              disabled={isDeleting}
-              className="bg-red-500 hover:bg-red-600 text-white"
-            >
-              {isDeleting ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Trash2 className="size-4 mr-2" />}
-              ยืนยันลบ
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

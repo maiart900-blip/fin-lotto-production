@@ -86,13 +86,12 @@ interface WebhookInfo {
   instructions: string[];
 }
 
-const DEFAULT_TEMPLATE = `📢 ผลหวย {lottery_name}
-ประจำวันที่ {draw_date}
+const DEFAULT_TEMPLATE = `ผลหวย {lottery_name}
+งวดวันที่ {draw_date}
 
-🎯 3 ตัวบน: {prize_first}
-🎯 2 ตัวล่าง: {prize_last2}
-
-ขอให้เฮง ๆ ทุกท่านค่ะ 🍀`;
+รางวัลที่ 1: {prize_first}
+เลขท้าย 2 ตัว: {prize_last2}
+เลขท้าย 3 ตัว: {prize_last3}`;
 
 const PLATFORMS = [
   { id: 'line', name: 'LINE Messaging API', icon: MessageCircle, color: 'bg-green-500' },
@@ -517,7 +516,7 @@ export default function ResultAnnouncementPage() {
             <Settings className="size-5 text-amber-400" />
             ตั้งค่าบอท
           </CardTitle>
-          <CardDescription>กรอกข้อมูล Token และ API Key สำหรับแต่ละแพลตฟอร์ม</CardDescription>
+          <CardDescription>กรอกข้อมูล Token และ API Key สำหรับแต่ละแ��ลตฟอร์ม</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -1,14 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { requireSuperAdmin } from '@/lib/api-auth';
 
 // GET - Dashboard สถิติรวมสำหรับเว็บกลาง
 export async function GET(request: Request) {
   try {
-    // Auth guard - require super_admin for master dashboard
-    const authResult = await requireSuperAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action') || 'dashboard';

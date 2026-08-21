@@ -148,12 +148,12 @@ export default function LotteriesPage() {
     
     if (flag.type === 'image') {
       return (
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-800/50 flex items-center justify-center border border-amber-500/30">
+        <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-800 flex items-center justify-center">
           <Image 
             src={flag.value} 
             alt={lottery.name} 
-            width={40} 
-            height={40} 
+            width={48} 
+            height={48} 
             className="object-cover"
           />
         </div>
@@ -163,18 +163,13 @@ export default function LotteriesPage() {
     if (flag.type === 'icon') {
       const IconComponent = ICON_MAP[flag.value];
       return (
-        <div className="w-10 h-10 rounded-full bg-neutral-800/50 border border-amber-500/30 flex items-center justify-center">
-          <IconComponent className="w-5 h-5 text-amber-400" />
+        <div className="w-12 h-12 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center">
+          <IconComponent className="w-6 h-6 text-amber-400" />
         </div>
       );
     }
     
-    // Small flag emoji - NOT the giant text-4xl that showed as "TH"
-    return (
-      <div className="w-10 h-10 rounded-full bg-neutral-800/50 border border-amber-500/30 flex items-center justify-center">
-        <span className="text-lg">{flag.value}</span>
-      </div>
-    );
+    return <span className="text-4xl">{flag.value}</span>;
   };
 
   return (
@@ -233,37 +228,34 @@ export default function LotteriesPage() {
                     borderColor: lottery.bg_color ? `${lottery.bg_color}40` : undefined,
                   }}
                 >
-                  {/* Background Image - Keep the premium artwork */}
+                  {/* Background Image */}
                   {lottery.background_image && (
                     <div 
-                      className="absolute inset-0 bg-cover bg-center opacity-40"
+                      className="absolute inset-0 bg-cover bg-center opacity-30"
                       style={{ backgroundImage: `url(${lottery.background_image})` }}
                     />
                   )}
                   
-                  {/* Dark gradient overlay for text readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                  
                   {/* Content with z-index to be above background */}
                   <div className="relative z-10">
-                    {/* Small Flag Icon - top left, NOT covering content */}
-                    <div className="absolute top-0 left-0">
-                      {renderLotteryIcon(lottery)}
+                    {/* Flag/Icon with Glow */}
+                    <div className="flex justify-center mb-3">
+                      <div className="relative">
+                        <div className="absolute inset-0 blur-md bg-amber-500/20 rounded-full scale-75 group-hover:scale-100 transition-transform" />
+                        <div className="relative">{renderLotteryIcon(lottery)}</div>
+                      </div>
                     </div>
                     
-                    {/* Spacer for flag */}
-                    <div className="h-8" />
-                    
-                    {/* Name - LARGE and readable */}
+                    {/* Name */}
                     <h3 
-                      className="text-base font-bold text-center mb-1 text-white drop-shadow-lg"
+                      className="text-sm font-medium text-center mb-1 truncate"
                       style={{ color: lottery.text_color || '#ffffff' }}
                     >
                       {lottery.name}
                     </h3>
                     
                     {/* Close time */}
-                    <p className="text-xs text-neutral-300 text-center mb-2">
+                    <p className="text-xs text-neutral-500 text-center mb-2">
                       ปิดรับ {lottery.close_time} น.
                     </p>
                     

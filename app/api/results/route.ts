@@ -8,7 +8,7 @@ async function canEditResults(supabase: any): Promise<boolean> {
   const adminToken = cookieStore.get('admin_token')?.value;
   const lotterySession = cookieStore.get('lottery_session')?.value;
   
-  console.log('canEditResults - admin_token:', !!adminToken, 'lottery_session:', !!lotterySession);
+  console.log('[v0] canEditResults - admin_token:', !!adminToken, 'lottery_session:', !!lotterySession);
   
   // Try admin_token first
   if (adminToken) {
@@ -27,7 +27,7 @@ async function canEditResults(supabase: any): Promise<boolean> {
         .single();
       
       if (user && ['master_admin', 'super_admin', 'admin'].includes(user.role)) {
-        console.log('User authorized via admin_token, role:', user.role);
+        console.log('[v0] User authorized via admin_token, role:', user.role);
         return true;
       }
     }
@@ -38,19 +38,19 @@ async function canEditResults(supabase: any): Promise<boolean> {
     try {
       const sessionData = JSON.parse(lotterySession);
       const role = sessionData.role;
-      console.log('Checking lottery_session, role:', role);
+      console.log('[v0] Checking lottery_session, role:', role);
       
       if (['master_admin', 'super_admin', 'admin'].includes(role)) {
         return true;
       }
     } catch {
-      console.log('Failed to parse lottery_session');
+      console.log('[v0] Failed to parse lottery_session');
     }
   }
   
   // Allow all for now if no auth system is active (development mode)
   // TODO: Remove this in production
-  console.log('No valid session found, allowing for development');
+  console.log('[v0] No valid session found, allowing for development');
   return true;
 }
 
@@ -83,13 +83,13 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Results GET error:', error.message);
+      console.error('[v0] Results GET error:', error.message);
       return NextResponse.json([]);
     }
 
     return NextResponse.json(data || []);
   } catch (error) {
-    console.error('Results GET exception:', error);
+    console.error('[v0] Results GET exception:', error);
     return NextResponse.json([]);
   }
 }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    console.log('Saving lottery result:', { lottery_id, draw_date, three_top, two_bot });
+    console.log('[v0] Saving lottery result:', { lottery_id, draw_date, three_top, two_bot });
 
     // Calculate derived values
     const two_top = three_top ? three_top.slice(-2) : null;
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Results POST error:', error);
+      console.error('[v0] Results POST error:', error);
       return NextResponse.json({ 
         error: error.message || 'Failed to save result',
         details: error.details || null,
@@ -148,12 +148,12 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('Result saved successfully:', data.id);
+    console.log('[v0] Result saved successfully:', data.id);
 
     // ถ้าผลครบแล้ว (มี three_top และ two_bot) ให้ trigger การคำนวณอัตโนมัติ
     let calculationResult = null;
     if (auto_calculate && three_top && two_bot) {
-      console.log('Auto-calculating winners...');
+      console.log('[v0] Auto-calculating winners...');
       
       try {
         // เรียก process API ภายใน
@@ -172,14 +172,14 @@ export async function POST(request: NextRequest) {
         
         if (processResponse.ok) {
           calculationResult = await processResponse.json();
-          console.log('Auto-calculation completed:', calculationResult.stats);
+          console.log('[v0] Auto-calculation completed:', calculationResult.stats);
         } else {
           const processError = await processResponse.json();
-          console.error('Auto-calculation failed:', processError);
+          console.error('[v0] Auto-calculation failed:', processError);
           calculationResult = { error: processError.error || 'Calculation failed' };
         }
       } catch (calcError: any) {
-        console.error('Auto-calculation exception:', calcError);
+        console.error('[v0] Auto-calculation exception:', calcError);
         calculationResult = { error: calcError.message || 'Calculation error' };
       }
     }
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
         : 'บันทึกผลสำเร็จ',
     });
   } catch (error: any) {
-    console.error('Results POST exception:', error);
+    console.error('[v0] Results POST exception:', error);
     return NextResponse.json({ 
       error: error?.message || 'Failed to save result',
       details: error?.details || null,

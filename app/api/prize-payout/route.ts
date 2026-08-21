@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/api-auth';
 
 // GET - ดึงรายการผู้ถูกรางวัลที่รอจ่าย
 export async function GET(request: Request) {
   try {
-    // Auth guard - require admin for prize payout
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'pending'; // pending, paid, all
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0];

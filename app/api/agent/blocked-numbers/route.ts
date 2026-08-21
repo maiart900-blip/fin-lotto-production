@@ -1,22 +1,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAgentContext } from '@/lib/agent-context';
 
-// GET - ดึงรายการเลขอั้นของเอเย่น (identity จาก session)
+// GET - ดึงรายการเลขอั้นของเอเย่น
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
     const { searchParams } = new URL(request.url);
-    const targetAgentId = searchParams.get('agent_id'); // admin only
+    const agentId = searchParams.get('agent_id');
     const lotteryId = searchParams.get('lottery_id');
 
-    const ctxResult = await requireAgentContext(targetAgentId);
-    if (ctxResult instanceof NextResponse) return ctxResult;
-    const { context } = ctxResult;
-    const agentId = context.agentId;
+    if (!agentId) {
+      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
+    }
 
-    const supabase = await createClient();
-
-    // สร้าง query - เลขอั้นของ agent ที่ login เท่านั้น
+    // สร้าง query - ไม่ใช้ join เพราะไม่มี FK
     let query = supabase
       .from('agent_blocked_numbers')
       .select('*')
@@ -38,7 +35,7 @@ export async function GET(request: NextRequest) {
       .from('lotteries')
       .select('id, name')
       .in('id', lotteryIds);
-
+    
     const lotteryMap = new Map((lotteries || []).map(l => [l.id, l.name]));
 
     // จัดกลุ่มตามหวย
@@ -56,8 +53,8 @@ export async function GET(request: NextRequest) {
         id: bn.id,
         number: bn.number,
         bet_type: bn.bet_type,
-        block_type: bn.block_type,
-        max_amount: bn.max_amount,
+        block_type: bn.block_type, // full = อั้นเต็ม, partial = จำกัดยอด
+        max_amount: bn.max_amount, // ถ้า partial จะมียอดสูงสุดที่รับ
         reason: bn.reason,
         created_at: bn.created_at,
       });
@@ -74,42 +71,39 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - เพิ่มเลขอั้น (agent_id มาจาก session เท่านั้น)
+// POST - เพิ่มเลขอั้น
 export async function POST(request: NextRequest) {
   try {
-    const ctxResult = await requireAgentContext();
-    if (ctxResult instanceof NextResponse) return ctxResult;
-    const { context } = ctxResult;
-    const agentId = context.agentId;
-
     const supabase = await createClient();
     const body = await request.json();
-    const {
-      lottery_id,
+    const { 
+      agent_id, 
+      lottery_id, 
       numbers, // array of { number, bet_type }
       block_type = 'full', // full หรือ partial
       max_amount = null, // ถ้า partial
       reason = null,
     } = body;
 
-    if (!lottery_id || !numbers || !numbers.length) {
-      return NextResponse.json({
-        error: 'lottery_id and numbers are required'
+    if (!agent_id || !lottery_id || !numbers || !numbers.length) {
+      return NextResponse.json({ 
+        error: 'agent_id, lottery_id, and numbers are required' 
       }, { status: 400 });
     }
 
-    // สร้างรายการเลขอั้น — ผูก agent_id จาก session (กัน spoofing)
+    // สร้างรายการเลขอั้น
     const blockedEntries = numbers.map((n: any) => ({
-      agent_id: agentId,
+      agent_id,
       lottery_id,
       number: n.number,
-      bet_type: n.bet_type || 'all',
+      bet_type: n.bet_type || 'all', // all = ทุกประเภท, 2top, 2bot, 3top, etc.
       block_type,
       max_amount: block_type === 'partial' ? max_amount : null,
       reason,
       is_active: true,
     }));
 
+    // Upsert (ถ้ามีอยู่แล้วก็อัพเดท)
     const { data, error } = await supabase
       .from('agent_blocked_numbers')
       .upsert(blockedEntries, {
@@ -131,31 +125,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - ลบเลขอั้น (เฉพาะของ agent ที่ login)
+// DELETE - ลบเลขอั้น
 export async function DELETE(request: NextRequest) {
   try {
-    const ctxResult = await requireAgentContext();
-    if (ctxResult instanceof NextResponse) return ctxResult;
-    const { context } = ctxResult;
-    const agentId = context.agentId;
-
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const agentId = searchParams.get('agent_id');
     const number = searchParams.get('number');
     const lotteryId = searchParams.get('lottery_id');
 
     if (id) {
-      // ลบตาม id — บังคับ agent_id จาก session (กันลบของคนอื่น)
+      // ลบตาม id
       const { error } = await supabase
         .from('agent_blocked_numbers')
         .delete()
-        .eq('id', id)
-        .eq('agent_id', agentId);
+        .eq('id', id);
 
       if (error) throw error;
-    } else if (number && lotteryId) {
-      // ลบตาม number + lottery — scope ด้วย agent จาก session
+    } else if (agentId && number && lotteryId) {
+      // ลบตาม agent + number + lottery
       const { error } = await supabase
         .from('agent_blocked_numbers')
         .delete()
@@ -165,8 +154,8 @@ export async function DELETE(request: NextRequest) {
 
       if (error) throw error;
     } else {
-      return NextResponse.json({
-        error: 'id or (number, lottery_id) is required'
+      return NextResponse.json({ 
+        error: 'id or (agent_id, number, lottery_id) is required' 
       }, { status: 400 });
     }
 

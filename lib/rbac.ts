@@ -1,68 +1,16 @@
 /**
  * Role-Based Access Control (RBAC) System
  * 
- * User Types (แยกชัดเจน):
- * - customer: ลูกค้าแทงหวย (อยู่ในตาราง customers)
- * - member: พนักงาน/ทีมงาน (อยู่ในตาราง users)
- * - agent: เอเย่นต์ (อยู่ในตาราง users)
- * - super_admin: เจ้าของเว็บ (อยู่ในตาราง users)
- * 
  * Roles:
  * - super_admin: Full system access, can manage all users and settings
  * - admin: Same as super_admin but cannot create other admins
  * - agent: Can view own data, place bets, manage own customers
  * - partner: Can view aggregate data for their network
- * - staff: Limited access, can only view and create entries (พนักงาน)
- * - member: End user staff, can only view own work data (ทีมงาน)
- * - customer: Lottery betting customer, no admin access (ลูกค้าแทงหวย)
+ * - staff: Limited access, can only view and create entries
+ * - member: End user, can only view own bets
  */
 
-export type UserRole = 'super_admin' | 'admin' | 'agent' | 'agent_key' | 'sub_agent' | 'master_agent' | 'partner' | 'staff' | 'member' | 'customer';
-
-// User type classification
-export type UserType = 'customer' | 'member' | 'agent' | 'admin';
-
-// Helper to determine user type from role
-export function getUserTypeFromRole(role: UserRole): UserType {
-  switch (role) {
-    case 'super_admin':
-    case 'admin':
-      return 'admin';
-    case 'agent':
-    case 'agent_key':
-    case 'sub_agent':
-    case 'master_agent':
-    case 'partner':
-      return 'agent';
-    case 'staff':
-    case 'member':
-      return 'member';
-    case 'customer':
-      return 'customer';
-    default:
-      return 'customer';
-  }
-}
-
-// Check if role is a staff/team member (พนักงาน/ทีมงาน)
-export function isStaffRole(role: UserRole): boolean {
-  return role === 'staff' || role === 'member';
-}
-
-// Check if role is a customer (ลูกค้าแทงหวย)
-export function isCustomerRole(role: UserRole): boolean {
-  return role === 'customer';
-}
-
-// Check if role is an agent
-export function isAgentRole(role: UserRole): boolean {
-  return role === 'agent' || role === 'agent_key' || role === 'partner';
-}
-
-// Check if role is an admin
-export function isAdminRole(role: UserRole): boolean {
-  return role === 'super_admin' || role === 'admin';
-}
+export type UserRole = 'super_admin' | 'admin' | 'agent' | 'partner' | 'staff' | 'member';
 
 export type Permission = 
   | 'view_all_entries'
@@ -131,15 +79,6 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'view_credit_history',
     'view_realtime_bets',
   ],
-  agent_key: [
-    'view_own_entries',
-    'create_entries',
-    'edit_entries',
-    'view_own_users',
-    'view_own_reports',
-    'view_credit_history',
-    'view_realtime_bets',
-  ],
   partner: [
     'view_own_entries',
     'view_own_users',
@@ -153,10 +92,6 @@ const rolePermissions: Record<UserRole, Permission[]> = {
   ],
   member: [
     'view_own_entries',
-  ],
-  customer: [
-    // ลูกค้าแทงหวยไม่มี permission ในระบบหลังบ้าน
-    // เข้าถึงเฉพาะหน้าแทงหวยผ่าน customer portal
   ],
 };
 
@@ -220,11 +155,9 @@ const roleHierarchy: Record<UserRole, number> = {
   super_admin: 100,
   admin: 90,
   agent: 50,
-  agent_key: 50,  // Same level as agent
   partner: 40,
   staff: 30,
-  member: 20,
-  customer: 10,
+  member: 10,
 };
 
 /**

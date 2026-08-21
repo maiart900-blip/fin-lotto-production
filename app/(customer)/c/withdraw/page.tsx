@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, 
   Wallet, 
@@ -16,11 +17,6 @@ import {
   Clock,
   Ban,
   Check,
-  Shield,
-  TrendingUp,
-  Lock,
-  Unlock,
-  Info,
 } from 'lucide-react';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -87,6 +83,8 @@ export default function CustomerWithdrawPage() {
   const availableBalance = balance - lockedAmount;
   
   // Maximum withdrawable amount based on turnover
+  // ถ้าเทิร์นไม่ครบ: สามารถถอนได้เท่ากับยอดที่ทำเทิร์นแล้ว (currentTurnover)
+  // ถ้าเทิร์นครบ: ถอนได้ทั้งหมด
   const maxWithdrawable = isTurnoverComplete 
     ? availableBalance 
     : Math.min(availableBalance, currentTurnover);
@@ -144,6 +142,7 @@ export default function CustomerWithdrawPage() {
         account_name: customer?.bank_account_name,
       };
       
+      
       const res = await fetch('/api/customer/withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -160,7 +159,7 @@ export default function CustomerWithdrawPage() {
         toast.error(data.error || 'เกิดข้อผิดพลาด');
       }
     } catch (error) {
-      console.error('Withdraw error:', error);
+      console.error('[v0] Withdraw error:', error);
       toast.error('เกิดข้อผิดพลาด');
     } finally {
       setIsSubmitting(false);
@@ -170,235 +169,208 @@ export default function CustomerWithdrawPage() {
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'pending':
-        return { label: 'รอดำเนินการ', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Clock };
+        return { label: 'รอดำเนินการ', color: 'bg-yellow-500/20 text-yellow-400', icon: Clock };
       case 'approved':
-        return { label: 'โอนแล้ว', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: Check };
+        return { label: 'โอนแล้ว', color: 'bg-green-500/20 text-green-400', icon: Check };
       case 'rejected':
-        return { label: 'ปฏิเสธ', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: Ban };
+        return { label: 'ปฏิเสธ', color: 'bg-red-500/20 text-red-400', icon: Ban };
       default:
-        return { label: status, color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: Clock };
+        return { label: status, color: 'bg-gray-500/20 text-gray-400', icon: Clock };
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black premium-bg-pattern flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+      <div className="min-h-screen bg-[#0A0F1C] flex items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-amber-400" />
       </div>
     );
   }
 
-  // Success State
+  // Success State - แสดงหลังส่งคำขอสำเร็จ
   if (submitSuccess) {
     return (
-      <div className="min-h-screen bg-black premium-bg-pattern flex items-center justify-center p-4">
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-green-500/10 rounded-full blur-[100px]" />
-        </div>
-        
-        <div className="glass-card-gold max-w-md w-full p-8 text-center relative z-10">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500/30 to-emerald-500/20 border border-green-500/40 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">แจ้งถอนสำเร็จ!</h2>
-          <p className="text-neutral-400 mb-6">
-            รายการของคุณถูกส่งเรียบร้อยแล้ว<br/>
-            กรุณารอแอดมินตรวจสอบและโอนเงิน
-          </p>
-          <div className="space-y-3">
-            <Link href="/c/wallet">
-              <Button className="w-full h-12 btn-luxury">
-                กลับหน้ากระเป๋าเงิน
+      <div className="min-h-screen bg-[#0A0F1C] flex items-center justify-center p-4">
+        <Card className="bg-[#0D1321] border-green-500/30 max-w-md w-full">
+          <CardContent className="p-8 text-center">
+            <div className="size-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="size-10 text-green-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">แจ้งถอนสำเร็จ!</h2>
+            <p className="text-white/60 mb-6">
+              รายการของคุณถูกส่งเรียบร้อยแล้ว<br/>
+              กรุณารอแอดมินตรวจสอบและโอนเงิน
+            </p>
+            <div className="space-y-3">
+              <Link href="/c/wallet">
+                <Button className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold">
+                  กลับหน้ากระเป๋าเงิน
+                </Button>
+              </Link>
+              <Button
+                onClick={() => {
+                  setSubmitSuccess(false);
+                  setAmount('');
+                }}
+                variant="outline"
+                className="w-full border-white/20 text-white hover:bg-white/10"
+              >
+                แจ้งถอนเงินอีกครั้ง
               </Button>
-            </Link>
-            <Button
-              onClick={() => {
-                setSubmitSuccess(false);
-                setAmount('');
-              }}
-              variant="outline"
-              className="w-full h-12 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-            >
-              แจ้งถอนเงินอีกครั้ง
-            </Button>
-          </div>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black premium-bg-pattern pb-24">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-red-500/5 rounded-full blur-[100px]" />
-        <div className="absolute bottom-40 left-0 w-[300px] h-[300px] bg-amber-600/3 rounded-full blur-[80px]" />
-      </div>
-
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-amber-500/20">
-        <div className="flex items-center justify-between px-4 h-14">
+    <div className="min-h-screen bg-[#0A0F1C] text-white pb-20">
+      <div className="max-w-lg mx-auto p-4 space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-3">
           <Link href="/c/wallet">
-            <Button variant="ghost" size="icon" className="text-amber-400 hover:bg-amber-500/10">
-              <ArrowLeft className="w-5 h-5" />
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+              <ArrowLeft className="size-5" />
             </Button>
           </Link>
-          <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-red-400" />
-            ถอนเงิน
-          </h1>
-          <div className="w-10" />
+          <h1 className="text-xl font-bold">ถอนเงิน</h1>
         </div>
-      </div>
 
-      <div className="px-4 py-4 space-y-4 relative z-10">
         {/* Balance Card */}
-        <div className="glass-card overflow-hidden">
-          <div className="bg-gradient-to-r from-red-600/20 to-red-700/20 p-5">
+        <Card className="bg-gradient-to-r from-red-600 to-red-700 border-0 overflow-hidden">
+          <CardContent className="p-5">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500/30 to-red-600/20 border border-red-500/40 flex items-center justify-center">
-                <Wallet className="w-7 h-7 text-red-400" />
+              <div className="size-14 rounded-2xl bg-white/20 flex items-center justify-center">
+                <Wallet className="size-7 text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-neutral-400">ยอดเครดิตคงเหลือ</p>
-                <p className="text-3xl font-bold text-white font-mono">
+                <p className="text-sm text-white/70">ยอดเครดิตคงเหลือ</p>
+                <p className="text-3xl font-bold font-mono">
                   {balance.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                 </p>
                 {lockedAmount > 0 && (
                   <div className="flex items-center gap-3 mt-2 text-sm">
-                    <span className="flex items-center gap-1 text-yellow-400">
-                      <Lock className="w-3 h-3" />
-                      ล็อค: {lockedAmount.toLocaleString()}
-                    </span>
-                    <span className="text-neutral-500">|</span>
-                    <span className="flex items-center gap-1 text-green-400">
-                      <Unlock className="w-3 h-3" />
-                      ถอนได้: {maxWithdrawable.toLocaleString()}
-                    </span>
+                    <span className="text-white/70">ล็อคถอน: <span className="text-yellow-300 font-mono">{lockedAmount.toLocaleString()}</span></span>
+                    <span className="text-white/70">|</span>
+                    <span className="text-white/70">ถอนได้: <span className="text-green-300 font-mono">{maxWithdrawable.toLocaleString()}</span></span>
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Turnover Status Card */}
         {requiredTurnover > 0 && (
-          <div className={`glass-card overflow-hidden ${isTurnoverComplete ? 'border-green-500/30' : 'border-amber-500/30'}`}>
-            <div className="p-4">
+          <Card className={`border-0 overflow-hidden ${isTurnoverComplete ? 'bg-green-900/30 border-green-500/30' : 'bg-amber-900/30 border-amber-500/30'}`}>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   {isTurnoverComplete ? (
-                    <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                    </div>
+                    <CheckCircle className="size-5 text-green-400" />
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                      <Shield className="w-4 h-4 text-amber-400" />
-                    </div>
+                    <AlertCircle className="size-5 text-amber-400" />
                   )}
                   <span className="font-medium text-white">
                     {isTurnoverComplete ? 'เทิร์นโอเวอร์ครบแล้ว' : 'ยอดเทิร์นโอเวอร์'}
                   </span>
                 </div>
-                <Badge className={isTurnoverComplete ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'}>
+                <span className={`text-sm font-mono ${isTurnoverComplete ? 'text-green-400' : 'text-amber-400'}`}>
                   {turnoverProgress.toFixed(0)}%
-                </Badge>
+                </span>
               </div>
               
               {/* Progress Bar */}
-              <div className="h-3 bg-neutral-800 rounded-full overflow-hidden mb-3">
+              <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-3">
                 <div 
-                  className={`h-full transition-all duration-500 ${isTurnoverComplete ? 'bg-gradient-to-r from-green-500 to-emerald-400' : 'bg-gradient-to-r from-amber-500 to-amber-400'}`}
+                  className={`h-full transition-all duration-500 ${isTurnoverComplete ? 'bg-green-500' : 'bg-amber-500'}`}
                   style={{ width: `${turnoverProgress}%` }}
                 />
               </div>
               
               <div className="flex justify-between text-sm">
-                <span className="text-neutral-400">
+                <span className="text-white/60">
                   เดิมพันแล้ว: <span className="text-white font-mono">{currentTurnover.toLocaleString()}</span>
                 </span>
-                <span className="text-neutral-400">
+                <span className="text-white/60">
                   เป้าหมาย: <span className="text-white font-mono">{requiredTurnover.toLocaleString()}</span>
                 </span>
               </div>
               
               {!isTurnoverComplete && (
-                <div className="mt-3 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                  <div className="flex items-start gap-2">
-                    <Info className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-amber-400 text-sm">
-                        ต้องเดิมพันอีก <span className="font-bold font-mono">{remainingTurnover.toLocaleString()}</span> บาท จึงจะถอนได้เต็มจำนวน
-                      </p>
-                      <p className="text-amber-400/70 text-xs mt-1">
-                        ถอนได้สูงสุดตอนนี้: <span className="font-mono">{maxWithdrawable.toLocaleString()}</span> บาท
-                      </p>
-                    </div>
-                  </div>
+                <div className="mt-3 p-3 bg-amber-500/10 rounded-lg">
+                  <p className="text-amber-400 text-sm">
+                    ต้องเดิมพันอีก <span className="font-bold font-mono">{remainingTurnover.toLocaleString()}</span> บาท จึงจะถอนได้เต็มจำนวน
+                  </p>
+                  <p className="text-amber-400/70 text-xs mt-1">
+                    ถอนได้สูงสุดตอนนี้: <span className="font-mono">{maxWithdrawable.toLocaleString()}</span> บาท
+                  </p>
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Bank Account Section */}
         {!hasBank ? (
-          <div className="glass-card p-6 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
-              <Building2 className="w-8 h-8 text-amber-400" />
-            </div>
-            <h3 className="font-bold text-lg text-white mb-2">ยังไม่มีบัญชีผูกไว้</h3>
-            <p className="text-neutral-400 text-sm mb-4">
-              กรุณาผูกบัญชีธนาคารก่อนทำรายการถอนเงิน
-            </p>
-            <Link href="/c/bank-account">
-              <Button className="btn-luxury">
-                <Plus className="w-4 h-4 mr-2" />
-                ผูกบัญชีธนาคาร
-              </Button>
-            </Link>
-          </div>
+          <Card className="bg-[#0D1321] border-amber-500/30">
+            <CardContent className="p-6 text-center">
+              <div className="size-16 rounded-2xl bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
+                <Building2 className="size-8 text-amber-400" />
+              </div>
+              <h3 className="font-bold text-lg mb-2">ยังไม่มีบัญชีผูกไว้</h3>
+              <p className="text-[#94A3B8] text-sm mb-4">
+                กรุณาผูกบัญชีธนาคารก่อนทำรายการถอนเงิน
+              </p>
+              <Link href="/c/bank-account">
+                <Button className="bg-amber-500 hover:bg-amber-600 text-black font-bold">
+                  <Plus className="size-4 mr-2" />
+                  ผูกบัญชีธนาคาร
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         ) : (
           <>
             {/* Linked Bank Account */}
-            <div className="glass-card overflow-hidden border-green-500/20">
-              <div className="p-4 border-b border-neutral-800">
+            <Card className="bg-[#0D1321] border-green-500/20">
+              <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-neutral-400">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span className="text-sm">บัญชีที่จะรับเงิน</span>
-                  </div>
+                  <CardTitle className="text-sm flex items-center gap-2 text-[#94A3B8]">
+                    <CheckCircle className="size-4 text-green-400" />
+                    บัญชีที่จะรับเงิน
+                  </CardTitle>
                   <Link href="/c/bank-account">
                     <Button variant="ghost" size="sm" className="text-amber-400 hover:text-amber-300 text-xs">
                       แก้ไข
                     </Button>
                   </Link>
                 </div>
-              </div>
-              <div className="p-4">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50">
-                  <div className={`w-12 h-12 rounded-xl ${BANKS[customer.bank_code || '']?.color || 'bg-gray-500'} flex items-center justify-center`}>
-                    <Building2 className="w-6 h-6 text-white" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#0A0F1C]">
+                  <div className={`size-12 rounded-xl ${BANKS[customer.bank_code || '']?.color || 'bg-gray-500'} flex items-center justify-center`}>
+                    <Building2 className="size-6 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-white">{BANKS[customer.bank_code || '']?.name}</p>
+                    <p className="font-medium">{BANKS[customer.bank_code || '']?.name}</p>
                     <p className="font-mono text-amber-400">{customer.bank_account_number}</p>
-                    <p className="text-xs text-neutral-500">{customer.bank_account_name}</p>
+                    <p className="text-xs text-[#64748B]">{customer.bank_account_name}</p>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Withdraw Form */}
-            <div className="glass-card overflow-hidden">
-              <div className="p-4 border-b border-neutral-800">
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-5 h-5 text-red-400" />
-                  <span className="font-semibold text-white">กรอกจำนวนเงิน</span>
-                </div>
-              </div>
-              <div className="p-4">
+            <Card className="bg-[#0D1321] border-amber-500/20">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2 text-white">
+                  <Wallet className="size-5 text-red-400" />
+                  กรอกจำนวนเงิน
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <div className="relative">
@@ -407,13 +379,13 @@ export default function CustomerWithdrawPage() {
                         placeholder="0"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        className="bg-neutral-800/50 border-neutral-700 text-white text-center text-3xl font-mono h-16 pr-16 input-premium"
+                        className="bg-[#0A0F1C] border-white/10 text-white text-center text-3xl font-mono h-16 pr-16"
                         min="100"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500">บาท</span>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#64748B]">บาท</span>
                     </div>
                     <div className="flex justify-between mt-2">
-                      <p className="text-xs text-neutral-500">ขั้นต่ำ 100 บาท</p>
+                      <p className="text-xs text-[#64748B]">ขั้นต่ำ 100 บาท</p>
                       <button 
                         type="button"
                         onClick={handleMaxAmount}
@@ -426,7 +398,7 @@ export default function CustomerWithdrawPage() {
                   
                   {/* Quick Amounts */}
                   <div>
-                    <p className="text-neutral-400 text-sm mb-2">เลือกจำนวน</p>
+                    <Label className="text-[#94A3B8] text-sm mb-2 block">เลือกจำนวน</Label>
                     <div className="grid grid-cols-3 gap-2">
                       {QUICK_AMOUNTS.map((val) => (
                         <Button
@@ -435,10 +407,10 @@ export default function CustomerWithdrawPage() {
                           variant="outline"
                           onClick={() => handleQuickAmount(val)}
                           disabled={val > maxWithdrawable}
-                          className={`${
+                          className={`border-white/10 ${
                             amount === val.toString() 
                               ? 'bg-amber-500 text-black border-amber-500' 
-                              : 'bg-neutral-800/50 border-neutral-700 text-white hover:bg-neutral-700'
+                              : 'text-white hover:bg-white/10'
                           } disabled:opacity-30`}
                         >
                           {val.toLocaleString()}
@@ -448,9 +420,9 @@ export default function CustomerWithdrawPage() {
                   </div>
                   
                   {/* Warning */}
-                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div className="text-xs text-amber-400 space-y-1">
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 flex gap-2">
+                    <AlertCircle className="size-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-yellow-400 space-y-1">
                       <p>ถอนขั้นต่ำ 100 บาท ไม่มีค่าธรรมเนียม</p>
                       <p>โอนเงินภายใน 5-15 นาที (ช่วงเวลาทำการ)</p>
                     </div>
@@ -458,12 +430,12 @@ export default function CustomerWithdrawPage() {
                   
                   <Button 
                     type="submit" 
-                    className="w-full h-14 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-lg"
+                    className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold text-lg"
                     disabled={isSubmitting || !amount}
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        <Loader2 className="size-5 mr-2 animate-spin" />
                         กำลังส่งคำขอ...
                       </>
                     ) : (
@@ -471,20 +443,20 @@ export default function CustomerWithdrawPage() {
                     )}
                   </Button>
                 </form>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </>
         )}
 
         {/* History */}
-        <div className="glass-card overflow-hidden">
-          <div className="p-4 border-b border-neutral-800">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-neutral-400" />
-              <span className="font-medium text-white">ประวัติการถอน</span>
-            </div>
-          </div>
-          <div className="p-4">
+        <Card className="bg-[#0D1321] border-white/10">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-white">
+              <Clock className="size-4 text-[#64748B]" />
+              ประวัติการถอน
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             {withdrawHistory?.requests?.length > 0 ? (
               <div className="space-y-3">
                 {withdrawHistory.requests.slice(0, 5).map((req: { 
@@ -498,44 +470,37 @@ export default function CustomerWithdrawPage() {
                   const statusInfo = getStatusInfo(req.status);
                   const StatusIcon = statusInfo.icon;
                   return (
-                    <div key={req.id} className="bg-neutral-800/50 rounded-xl p-4">
+                    <div key={req.id} className="bg-[#0A0F1C] rounded-xl p-4">
                       <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${statusInfo.color.split(' ')[0]}`}>
-                            <StatusIcon className={`w-5 h-5 ${statusInfo.color.split(' ')[1]}`} />
-                          </div>
-                          <div>
-                            <p className="font-bold text-xl font-mono text-white">
-                              {Number(req.amount).toLocaleString()} <span className="text-sm font-normal text-neutral-500">บาท</span>
-                            </p>
-                            <p className="text-sm text-neutral-500 mt-1">{req.bank_name}</p>
-                            <p className="text-xs text-neutral-600 mt-1">
-                              {new Date(req.created_at).toLocaleString('th-TH', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </p>
-                          </div>
+                        <div>
+                          <p className="font-bold text-xl font-mono text-white">
+                            {Number(req.amount).toLocaleString()} <span className="text-sm font-normal text-[#64748B]">บาท</span>
+                          </p>
+                          <p className="text-sm text-[#64748B] mt-1">{req.bank_name}</p>
+                          <p className="text-xs text-[#475569] mt-1">
+                            {new Date(req.created_at).toLocaleString('th-TH', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
                         </div>
-                        <Badge className={statusInfo.color}>
-                          {statusInfo.label}
-                        </Badge>
+                        <div className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 ${statusInfo.color}`}>
+                          <StatusIcon className="size-3.5" />
+                          <span className="text-xs font-medium">{statusInfo.label}</span>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <Clock className="w-12 h-12 mx-auto text-neutral-600 mb-2" />
-                <p className="text-neutral-500">ยังไม่มีประวัติการถอน</p>
-              </div>
+              <p className="text-center text-[#64748B] py-8">ยังไม่มีประวัติการถอน</p>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

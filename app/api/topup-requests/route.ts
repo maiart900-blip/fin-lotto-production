@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     const { data, error } = await query;
     
     if (error) {
-      console.error('Topup requests GET error:', error.message);
+      console.error('[v0] Topup requests GET error:', error.message);
       return NextResponse.json([]);
     }
     
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     
     return NextResponse.json(transformed);
   } catch (err) {
-    console.error('Topup requests GET exception:', err);
+    console.error('[v0] Topup requests GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       .single();
     
     if (error) {
-      console.error('Topup request POST error:', error.message);
+      console.error('[v0] Topup request POST error:', error.message);
       return NextResponse.json(
         { error: 'ไม่สามารถสร้างคำขอเติมเงินได้' },
         { status: 500 }
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     
     return NextResponse.json(data);
   } catch (err) {
-    console.error('Topup request POST exception:', err);
+    console.error('[v0] Topup request POST exception:', err);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาด' },
       { status: 500 }
@@ -151,7 +151,7 @@ export async function PUT(request: Request) {
       .eq('id', id);
     
     if (updateError) {
-      console.error('Topup request update error:', updateError.message);
+      console.error('[v0] Topup request update error:', updateError.message);
       return NextResponse.json(
         { error: 'ไม่สามารถอัปเดตคำขอได้' },
         { status: 500 }
@@ -170,7 +170,7 @@ export async function PUT(request: Request) {
         .eq('id', topupRequest.customer_id);
       
       if (creditError) {
-        console.error('Credit update error:', creditError.message);
+        console.error('[v0] Credit update error:', creditError.message);
       }
       
       // Create credit transaction
@@ -189,7 +189,7 @@ export async function PUT(request: Request) {
     
     return NextResponse.json({ success: true, status });
   } catch (err) {
-    console.error('Topup request PUT exception:', err);
+    console.error('[v0] Topup request PUT exception:', err);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาด' },
       { status: 500 }

@@ -42,16 +42,14 @@ import {
   ArrowUpToLine,
   ArrowDownFromLine,
   PenLine,
-  History,
-  CheckCircle2,
-  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { LotteryStatusList } from '@/components/lottery/lottery-status';
 import { Lottery } from '@/lib/lottery-utils';
 import { getBusinessDay, getTodayDateRange } from '@/lib/daily-reset';
 import { useAuth } from '@/hooks/use-auth';
-import { fetcher } from '@/lib/fetcher';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const betTypes: BetType[] = ['3top', '3tod', '2top', '2bot', '1top', '1bot'];
 
@@ -61,14 +59,8 @@ export default function DashboardPage() {
   
   // Redirect Agent ไป Agent Dashboard
   useEffect(() => {
-    if (!authLoading && user) {
-      // Check if user is any type of agent (role-based or user_type-based)
-      const isAgent = user.role === 'agent' || 
-                      user.role === 'agent_key' || 
-                      user.user_type === 'manual_key_agent';
-      if (isAgent) {
-        router.replace('/agent-dashboard');
-      }
+    if (!authLoading && user?.role === 'agent') {
+      router.replace('/agent-dashboard');
     }
   }, [user, authLoading, router]);
   
@@ -101,18 +93,6 @@ export default function DashboardPage() {
     refreshInterval: 5000,
   });
 
-  // Fetch daily closing status
-  const { data: dailyClosingStatus } = useSWR<{
-    isOpen: boolean;
-    closingData?: {
-      closing_date: string;
-      status: string;
-      net_profit: number;
-    };
-  }>('/api/admin/daily-closing?type=status', fetcher, {
-    refreshInterval: 60000,
-  });
-
   // Safe fallbacks - never let undefined break the page
   const entries = Array.isArray(rawEntries) ? rawEntries : [];
   const customers = Array.isArray(rawCustomers) ? rawCustomers : [];
@@ -122,9 +102,9 @@ export default function DashboardPage() {
   const periodStats = dashboardStats?.stats?.periods || null;
 
   // Log errors for debugging only
-  if (entriesError) console.error('Dashboard entries error:', entriesError);
-  if (customersError) console.error('Dashboard customers error:', customersError);
-  if (lotteriesError) console.error('Dashboard lotteries error:', lotteriesError);
+  if (entriesError) console.error('[v0] Dashboard entries error:', entriesError);
+  if (customersError) console.error('[v0] Dashboard customers error:', customersError);
+  if (lotteriesError) console.error('[v0] Dashboard lotteries error:', lotteriesError);
 
   const grandTotal = useMemo(() => {
     try {
@@ -347,44 +327,20 @@ export default function DashboardPage() {
       <Card className="bg-gradient-to-r from-[#1E293B] to-[#0F172A] border-[#334155]">
         <CardContent className="py-3 px-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Badge className="bg-[#EAB308]/20 text-[#EAB308] border-[#EAB308]/30">
                 รีเซ็ตยอด 01:00 น.
               </Badge>
               <p className="text-xs text-[#94A3B8]">
-                ยอดวันนี้นับตั้งแต่ 01:00 น. - 00:59 น. วันถัดไป (เวลาไทย)
+                ยอดวันนี้นับตั้งแต่ 01:00 น. - 00:59 น. วัน��ัดไป (เวลาไทย)
               </p>
-              {/* Daily Closing Status */}
-              {dailyClosingStatus && (
-                <div className="hidden sm:flex items-center gap-2 ml-2 pl-2 border-l border-[#334155]">
-                  {dailyClosingStatus.isOpen ? (
-                    <Badge variant="outline" className="gap-1 text-amber-400 border-amber-400/30 bg-amber-400/10">
-                      <Clock className="size-3" />
-                      ยังไม่ปิดยอด
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="gap-1 text-emerald-400 border-emerald-400/30 bg-emerald-400/10">
-                      <CheckCircle2 className="size-3" />
-                      ปิดยอดแล้ว
-                    </Badge>
-                  )}
-                </div>
-              )}
             </div>
-            <div className="flex items-center gap-2">
-              <Link href="/reports/daily-closing">
-                <Button variant="outline" size="sm" className="h-7 text-xs border-[#334155] text-[#94A3B8] hover:bg-[#334155] hover:text-white gap-1">
-                  <History className="size-3" />
-                  รายงานย้อนหลัง
-                </Button>
-              </Link>
-              <Link href="/profit-loss?period=yesterday">
-                <Button variant="outline" size="sm" className="h-7 text-xs border-[#334155] text-[#94A3B8] hover:bg-[#334155] hover:text-white">
-                  ดูยอดเมื่อวาน
-                  <ArrowRight className="size-3 ml-1" />
-                </Button>
-              </Link>
-            </div>
+            <Link href="/profit-loss?period=yesterday">
+              <Button variant="outline" size="sm" className="h-7 text-xs border-[#334155] text-[#94A3B8] hover:bg-[#334155] hover:text-white">
+                ดูยอดเมื่อวาน
+                <ArrowRight className="size-3 ml-1" />
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>

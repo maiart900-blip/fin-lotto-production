@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireSuperAdmin } from '@/lib/api-auth';
-import { computeProfitShare, buildPayoutMap } from '@/lib/agent-financials';
 
 // API สำหรับเว็บกลาง - ดูรายงานส่วนแบ่งจากทุกเอเย่น
 // ไม่แก้ไข API เดิม - สร้างใหม่แยก
 
 export async function GET(request: Request) {
   try {
-    // Auth guard - require super_admin for master agent reports
-    const authResult = await requireSuperAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
@@ -40,28 +34,27 @@ export async function GET(request: Request) {
 
     // คำนวณส่วนแบ่งแต่ละเอเย่น
     const agentReports = await Promise.all((agents || []).map(async (agent) => {
-      // ค่าถือสู้จริงจาก DB — ไม่มี fallback ปลอม (null = ยังไม่ตั้งค่า)
-      const sharePercent: number | null = agent.share_percent ?? null;
-      const shareConfigured = sharePercent !== null;
-      const masterSharePercent = shareConfigured ? 100 - sharePercent! : null;
+      const sharePercent = agent.share_percent || 90;
+      const masterSharePercent = 100 - sharePercent;
 
-      // ดึง entries ของเอเย่น (พร้อม snapshot fields เพื่อคิดส่วนแบ่งย้อนหลัง)
+      // ดึง entries ของเอเย่น
       const { data: entries } = await supabase
         .from('entries')
-        .select('id, amount, agent_id, parent_agent_id, agent_share_percent, parent_share_percent')
+        .select('id, amount')
         .eq('agent_id', agent.id)
         .gte('created_at', start.toISOString())
         .lte('created_at', end.toISOString());
 
       const entryIds = entries?.map(e => e.id) || [];
-      let winners: Array<{ entry_id: string; payout: number | null }> = [];
+      let totalPayout = 0;
 
       if (entryIds.length > 0) {
-        const { data: w } = await supabase
+        const { data: winners } = await supabase
           .from('winning_entries')
-          .select('entry_id, payout')
+          .select('payout')
           .in('entry_id', entryIds);
-        winners = w || [];
+        
+        totalPayout = winners?.reduce((sum, w) => sum + (Number(w.payout) || 0), 0) || 0;
       }
 
       // ดึงประวัติการส่งยอด
@@ -78,21 +71,12 @@ export async function GET(request: Request) {
       const pendingAmount = settlements?.filter(s => s.status === 'pending')
         .reduce((sum, s) => sum + (Number(s.amount) || 0), 0) || 0;
 
-      // คำนวณส่วนแบ่งจาก snapshot ที่ freeze ต่อ entry (เหมือน agent report → reconcile ตรงกัน)
-      const payoutMap = buildPayoutMap(winners);
-      const share = computeProfitShare(
-        entries || [],
-        agent.id,
-        shareConfigured ? sharePercent : null,
-        payoutMap,
-      );
-
+      // คำนวณยอด
       const totalBets = entries?.length || 0;
-      const totalAmount = share.totalAmount;
-      const totalPayout = share.totalPayout;
-      const profit = share.profit;
-      const agentShare = share.agentShare;
-      const masterShare = share.masterShare;
+      const totalAmount = entries?.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0;
+      const profit = totalAmount - totalPayout;
+      const masterShare = Math.round(profit * (masterSharePercent / 100));
+      const agentShare = profit - masterShare;
       const outstanding = masterShare - paidAmount;
 
       return {
@@ -102,7 +86,6 @@ export async function GET(request: Request) {
           code: agent.code,
           share_percent: sharePercent,
           master_share_percent: masterSharePercent,
-          share_configured: shareConfigured,
           status: agent.status,
         },
         stats: {

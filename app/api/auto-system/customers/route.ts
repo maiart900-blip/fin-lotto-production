@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Debug log
-    console.log('Auto Customers API - params:', { page, limit, search, status, vipLevel });
+    console.log('[v0] Auto Customers API - params:', { page, limit, search, status, vipLevel });
     
     // Build query - filter for auto customers only (source_type = 'auto' OR system_type = 'auto')
     let query = supabase
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     
     const { data: customers, error, count } = await query;
 
-    console.log('Auto Customers Query Result:', { 
+    console.log('[v0] Auto Customers Query Result:', { 
       count, 
       fetched: customers?.length,
       sample: customers?.slice(0, 2),
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     });
     
     if (error) {
-      console.error('Error fetching auto customers:', error);
+      console.error('[v0] Error fetching auto customers:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     
     const totalPages = Math.ceil((count || 0) / limit);
 
-    console.log('Auto Customers Transformed:', { 
+    console.log('[v0] Auto Customers Transformed:', { 
       total: count,
       transformed: transformedCustomers.length,
       sample: transformedCustomers.slice(0, 2) 
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       totalPages,
     });
   } catch (error: unknown) {
-    console.error('Error in auto-system customers API:', error);
+    console.error('[v0] Error in auto-system customers API:', error);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาดในการโหลดข้อมูล' },
       { status: 500 }

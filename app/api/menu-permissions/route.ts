@@ -52,15 +52,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ...data,
-      permissions: data?.visible_menus || [], // For member-visibility page compatibility
       visible_menus: data?.visible_menus || [],
       hidden_menus: data?.hidden_menus || [],
       enabled_features: data?.enabled_features || [],
       disabled_features: data?.disabled_features || [],
-      canCreateSubAgent: data?.can_create_sub_agent || false,
-      canViewReports: data?.can_view_reports ?? true,
-      canKeyLottery: data?.can_key_lottery ?? true,
-      canApproveTransactions: data?.can_approve_transactions || false,
       can_create_sub_agent: data?.can_create_sub_agent || false,
       can_view_reports: data?.can_view_reports ?? true,
       can_key_lottery: data?.can_key_lottery ?? true,
@@ -168,102 +163,37 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// POST - Save permissions for single target OR batch update for multiple targets
+// POST - Batch update permissions for multiple targets
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const body = await request.json();
     
-    // Check if this is a batch update (targets array) or single target
-    if (Array.isArray(body.targets)) {
-      // Batch update
-      const { targets, visible_menus, target_type = 'agent' } = body;
-      
-      if (targets.length === 0) {
-        return NextResponse.json({ error: 'targets array is required' }, { status: 400 });
-      }
-
-      const records = targets.map((target_id: string) => ({
-        target_id,
-        target_type,
-        visible_menus,
-        updated_at: new Date().toISOString(),
-      }));
-
-      const { error } = await supabase
-        .from('menu_permissions')
-        .upsert(records, {
-          onConflict: 'target_id,target_type',
-        });
-
-      if (error) {
-        console.error('[Menu Permissions] Batch upsert error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-
-      return NextResponse.json({ success: true, count: targets.length });
-    } else {
-      // Single target update (used by member-visibility page)
-      const { 
-        target_id, 
-        target_type = 'user',
-        permissions = [],
-        canKeyLottery,
-        canApproveTransactions,
-        canCreateSubAgent,
-        canViewReports,
-      } = body;
-      
-      if (!target_id) {
-        return NextResponse.json({ error: 'target_id is required' }, { status: 400 });
-      }
-
-      // Upsert permission record
-      const { data, error } = await supabase
-        .from('menu_permissions')
-        .upsert({
-          target_id,
-          target_type,
-          visible_menus: permissions,
-          can_key_lottery: canKeyLottery,
-          can_approve_transactions: canApproveTransactions,
-          can_create_sub_agent: canCreateSubAgent,
-          can_view_reports: canViewReports,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'target_id,target_type',
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('[Menu Permissions] Single upsert error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-
-      // Also update the target record for backward compatibility
-      if (target_type === 'agent') {
-        await supabase
-          .from('agents')
-          .update({
-            visible_menus: permissions,
-            can_create_sub_agent: canCreateSubAgent,
-            can_view_reports: canViewReports,
-          })
-          .eq('id', target_id);
-      } else if (target_type === 'member') {
-        await supabase
-          .from('customers')
-          .update({
-            visible_menus: permissions,
-            can_key_lottery: canKeyLottery,
-            can_approve_transactions: canApproveTransactions,
-          })
-          .eq('id', target_id);
-      }
-
-      return NextResponse.json({ success: true, data });
+    const { targets, visible_menus, target_type = 'agent' } = body;
+    
+    if (!Array.isArray(targets) || targets.length === 0) {
+      return NextResponse.json({ error: 'targets array is required' }, { status: 400 });
     }
+
+    const records = targets.map(target_id => ({
+      target_id,
+      target_type,
+      visible_menus,
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error } = await supabase
+      .from('menu_permissions')
+      .upsert(records, {
+        onConflict: 'target_id,target_type',
+      });
+
+    if (error) {
+      console.error('[Menu Permissions] Batch upsert error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, count: targets.length });
   } catch (error) {
     console.error('[Menu Permissions] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

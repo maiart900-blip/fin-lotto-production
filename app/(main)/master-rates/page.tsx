@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import useSWR from 'swr';
+import { useState } from 'react';
 import { 
   Crown, Settings, Lock, Unlock, Globe, AlertTriangle,
   Save, RotateCcw, Shield, Building2, ChevronRight,
-  Ban, CheckCircle2, Info, Percent, DollarSign, Plus, Pencil, Trash2, X, Loader2
+  Ban, CheckCircle2, Info, Percent, DollarSign
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -33,16 +31,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@/components/ui/alert';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 // Master rates configuration
 const defaultRates = {
@@ -55,256 +44,32 @@ const defaultRates = {
   runBottom: { rate: 4.2, limit: 200000 },
 };
 
-// Limited numbers (เลขอั้น) - จะถูก replace ด้วยข้อมูลจาก database
-const initialLimitedNumbers: BlockedNumber[] = [];
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
-// Types
-interface BlockedNumber {
-  id?: string;
-  number: string;
-  entry_type: string;
-  limit_amount: number | null;
-  current_amount: number;
-  is_blocked: boolean;
-  note: string | null;
-  lottery_id?: string | null;
-  created_at?: string;
-}
-
-const entryTypes = [
-  { value: 'three_top', label: '3 ตัวบน' },
-  { value: 'three_bottom', label: '3 ตัวล่าง' },
-  { value: 'three_tod', label: '3 ตัวโต๊ด' },
-  { value: 'two_top', label: '2 ตัวบน' },
-  { value: 'two_bottom', label: '2 ตัวล่าง' },
-  { value: 'run_top', label: 'วิ่งบน' },
-  { value: 'run_bottom', label: 'วิ่งล่าง' },
+// Limited numbers (เลขอั้น)
+const limitedNumbers = [
+  { number: '000', type: '3 ตัวบน', maxAmount: 50000, currentAmount: 48500, status: 'warning' },
+  { number: '111', type: '3 ตัวบน', maxAmount: 50000, currentAmount: 50000, status: 'full' },
+  { number: '222', type: '3 ตัวบน', maxAmount: 50000, currentAmount: 32000, status: 'normal' },
+  { number: '555', type: '3 ตัวบน', maxAmount: 50000, currentAmount: 50000, status: 'full' },
+  { number: '777', type: '3 ตัวบน', maxAmount: 50000, currentAmount: 45000, status: 'warning' },
+  { number: '999', type: '3 ตัวบน', maxAmount: 50000, currentAmount: 50000, status: 'full' },
+  { number: '00', type: '2 ตัว', maxAmount: 100000, currentAmount: 85000, status: 'warning' },
+  { number: '11', type: '2 ตัว', maxAmount: 100000, currentAmount: 100000, status: 'full' },
+  { number: '99', type: '2 ตัว', maxAmount: 100000, currentAmount: 100000, status: 'full' },
 ];
 
-const getEntryTypeLabel = (value: string) => {
-  const type = entryTypes.find(t => t.value === value);
-  return type?.label || value;
-};
+// Mock sites for override
+const mockSites = [
+  { id: 'site_001', name: 'LottoKing', useGlobalRates: true, useGlobalLimits: true },
+  { id: 'site_002', name: 'HuayVIP', useGlobalRates: true, useGlobalLimits: false },
+  { id: 'site_003', name: 'LottoPro', useGlobalRates: false, useGlobalLimits: true },
+  { id: 'site_004', name: 'MegaLotto', useGlobalRates: true, useGlobalLimits: true },
+];
 
 export default function MasterRatesPage() {
   const [rates, setRates] = useState(defaultRates);
   const [forceGlobalRates, setForceGlobalRates] = useState(false);
   const [forceGlobalLimits, setForceGlobalLimits] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  
-  // ดึง sites จาก API
-  const { data: sitesData } = useSWR('/api/sites', fetcher);
-  const sites = (sitesData?.sites || sitesData || []).map((s: any) => ({
-    id: s.id,
-    name: s.name || s.site_name || 'Unknown',
-    useGlobalRates: s.use_global_rates ?? true,
-    useGlobalLimits: s.use_global_limits ?? true,
-  }));
-  
-  // Blocked numbers state
-  const [blockedNumbers, setBlockedNumbers] = useState<BlockedNumber[]>([]);
-  const [loadingNumbers, setLoadingNumbers] = useState(true);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingNumber, setEditingNumber] = useState<BlockedNumber | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    number: '',
-    entry_type: 'three_top',
-    limit_amount: '',
-    is_blocked: false,
-    note: '',
-  });
-
-  // Fetch blocked numbers from database
-  const fetchBlockedNumbers = async () => {
-    try {
-      setLoadingNumbers(true);
-      const res = await fetch('/api/blocked-numbers');
-      const data = await res.json();
-      setBlockedNumbers(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching blocked numbers:', error);
-      setBlockedNumbers([]);
-    } finally {
-      setLoadingNumbers(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBlockedNumbers();
-  }, []);
-
-  // Reset form
-  const resetForm = () => {
-    setFormData({
-      number: '',
-      entry_type: 'three_top',
-      limit_amount: '',
-      is_blocked: false,
-      note: '',
-    });
-  };
-
-  // Open add modal
-  const openAddModal = () => {
-    resetForm();
-    setIsAddModalOpen(true);
-  };
-
-  // Open edit modal
-  const openEditModal = (item: BlockedNumber) => {
-    setEditingNumber(item);
-    setFormData({
-      number: item.number,
-      entry_type: item.entry_type,
-      limit_amount: item.limit_amount?.toString() || '',
-      is_blocked: item.is_blocked,
-      note: item.note || '',
-    });
-    setIsEditModalOpen(true);
-  };
-
-  // Add blocked number
-  const handleAdd = async () => {
-    if (!formData.number.trim()) {
-      toast.error('กรุณากรอกเลข');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/blocked-numbers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          number: formData.number.trim(),
-          entry_type: formData.entry_type,
-          limit_amount: formData.limit_amount ? parseInt(formData.limit_amount) : null,
-          is_blocked: formData.is_blocked,
-          note: formData.note || null,
-          lottery_id: null, // Global blocked number
-        }),
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        toast.error(data.error || 'ไม่สามารถเพิ่มเลขอั้นได้');
-        return;
-      }
-
-      toast.success('เพิ่มเลขอั้นสำเร็จ');
-      setIsAddModalOpen(false);
-      resetForm();
-      fetchBlockedNumbers();
-    } catch (error) {
-      console.error('handleAdd error:', error);
-      toast.error('เกิดข้อผิดพลาด');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Update blocked number
-  const handleUpdate = async () => {
-    if (!editingNumber?.id || !formData.number.trim()) {
-      toast.error('กรุณากรอกข้อมูลให้ครบ');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/blocked-numbers', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editingNumber.id,
-          number: formData.number.trim(),
-          entry_type: formData.entry_type,
-          limit_amount: formData.limit_amount ? parseInt(formData.limit_amount) : null,
-          is_blocked: formData.is_blocked,
-          note: formData.note || null,
-        }),
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        toast.error(data.error || 'ไม่สามารถแก้ไขได้');
-        return;
-      }
-
-      toast.success('แก้ไขเลขอั้นสำเร็จ');
-      setIsEditModalOpen(false);
-      setEditingNumber(null);
-      resetForm();
-      fetchBlockedNumbers();
-    } catch (error) {
-      toast.error('เกิดข้อผิดพลาด');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Delete blocked number
-  const handleDelete = async (id: string) => {
-    if (!confirm('ต้องการลบเลขอั้นนี้หรือไม่?')) return;
-
-    try {
-      const res = await fetch(`/api/blocked-numbers?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        toast.error('ไม่สามารถลบได้');
-        return;
-      }
-
-      toast.success('ลบเลขอั้นสำเร็จ');
-      fetchBlockedNumbers();
-    } catch (error) {
-      toast.error('เกิดข้อผิดพลาด');
-    }
-  };
-
-  // Toggle blocked status
-  const handleToggleBlocked = async (item: BlockedNumber) => {
-    try {
-      const res = await fetch('/api/blocked-numbers', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: item.id,
-          is_blocked: !item.is_blocked,
-        }),
-      });
-
-      if (!res.ok) {
-        toast.error('ไม่สามารถเปลี่ยนสถานะได้');
-        return;
-      }
-
-      toast.success(item.is_blocked ? 'เปิดใช้งานเลขอั้นแล้ว' : 'ปิดใช้งานเลขอั้นแล้ว');
-      fetchBlockedNumbers();
-    } catch (error) {
-      toast.error('เกิดข้อผิดพลาด');
-    }
-  };
-
-  // Get status for display
-  const getStatus = (item: BlockedNumber) => {
-    if (item.is_blocked) return 'blocked';
-    if (!item.limit_amount) return 'normal';
-    const percentage = (item.current_amount / item.limit_amount) * 100;
-    if (percentage >= 100) return 'full';
-    if (percentage >= 80) return 'warning';
-    return 'normal';
-  };
 
   const updateRate = (key: keyof typeof defaultRates, field: 'rate' | 'limit', value: number) => {
     setRates(prev => ({
@@ -385,7 +150,7 @@ export default function MasterRatesPage() {
               </div>
               {forceGlobalRates && (
                 <Badge className="mt-3 bg-red-500/20 text-red-400 border-red-500/30">
-                  บังคับใช้กับ {sites.length} เว็บ
+                  บังคับใช้กับ {mockSites.length} เว็บ
                 </Badge>
               )}
             </div>
@@ -411,7 +176,7 @@ export default function MasterRatesPage() {
               </div>
               {forceGlobalLimits && (
                 <Badge className="mt-3 bg-red-500/20 text-red-400 border-red-500/30">
-                  บังคับใช้กับ {sites.length} เว็บ
+                  บังคับใช้กับ {mockSites.length} เว็บ
                 </Badge>
               )}
             </div>
@@ -680,113 +445,70 @@ export default function MasterRatesPage() {
         <TabsContent value="limits" className="space-y-6">
           <Card className="bg-gradient-to-br from-black/60 to-black/40 border-amber-500/30 backdrop-blur-xl">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-amber-400">รายการเลขอั้นกลาง ({blockedNumbers.length})</CardTitle>
-              <Button 
-                onClick={openAddModal}
-                className="bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold"
-              >
-                <Plus className="size-4 mr-2" />
-                เพิ่มเลขอั้น
+              <CardTitle className="text-amber-400">รายการเลขอั้นกลาง</CardTitle>
+              <Button className="bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold">
+                + เพิ่มเลขอั้น
               </Button>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                {loadingNumbers ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="size-8 animate-spin text-amber-400" />
-                  </div>
-                ) : blockedNumbers.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
-                    <Ban className="size-12 mx-auto mb-3 opacity-50" />
-                    <p>ยังไม่มีเลขอั้นในระบบ</p>
-                    <p className="text-sm mt-1">กดปุ่ม "เพิ่มเลขอั้น" เพื่อเริ่มต้น</p>
-                  </div>
-                ) : (
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-amber-500/20">
-                        <th className="text-left py-3 px-4 text-slate-400 font-medium">เลข</th>
-                        <th className="text-left py-3 px-4 text-slate-400 font-medium">ประเภท</th>
-                        <th className="text-right py-3 px-4 text-slate-400 font-medium">วงเงินสูงสุด</th>
-                        <th className="text-right py-3 px-4 text-slate-400 font-medium">ยอดปัจจุบัน</th>
-                        <th className="text-center py-3 px-4 text-slate-400 font-medium">สถานะ</th>
-                        <th className="text-left py-3 px-4 text-slate-400 font-medium">หมายเหตุ</th>
-                        <th className="text-center py-3 px-4 text-slate-400 font-medium">จัดการ</th>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-amber-500/20">
+                      <th className="text-left py-3 px-4 text-slate-400 font-medium">เลข</th>
+                      <th className="text-left py-3 px-4 text-slate-400 font-medium">ประเภท</th>
+                      <th className="text-right py-3 px-4 text-slate-400 font-medium">วงเงินสูงสุด</th>
+                      <th className="text-right py-3 px-4 text-slate-400 font-medium">ยอดปัจจุบัน</th>
+                      <th className="text-center py-3 px-4 text-slate-400 font-medium">สถานะ</th>
+                      <th className="text-center py-3 px-4 text-slate-400 font-medium">จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {limitedNumbers.map((item, index) => (
+                      <tr 
+                        key={index}
+                        className={cn(
+                          "border-b border-white/5 transition-colors",
+                          item.status === 'full' && "bg-red-500/10",
+                          item.status === 'warning' && "bg-orange-500/10"
+                        )}
+                      >
+                        <td className="py-3 px-4">
+                          <span className="font-mono text-xl font-bold text-white">{item.number}</span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-300">{item.type}</td>
+                        <td className="py-3 px-4 text-right text-slate-300">
+                          {item.maxAmount.toLocaleString()}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span className={cn(
+                            "font-bold",
+                            item.status === 'full' && "text-red-400",
+                            item.status === 'warning' && "text-orange-400",
+                            item.status === 'normal' && "text-emerald-400"
+                          )}>
+                            {item.currentAmount.toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <Badge className={cn(
+                            "text-xs",
+                            item.status === 'full' && "bg-red-500/20 text-red-400 border-red-500/30",
+                            item.status === 'warning' && "bg-orange-500/20 text-orange-400 border-orange-500/30",
+                            item.status === 'normal' && "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                          )}>
+                            {item.status === 'full' ? 'เต็ม' : item.status === 'warning' ? 'ใกล้เต็ม' : 'ปกติ'}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <Button variant="ghost" size="sm" className="text-amber-400 hover:text-amber-300">
+                            <Settings className="size-4" />
+                          </Button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {blockedNumbers.map((item) => {
-                        const status = getStatus(item);
-                        return (
-                          <tr 
-                            key={item.id}
-                            className={cn(
-                              "border-b border-white/5 transition-colors",
-                              status === 'full' && "bg-red-500/10",
-                              status === 'warning' && "bg-orange-500/10",
-                              status === 'blocked' && "bg-slate-500/10"
-                            )}
-                          >
-                            <td className="py-3 px-4">
-                              <span className="font-mono text-xl font-bold text-white">{item.number}</span>
-                            </td>
-                            <td className="py-3 px-4 text-slate-300">{getEntryTypeLabel(item.entry_type)}</td>
-                            <td className="py-3 px-4 text-right text-slate-300">
-                              {item.limit_amount ? item.limit_amount.toLocaleString() : '-'}
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              <span className={cn(
-                                "font-bold",
-                                status === 'full' && "text-red-400",
-                                status === 'warning' && "text-orange-400",
-                                status === 'normal' && "text-emerald-400",
-                                status === 'blocked' && "text-slate-400"
-                              )}>
-                                {item.current_amount?.toLocaleString() || '0'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <Badge className={cn(
-                                "text-xs cursor-pointer",
-                                status === 'full' && "bg-red-500/20 text-red-400 border-red-500/30",
-                                status === 'warning' && "bg-orange-500/20 text-orange-400 border-orange-500/30",
-                                status === 'normal' && "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-                                status === 'blocked' && "bg-slate-500/20 text-slate-400 border-slate-500/30"
-                              )} onClick={() => handleToggleBlocked(item)}>
-                                {status === 'full' ? 'เต็ม' : 
-                                 status === 'warning' ? 'ใกล้เต็ม' : 
-                                 status === 'blocked' ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
-                              </Badge>
-                            </td>
-                            <td className="py-3 px-4 text-slate-400 text-sm max-w-[150px] truncate">
-                              {item.note || '-'}
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-amber-400 hover:text-amber-300"
-                                  onClick={() => openEditModal(item)}
-                                >
-                                  <Pencil className="size-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-red-400 hover:text-red-300"
-                                  onClick={() => item.id && handleDelete(item.id)}
-                                >
-                                  <Trash2 className="size-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
@@ -800,7 +522,7 @@ export default function MasterRatesPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {sites.map((site) => (
+                {mockSites.map((site) => (
                   <div 
                     key={site.id}
                     className="flex items-center justify-between p-4 rounded-xl bg-black/40 border border-white/5 hover:border-amber-500/30 transition-colors"
@@ -853,191 +575,6 @@ export default function MasterRatesPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Add Blocked Number Modal */}
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="bg-slate-900 border-amber-500/30 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-amber-400">เพิ่มเลขอั้นใหม่</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              กรอกข้อมูลเลขที่ต้องการอั้นและวงเงินสูงสุด
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>เลขที่ต้องการอั้น *</Label>
-              <Input
-                placeholder="เช่น 123, 45, 7"
-                value={formData.number}
-                onChange={(e) => setFormData(prev => ({ ...prev, number: e.target.value }))}
-                className="bg-black/40 border-slate-700"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>ประเภทเลข *</Label>
-              <Select
-                value={formData.entry_type}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, entry_type: value }))}
-              >
-                <SelectTrigger className="bg-black/40 border-slate-700">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {entryTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>วงเงินสูงสุด (บาท)</Label>
-              <Input
-                type="number"
-                placeholder="เช่น 50000"
-                value={formData.limit_amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, limit_amount: e.target.value }))}
-                className="bg-black/40 border-slate-700"
-              />
-              <p className="text-xs text-slate-500">เว้นว่างถ้าต้องการบล็อกเลขโดยไม่จำกัดวงเงิน</p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label>สถานะ</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400">
-                  {formData.is_blocked ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
-                </span>
-                <Switch
-                  checked={!formData.is_blocked}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_blocked: !checked }))}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>หมายเหตุ</Label>
-              <Textarea
-                placeholder="ระบุเหตุผลหรือหมายเหตุ (ไม่บังคับ)"
-                value={formData.note}
-                onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
-                className="bg-black/40 border-slate-700 resize-none"
-                rows={2}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="border-slate-600">
-              ยกเลิก
-            </Button>
-            <Button 
-              onClick={handleAdd}
-              disabled={submitting}
-              className="bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold"
-            >
-              {submitting ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
-              เพิ่มเลขอั้น
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Blocked Number Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="bg-slate-900 border-amber-500/30 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-amber-400">แก้ไขเลขอั้น</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              แก้ไขข้อมูลเลขอั้น: {editingNumber?.number}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>เลขที่ต้องการอั้น *</Label>
-              <Input
-                placeholder="เช่น 123, 45, 7"
-                value={formData.number}
-                onChange={(e) => setFormData(prev => ({ ...prev, number: e.target.value }))}
-                className="bg-black/40 border-slate-700"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>ประเภทเลข *</Label>
-              <Select
-                value={formData.entry_type}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, entry_type: value }))}
-              >
-                <SelectTrigger className="bg-black/40 border-slate-700">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {entryTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>วงเงินสูงสุด (บาท)</Label>
-              <Input
-                type="number"
-                placeholder="เช่น 50000"
-                value={formData.limit_amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, limit_amount: e.target.value }))}
-                className="bg-black/40 border-slate-700"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label>สถานะ</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400">
-                  {formData.is_blocked ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
-                </span>
-                <Switch
-                  checked={!formData.is_blocked}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_blocked: !checked }))}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>หมายเหตุ</Label>
-              <Textarea
-                placeholder="ระบุเหตุผลหรือหมายเหตุ (ไม่บังคับ)"
-                value={formData.note}
-                onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
-                className="bg-black/40 border-slate-700 resize-none"
-                rows={2}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="border-slate-600">
-              ยกเลิก
-            </Button>
-            <Button 
-              onClick={handleUpdate}
-              disabled={submitting}
-              className="bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold"
-            >
-              {submitting ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />}
-              บันทึกการแก้ไข
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

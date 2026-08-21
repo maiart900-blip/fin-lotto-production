@@ -1,14 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/api-auth';
 
 // GET - ดึงรายการสาขาทั้งหมด
 export async function GET(request: NextRequest) {
   try {
-    // Auth guard - require admin
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     

@@ -1,76 +1,28 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { requireAgentOrHigher } from '@/lib/api-auth';
-import { getDataScope, applyFullDataScope, assertNoGlobalFallback } from '@/lib/data-scope';
-import { requireCustomerAccess } from '@/lib/customer-scope';
-import { resolveCustomerAgentChain, buildAgentSnapshotFields } from '@/lib/agent-snapshot';
 
-/**
- * Entries API - Betting entries/slips
- * 
- * SECURITY: Data is scoped by tenant_id and agent_id
- * Agents can only see entries from their own customers/downline
- */
 export async function GET(request: Request) {
   try {
-    // Auth guard (requireAgentOrHigher คืน { user })
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-    const session = authResult.user;
-    
-    // Get data scope for current user
-    const scope = await getDataScope({
-      id: session.id,
-      role: session.role,
-      user_type: session.user_type,
-      tenant_id: session.tenant_id,
-    });
-    
-    // Block global fallback for agents
-    assertNoGlobalFallback(scope);
-    
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customer_id');
-    const date = searchParams.get('date');
-    const withResults = searchParams.get('with_results') === 'true';
+    const date = searchParams.get('date'); // Filter by date
+    const withResults = searchParams.get('with_results') === 'true'; // Include results
     const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(parseInt(searchParams.get('limit') || '200'), 500);
     const offset = (page - 1) * limit;
     
-    // If specific customer requested, verify access first
-    if (customerId) {
-      const accessCheck = await requireCustomerAccess(customerId, {
-        id: session.id,
-        role: session.role,
-        user_type: session.user_type,
-        tenant_id: session.tenant_id,
-      });
-      if (!accessCheck.allowed) {
-        return withResults 
-          ? NextResponse.json({ entries: [], results: [] })
-          : NextResponse.json([]);
-      }
-    }
-    
     const supabase = await createClient();
     let query = supabase
       .from('entries')
-      .select('*, customer:customers(id, name, tenant_id, agent_id), lottery:lotteries(id, name)')
+      .select('*, customer:customers(id, name), lottery:lotteries(id, name)')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
-    
-    // SECURITY: Apply data scope filters
-    query = applyFullDataScope(query, scope, {
-      tenantColumn: 'tenant_id',
-      agentColumn: 'agent_id',
-      excludeNullTenant: true,
-      excludeNullAgent: scope.isAgent,
-    });
     
     if (customerId) {
       query = query.eq('customer_id', customerId);
     }
     
+    // Filter by date if provided
     if (date) {
       const startOfDay = `${date}T00:00:00`;
       const endOfDay = `${date}T23:59:59`;
@@ -80,12 +32,14 @@ export async function GET(request: Request) {
     const { data, error } = await query;
     
     if (error) {
+      // Return consistent format based on with_results
       if (withResults) {
         return NextResponse.json({ entries: [], results: [] });
       }
       return NextResponse.json([]);
     }
     
+    // If with_results is requested, fetch results for the lotteries
     if (withResults) {
       if (data && data.length > 0) {
         const lotteryIds = [...new Set(data.map((e: any) => e.lottery_id))];
@@ -97,11 +51,14 @@ export async function GET(request: Request) {
         
         return NextResponse.json({ entries: data || [], results: resultsData || [] });
       }
+      // Return empty but consistent format
       return NextResponse.json({ entries: [], results: [] });
     }
     
+    // Return array for backward compatibility
     return NextResponse.json(data || []);
   } catch {
+    // Return consistent format based on query params
     const { searchParams } = new URL(request.url);
     const withResults = searchParams.get('with_results') === 'true';
     if (withResults) {
@@ -113,95 +70,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // Auth guard - get session for tenant_id (requireAgentOrHigher คืน { user })
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-    const session = authResult.user;
-    
     const body = await request.json();
     const supabase = await createClient();
     
     // Extract data from request
-    const { entries, userId, lotteryId, lottery_id, customerId, customer_id, skipBlockedCheck, created_by, agent_id, customer_name, source_type } = body;
+    const { entries, userId, lotteryId, lottery_id, customerId, customer_id, skipBlockedCheck, created_by, agent_id } = body;
     const entriesToInsert = Array.isArray(entries) ? entries : [body];
     const finalLotteryId = lotteryId || lottery_id || null;
     const finalCustomerId = customerId || customer_id || null;
-    const finalCreatedBy = created_by || body.createdBy || userId || session.id || null;
-    const finalSourceType = source_type || 'manual';
-    // tenant scope จาก session; ถ้า session เป็น master (null) แต่ระบุ customer ให้ inherit จาก customer
-    let finalTenantId: string | null = session.tenant_id ?? null;
-    if (finalTenantId == null && finalCustomerId) {
-      const { data: custRow } = await supabase
-        .from('customers')
-        .select('tenant_id')
-        .eq('id', finalCustomerId)
-        .maybeSingle();
-      finalTenantId = custRow?.tenant_id ?? null;
-    }
-    
-    // ===== VALIDATION: Manual key entries MUST have customer linkage =====
-    // For manual_key or manual source_type, we need either:
-    // 1. A valid customer_id, OR
-    // 2. A customer_name to create/find customer record
-    if ((finalSourceType === 'manual_key' || finalSourceType === 'manual') && !userId) {
-      // This is a manual key entry (not from logged-in customer)
-      // Check if we have customer identification
-      if (!finalCustomerId && !customer_name) {
-        console.warn('Manual entry rejected: no customer_id or customer_name provided');
-        return NextResponse.json({ 
-          error: 'กรุณาเลือกลูกค้าก่อนส่งโพย',
-          code: 'CUSTOMER_REQUIRED',
-          details: 'Manual key entries must be linked to a customer for payout tracking'
-        }, { status: 400 });
-      }
-      
-      // If customer_name provided but no customer_id, try to find or create customer
-      let resolvedCustomerId = finalCustomerId;
-      if (!resolvedCustomerId && customer_name) {
-        // First, try to find existing customer with this name
-        const { data: existingCustomer } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('name', customer_name.trim())
-          .eq('source_type', 'manual_key')
-          .maybeSingle();
-        
-        if (existingCustomer) {
-          resolvedCustomerId = existingCustomer.id;
-        } else {
-          // Create new customer record for this name
-          const { data: newCustomer, error: createError } = await supabase
-            .from('customers')
-            .insert({
-              name: customer_name.trim(),
-              source_type: 'manual_key',
-              system_type: 'manual_key',
-              credit_balance: 0,
-              is_active: true,
-              agent_id: agent_id || finalCreatedBy || session.id || null,
-              tenant_id: finalTenantId,
-              agent_level: null,
-              user_type: 'customer',
-            })
-            .select('id')
-            .single();
-          
-          if (createError) {
-            console.error('Failed to create customer for manual entry:', createError);
-            return NextResponse.json({ 
-              error: 'ไม่สามารถสร้างข้อมูลลูกค้าได้',
-              code: 'CUSTOMER_CREATE_FAILED'
-            }, { status: 500 });
-          }
-          
-          resolvedCustomerId = newCustomer.id;
-          console.log('Created new customer for manual entry:', { id: resolvedCustomerId, name: customer_name });
-        }
-      }
-      
-      // Update finalCustomerId with resolved value
-      body._resolvedCustomerId = resolvedCustomerId;
-    }
+    const finalCreatedBy = created_by || body.createdBy || userId || null;
     
     // หา agent_id ถ้าไม่ได้ส่งมา - ดูจาก created_by
     let finalAgentId = agent_id || null;
@@ -295,7 +172,7 @@ export async function POST(request: Request) {
         
         // แจ้งเตือนถ้ามีรายการถูกปฏิเสธ
         if (rejectedEntries.length > 0) {
-          console.log('Rejected entries:', rejectedEntries);
+          console.log('[v0] Rejected entries:', rejectedEntries);
         }
       }
     }
@@ -321,7 +198,7 @@ export async function POST(request: Request) {
         const currentBalance = Number(user.credit_balance) || 0;
         if (currentBalance < totalAmount) {
           return NextResponse.json({ 
-            error: `เครดิตไม่เพียงพอ (ยอดแทง: ${totalAmount.toLocaleString()} บาท, คงเหลือ: ${currentBalance.toLocaleString()} บาท)` 
+            error: `เครดิตไ�����่เพียงพอ (ยอดแทง: ${totalAmount.toLocaleString()} บาท, คงเหลือ: ${currentBalance.toLocaleString()} บาท)` 
           }, { status: 400 });
         }
         
@@ -341,30 +218,25 @@ export async function POST(request: Request) {
     }
     
     // Insert entries
-    // Use resolved customer_id if available
-    const resolvedCustomerId = body._resolvedCustomerId || finalCustomerId;
-    
     const { data, error } = await supabase
       .from('entries')
       .insert(entriesToInsert.map(e => ({
         number: e.number,
         bet_type: e.betType || e.bet_type,
         amount: Number(e.amount) || 0,
-        customer_id: resolvedCustomerId || e.customerId || e.customer_id || null,
+        customer_id: finalCustomerId || e.customerId || e.customer_id || null,
         lottery_id: finalLotteryId || e.lotteryId || e.lottery_id || null,
         user_id: userId || e.userId || e.user_id || null,
         created_by: finalCreatedBy || e.createdBy || e.created_by || null,
         agent_id: finalAgentId || e.agent_id || null,
-        tenant_id: finalTenantId,
         status: 'pending',
         payout_rate: e.payoutRate || e.payout_rate || null,
-        source_type: finalSourceType || e.source_type || 'manual',
-        product_type: 'lottery', // multi-product discriminator (agent คีย์โพยหวย)
+        source_type: e.source_type || 'manual',
       })))
       .select('*');
     
     if (error) {
-      console.error('Insert entries error:', error);
+      console.error('[v0] Insert entries error:', error);
       // If entries fail, refund credit
       if (userId && !body.skipRefund) {
         const { data: user } = await supabase
@@ -409,37 +281,71 @@ export async function POST(request: Request) {
         });
     }
     
-    // คำนวณ commission/ถือสู้ chain สำหรับทุก entry ที่บันทึกสำเร็จ
-    // เ��ื่อ snapshot สายงานเอเย่นต์ (agent + parent) ลงในแต่ละ entry
-    // แหล่งข้อมูลจริงคือตาราง agents (customers.agent_id -> agents)
+    // คำนวณ commission chain สำหรับทุก entry ที่บันทึกสำเร็จ
+    // เพื่อส่งยอดขึ้นเว็บแม่ตาม commission structure
     if (data && data.length > 0) {
-      // resolve สายงานทีละ customer แล้ว cache ไ��้ เลี่ยง query ซ้ำ
-      const chainCache = new Map<string, Awaited<ReturnType<typeof resolveCustomerAgentChain>>>();
-
       for (const entry of data) {
         try {
-          if (!entry.customer_id) continue;
-
-          if (!chainCache.has(entry.customer_id)) {
-            chainCache.set(
-              entry.customer_id,
-              await resolveCustomerAgentChain(supabase, entry.customer_id),
-            );
+          // หา agent_id จาก customer หรือ user
+          let agentId = null;
+          
+          if (entry.customer_id) {
+            const { data: customer } = await supabase
+              .from('customers')
+              .select('agent_id')
+              .eq('id', entry.customer_id)
+              .single();
+            agentId = customer?.agent_id;
           }
-          const chain = chainCache.get(entry.customer_id) ?? null;
-          if (!chain) continue;
-
-          const snapshot = buildAgentSnapshotFields(chain, entry.amount);
-
-          const { error: snapErr } = await supabase
-            .from('entries')
-            .update(snapshot)
-            .eq('id', entry.id);
-          if (snapErr) {
-            console.error('Snapshot update failed for entry:', entry.id, snapErr.message, snapErr.code);
+          
+          if (!agentId && entry.user_id) {
+            const { data: user } = await supabase
+              .from('users')
+              .select('parent_agent_id')
+              .eq('id', entry.user_id)
+              .single();
+            agentId = user?.parent_agent_id;
+          }
+          
+          if (agentId) {
+            // หา commission rate ของ agent
+            const { data: agent } = await supabase
+              .from('users')
+              .select('commission_rate, parent_agent_id')
+              .eq('id', agentId)
+              .single();
+            
+            const commissionRate = Number(agent?.commission_rate) || 5;
+            const agentCommission = entry.amount * (commissionRate / 100);
+            
+            // หา parent commission ถ้ามี
+            let parentCommission = 0;
+            if (agent?.parent_agent_id) {
+              const { data: parentAgent } = await supabase
+                .from('users')
+                .select('commission_rate')
+                .eq('id', agent.parent_agent_id)
+                .single();
+              const parentRate = Number(parentAgent?.commission_rate) || 3;
+              parentCommission = entry.amount * (parentRate / 100);
+            }
+            
+            // ยอดที่เหลือส่งเว็บแม่
+            const masterAmount = entry.amount - agentCommission - parentCommission;
+            
+            // อัปเดต entry ด้วยค่า commission
+            await supabase
+              .from('entries')
+              .update({
+                agent_id: agentId,
+                agent_commission: agentCommission,
+                parent_commission: parentCommission,
+                master_amount: masterAmount,
+              })
+              .eq('id', entry.id);
           }
         } catch (commErr) {
-          console.error('Commission calculation error for entry:', entry.id, commErr);
+          console.error('[v0] Commission calculation error for entry:', entry.id, commErr);
         }
       }
     }
@@ -507,9 +413,9 @@ export async function POST(request: Request) {
           }),
         });
         
-        console.log(`Synced ${data.length} entries to parent site`);
+        console.log(`[v0] Synced ${data.length} entries to parent site`);
       } catch (syncError) {
-        console.error('Failed to sync to parent site:', syncError);
+        console.error('[v0] Failed to sync to parent site:', syncError);
         // ไม่ fail request เพราะ local save สำเร็จแล้ว
       }
     }
@@ -551,7 +457,7 @@ export async function POST(request: Request) {
       entries: data,
       totalAmount,
       synced: !!(parentSiteUrl && siteId !== 'master'),
-      message: `บันทึกโพย ${data?.length || 0} รายการ ยอดรวม ${totalAmount.toLocaleString()} บาท`
+      message: `บันทึกโพย ${data?.length || 0} รายการ ���อดรวม ${totalAmount.toLocaleString()} บาท`
     });
   } catch {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการบันทึกโพย' }, { status: 500 });

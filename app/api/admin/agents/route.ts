@@ -2,82 +2,24 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import bcrypt from 'bcryptjs';
 import * as OTPAuth from 'otpauth';
-import { requireAuth, requireAgentOrHigher } from '@/lib/api-auth';
-import { cookies } from 'next/headers';
 
-// 4-TIER AGENT HIERARCHY: Mother Web -> Master -> Agent -> Sub-Agent
-// ห้ามใช้ v1, v2 - ต้องใช้ชื่อระดับเต็มเท่านั้น
+// ระดับสายงาน 4 ระดับ
 const AGENT_LEVELS = {
-  mother_web: { label: 'Mother Web (เว็บแม่)', level: 0, defaultRate: 0, tier: 'mother_web' },
-  master: { label: 'Master', level: 1, defaultRate: 2, tier: 'master' },
-  agent: { label: 'Agent', level: 2, defaultRate: 5, tier: 'agent' },
-  sub_agent: { label: 'Sub-Agent', level: 3, defaultRate: 7, tier: 'sub_agent' },
-  // Legacy mappings (backwards compatibility)
-  senior_agent: { label: 'Master', level: 1, defaultRate: 2, tier: 'master' },
-  master_agent: { label: 'Master', level: 1, defaultRate: 2, tier: 'master' },
-  agent_key: { label: 'Agent', level: 2, defaultRate: 5, tier: 'agent' },
-  key_staff: { label: 'Sub-Agent', level: 3, defaultRate: 7, tier: 'sub_agent' },
-  member: { label: 'Member', level: 4, defaultRate: 0, tier: 'member' },
+  member: { label: 'สมาชิก', level: 0, defaultRate: 0 },
+  agent: { label: 'เอเย่นต์', level: 1, defaultRate: 5 },
+  master_agent: { label: 'มาสเตอร์เอเย่นต์', level: 2, defaultRate: 3 },
+  senior_agent: { label: 'ซีเนียร์เอเย่นต์', level: 3, defaultRate: 2 },
+  agent_key: { label: 'Agent Key', level: 1, defaultRate: 5 },
+  key_staff: { label: 'พนักงานคีย์', level: 0, defaultRate: 0 },
 };
 
 // GET - ดึงรายชื่อเอเย่นต์จาก agents table
 export async function GET(request: Request) {
   try {
-    // Auth guard - require authenticated user (admin or agent)
-    const authResult = await requireAuth();
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const level = searchParams.get('level');
     const systemType = searchParams.get('system_type');
-    
-    // Get current user info to filter by parent_id for agents
-    const cookieStore = await cookies();
-    const adminId = cookieStore.get('admin_id')?.value;
-    const adminRole = cookieStore.get('admin_role')?.value;
-    
-    // Check if user is an agent (not admin) - includes all agent-related roles
-    const agentRoles = ['agent', 'agent_key', 'sub_agent', 'master_agent', 'partner'];
-    const isAgent = agentRoles.includes(adminRole || '');
-    let currentAgentId: string | null = null;
-    
-    if (isAgent && adminId) {
-      // First check if adminId is already an agent ID (direct login from agents table)
-      const { data: directAgentRecord } = await supabase
-        .from('agents')
-        .select('id')
-        .eq('id', adminId)
-        .maybeSingle();
-      
-      if (directAgentRecord) {
-        currentAgentId = directAgentRecord.id;
-      } else {
-        // Try to find by user's source field (e.g., "agent_UUID")
-        const { data: userRecord } = await supabase
-          .from('users')
-          .select('source, username')
-          .eq('id', adminId)
-          .maybeSingle();
-        
-        if (userRecord?.source?.startsWith('agent_')) {
-          currentAgentId = userRecord.source.replace('agent_', '');
-        } else if (userRecord?.username) {
-          // Find the agent record by username/code
-          const { data: agentRecord } = await supabase
-            .from('agents')
-            .select('id')
-            .eq('code', userRecord.username)
-            .maybeSingle();
-          
-          if (agentRecord) {
-            currentAgentId = agentRecord.id;
-          }
-        }
-      }
-    }
     
     let query = supabase
       .from('agents')
@@ -105,11 +47,6 @@ export async function GET(request: Request) {
       .order('level', { ascending: false })
       .order('created_at', { ascending: false });
     
-    // If user is an agent, only show their downline
-    if (isAgent && currentAgentId) {
-      query = query.eq('parent_agent_id', currentAgentId);
-    }
-    
     if (level && level !== 'all') {
       query = query.eq('role', level);
     }
@@ -121,13 +58,8 @@ export async function GET(request: Request) {
     const { data: agents, error } = await query;
     
     if (error) {
-      // Return error message to frontend instead of silent empty array
-      return NextResponse.json({ 
-        agents: [], 
-        summary: {},
-        error: 'Database query failed: ' + error.message,
-        _debug: { errorCode: error.code, errorDetails: error.details }
-      });
+      console.error('[v0] Agents fetch error:', error);
+      return NextResponse.json({ agents: [], summary: {} });
     }
     
     // Map to expected format for frontend
@@ -139,7 +71,6 @@ export async function GET(request: Request) {
       agent_level: agent.role,
       upline_id: agent.parent_agent_id || agent.parent_id,
       commission_rate: agent.commission_rate || 0,
-      share_percent: agent.share_percent ?? 0,
       is_partner: true,
       is_active: agent.is_active !== false && agent.status !== 'inactive',
       total_commission: 0,
@@ -166,31 +97,20 @@ export async function GET(request: Request) {
     
     return NextResponse.json({ agents: mappedAgents, summary, levels: AGENT_LEVELS });
   } catch (error) {
-    console.error('Agents exception:', error);
-    return NextResponse.json({ 
-      agents: [], 
-      summary: {}, 
-      levels: AGENT_LEVELS,
-      error: 'Server exception: ' + (error instanceof Error ? error.message : 'Unknown error')
-    });
+    console.error('[v0] Agents exception:', error);
+    return NextResponse.json({ agents: [], summary: {}, levels: AGENT_LEVELS });
   }
 }
 
 // POST - สร้างเอเย่นต์ใหม่ลง agents table
 export async function POST(request: Request) {
   try {
-    // Auth guard - admin หรือ agent (สร้าง sub-agent) เท่านั้น
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-    const { user: creator } = authResult;
-
     const supabase = await createClient();
     const body = await request.json();
     const { 
       agent_level, 
-      upline_id: requestedUplineId, 
+      upline_id, 
       commission_rate, 
-      share_percent, // % ถือสู้ (Position Taking) - กำหนดโดย Super Admin
       enable_auto, 
       enable_manual_key, 
       name, 
@@ -200,56 +120,6 @@ export async function POST(request: Request) {
       system_type,
       require_2fa = true, // Default บังคับ 2FA
     } = body;
-    
-    // Get current user info to auto-set upline_id for agents creating sub-agents
-    const cookieStore = await cookies();
-    const adminId = cookieStore.get('admin_id')?.value;
-    const adminRole = cookieStore.get('admin_role')?.value;
-    
-    // Check if current user is an agent (not admin)
-    const isCreatorAgent = adminRole === 'agent' || adminRole === 'agent_key';
-    let currentAgentId: string | null = null;
-    
-    if (isCreatorAgent && adminId) {
-      // Find the agent record for this user
-      const { data: userRecord } = await supabase
-        .from('users')
-        .select('source, username')
-        .eq('id', adminId)
-        .maybeSingle();
-      
-      if (userRecord?.source?.startsWith('agent_')) {
-        currentAgentId = userRecord.source.replace('agent_', '');
-      } else if (userRecord?.username) {
-        const { data: agentRecord } = await supabase
-          .from('agents')
-          .select('id')
-          .eq('code', userRecord.username)
-          .maybeSingle();
-        
-        if (agentRecord) {
-          currentAgentId = agentRecord.id;
-        }
-      }
-    }
-    
-    // Use currentAgentId as upline if agent is creating sub-agent and no upline specified
-    const upline_id = requestedUplineId || (isCreatorAgent ? currentAgentId : null);
-
-    // Resolve tenant scope จาก session ผู้สร้าง (multi-tenant isolation)
-    // - creator มี tenant_id (tenant admin หรือ agent): บังคับใช้ tenant นั้น
-    // - super_admin/master (null): ระบุ target tenant ผ่าน body ได้ หรือเป็น master (null)
-    const creatorIsMaster = creator.tenant_id == null;
-    const resolvedTenantId = creatorIsMaster
-      ? ((body.tenant_id as string | null | undefined) ?? null)
-      : creator.tenant_id;
-    
-    console.log('Creating agent - upline detection:', { 
-      requestedUplineId, 
-      isCreatorAgent, 
-      currentAgentId, 
-      finalUplineId: upline_id 
-    });
     
     // Validate required fields
     if (!name?.trim()) {
@@ -288,46 +158,16 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password || '123456', 10);
     
-    // Determine level - always parent level + 1
+    // Determine level
     let hierarchyLevel = 1;
-    let masterAgentId: string | null = null;
-    
     if (upline_id) {
       const { data: upline } = await supabase
         .from('agents')
-        .select('level, parent_agent_id, tenant_id')
+        .select('level')
         .eq('id', upline_id)
         .single();
-
-      // upline ต้องอยู่ tenant เดียวกับ agent ใหม่ (กันผูกสายข้าม tenant)
-      if (upline && (upline.tenant_id ?? null) !== resolvedTenantId) {
-        return NextResponse.json(
-          { error: 'เอเย่นต์แม่ (upline) อยู่คนละ tenant ไม่สามารถผูกสายข้าม tenant ได้' },
-          { status: 400 }
-        );
-      }
-
-      // Calculate level: parent level + 1 (default to 2 if parent has no level)
-      hierarchyLevel = ((upline?.level ?? 1) + 1);
       
-      // Find master agent (walk up the chain to find level 1)
-      if (upline?.level === 1) {
-        // Upline is the master
-        masterAgentId = upline_id;
-      } else if (upline?.parent_agent_id) {
-        // Walk up to find master
-        const { data: masterCandidate } = await supabase
-          .from('agents')
-          .select('id, level')
-          .eq('id', upline.parent_agent_id)
-          .single();
-        
-        if (masterCandidate?.level === 1) {
-          masterAgentId = masterCandidate.id;
-        }
-      }
-      
-      console.log('Agent hierarchy:', { uplineLevel: upline?.level, newLevel: hierarchyLevel, masterAgentId });
+      hierarchyLevel = (upline?.level || 0) + 1;
     }
     
     // Determine system_type
@@ -366,7 +206,7 @@ export async function POST(request: Request) {
     const agentRole = agent_level || (determinedSystemType === 'manual_key' ? 'agent_key' : 'agent');
     const defaultRate = AGENT_LEVELS[agentRole as keyof typeof AGENT_LEVELS]?.defaultRate || 5;
     
-    console.log('Creating agent:', {
+    console.log('[v0] Creating agent:', {
       target_table: 'agents',
       insert_payload: {
         code: username,
@@ -389,12 +229,10 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role: agentRole,
         level: hierarchyLevel,
-        tenant_id: resolvedTenantId, // ผูก tenant จาก session ผู้สร้าง (multi-tenant isolation)
         parent_id: upline_id || null,
         parent_agent_id: upline_id || null,
         commission_rate: commission_rate ?? defaultRate,
-        // % ถือสู้จาก Super Admin — ค่า 0 ถือว่าถูกต้อง (?? เก็บ 0 ไว้), default 70 เมื่อไม่ส่งมา
-        share_percent: share_percent ?? 70,
+        share_percent: 70,
         credit_limit: 100000,
         credit_balance: 0,
         is_active: true,
@@ -415,36 +253,11 @@ export async function POST(request: Request) {
       .single();
     
     if (createError) {
-      console.error('Create agent error:', createError);
+      console.error('[v0] Create agent error:', createError);
       return NextResponse.json({ error: 'สร้างเอเย่นต์ไม่สำเร็จ: ' + createError.message }, { status: 500 });
     }
     
-    console.log('Agent created successfully:', { id: newAgent.id, code: newAgent.code });
-    
-    // AUTO-POPULATE: Insert agent into agent_permissions table for visibility control
-    // Every new agent automatically appears in "ตั้งค่าการมองเห็นเอเย่นต์" menu
-    const { error: permError } = await supabase
-      .from('agent_permissions')
-      .upsert(
-        defaultVisibleMenus.map(menuKey => ({
-          agent_id: newAgent.id,
-          menu_key: menuKey,
-          can_view: true,
-          can_create: menuKey.includes('entries') || menuKey.includes('customers'),
-          can_edit: false,
-          can_delete: false,
-          can_approve: false,
-          can_payout: false,
-        })),
-        { onConflict: 'agent_id,menu_key' }
-      );
-    
-    if (permError) {
-      console.error('Agent permissions auto-populate error:', permError);
-      // Non-fatal - continue even if permissions fail
-    } else {
-      console.log('Agent permissions auto-populated for', newAgent.id);
-    }
+    console.log('[v0] Agent created successfully:', { id: newAgent.id, code: newAgent.code });
     
     return NextResponse.json({ 
       success: true, 
@@ -468,7 +281,7 @@ export async function POST(request: Request) {
     });
     
   } catch (error) {
-    console.error('Agent POST exception:', error);
+    console.error('[v0] Agent POST exception:', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }
@@ -476,36 +289,14 @@ export async function POST(request: Request) {
 // PUT - อัพเดทเอเย่นต์ใน agents table
 export async function PUT(request: Request) {
   try {
-    // Auth guard - admin หรือ agent เท่านั้น
-    const authResult = await requireAgentOrHigher();
-    if (authResult instanceof NextResponse) return authResult;
-    const { user: editor } = authResult;
-
     const supabase = await createClient();
     const body = await request.json();
-    const { customer_id, agent_id, commission_rate, share_percent, action, enable_auto, enable_manual_key } = body;
+    const { customer_id, agent_id, commission_rate, action, enable_auto, enable_manual_key } = body;
     
     const targetId = agent_id || customer_id;
     
     if (!targetId) {
       return NextResponse.json({ error: 'กรุณาระบุ agent_id' }, { status: 400 });
-    }
-
-    // Ownership/tenant check - กัน cross-tenant IDOR
-    // tenant admin/agent แก้ได้เฉพาะ agent ใน tenant ตัวเอง; super_admin/master (null) แก้ได้ทั้งหมด
-    const { data: targetAgent } = await supabase
-      .from('agents')
-      .select('id, tenant_id')
-      .eq('id', targetId)
-      .maybeSingle();
-
-    if (!targetAgent) {
-      return NextResponse.json({ error: 'ไม่พบเอเย่นต์' }, { status: 404 });
-    }
-
-    const editorIsMaster = editor.tenant_id == null;
-    if (!editorIsMaster && (targetAgent.tenant_id ?? null) !== editor.tenant_id) {
-      return NextResponse.json({ error: 'ไม่มีสิทธิ์แก้ไขเอเย่นต์นอก tenant ของคุณ' }, { status: 403 });
     }
     
     // Suspend/Activate agent
@@ -523,11 +314,10 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: true });
     }
     
-    // Update commission_rate, share_percent (ถือสู้) or enable settings
-    if (commission_rate !== undefined || share_percent !== undefined || enable_auto !== undefined || enable_manual_key !== undefined) {
+    // Update commission_rate or enable settings
+    if (commission_rate !== undefined || enable_auto !== undefined || enable_manual_key !== undefined) {
       const updateData: Record<string, unknown> = {};
       if (commission_rate !== undefined) updateData.commission_rate = commission_rate;
-      if (share_percent !== undefined) updateData.share_percent = share_percent;
       if (enable_auto !== undefined) updateData.enable_auto = enable_auto;
       if (enable_manual_key !== undefined) updateData.enable_manual_key = enable_manual_key;
       
@@ -557,7 +347,7 @@ export async function PUT(request: Request) {
     
     return NextResponse.json({ error: 'ไม่มีการดำเนินการ' }, { status: 400 });
   } catch (error) {
-    console.error('Agent PUT exception:', error);
+    console.error('[v0] Agent PUT exception:', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }

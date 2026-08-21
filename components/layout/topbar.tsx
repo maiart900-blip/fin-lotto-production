@@ -58,22 +58,11 @@ export function Topbar() {
     toast.success('รีเฟรชข้อมูลแล้ว');
   };
 
-  // ===================================================================
-  // HEADER (Topbar) — แถบบนสุดแบบ sticky ที่แสดงในทุกหน้าของหลังบ้าน
-  // -------------------------------------------------------------------
-  // โครงสร้างจากซ้ายไปขวา:
-  //  1) SidebarTrigger : ปุ่มยุบ/ขยายเมนูด้านซ้าย
-  //  2) Mobile Logo    : โลโก้ "FIN LOTTO R+" (แสดงเฉพาะจอมือถือ)
-  //  3) Spacer         : <div flex-1> ดันกลุ่มเครื่องมือไปชิดขวา
-  //  4) Action Group   : กระดิ่งแจ้งเตือน, ปุ่มรีเฟรช, ยอดวันนี้,
-  //                      ข้อมูลผู้ใช้, ปุ่มออกจากระบบ
-  // ===================================================================
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-[rgba(234,179,8,0.1)] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 px-4 shadow-sm">
-      {/* 1) ปุ่มยุบ/ขยาย Sidebar */}
       <SidebarTrigger className="text-[#64748B] hover:text-[#EAB308]" />
       
-      {/* 2) โลโก้สำหรับจอมือถือ (ซ่อนบนจอ desktop ด้วย md:hidden) */}
+      {/* Mobile Logo */}
       <div className="flex items-center gap-2 md:hidden">
         <Crown className="size-5 text-[#EAB308]" />
         <span className="font-bold text-sm bg-gradient-to-r from-[#EAB308] to-[#B8860B] bg-clip-text text-transparent">
@@ -81,12 +70,10 @@ export function Topbar() {
         </span>
       </div>
 
-      {/* 3) Spacer: ดันกลุ่มเครื่องมือด้านขวาให้ชิดขอบขวา */}
       <div className="flex-1" />
       
-      {/* 4) Action Group: กลุ่มเครื่องมือด้านขวาของ Header */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* 4.1) กระดิ่งแจ้งเตือน — แสดง badge จำนวนรายการรอดำเนินการ */}
+        {/* Notification Bell */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative text-[#64748B] hover:text-[#EAB308] hover:bg-[rgba(234,179,8,0.1)]">
@@ -167,7 +154,7 @@ export function Topbar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* 4.2) ปุ่มรีเฟรชข้อมูล — ดึงรายการเดิมพันใหม่ */}
+        {/* Refresh Button */}
         <Button
           variant="ghost"
           size="icon"
@@ -178,14 +165,14 @@ export function Topbar() {
           <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
 
-        {/* 4.3) ยอดเดิมพันวันนี้ — ซ่อนบนจอมือถือขนาดเล็ก */}
+        {/* Today Stats - Hidden on small mobile */}
         <div className="hidden xs:flex items-center gap-2">
           <Badge className="text-xs bg-gradient-to-b from-[#EAB308] to-[#B8860B] text-white font-semibold border-0 shadow-lg shadow-[rgba(234,179,8,0.3)]">
             วันนี้: {todayTotal.toLocaleString()}
           </Badge>
         </div>
 
-        {/* 4.4) ข้อมูลผู้ใช้ — แสดงไอคอนตามสิทธิ์ (admin/ทั่วไป) + ชื่อ */}
+        {/* User Info */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(234,179,8,0.08)] border border-[rgba(234,179,8,0.2)]">
           {isAdmin ? (
             <ShieldCheck className="size-4 text-[#EAB308]" />
@@ -197,7 +184,7 @@ export function Topbar() {
           </span>
         </div>
 
-        {/* 4.5) ปุ่มออกจากระบบ — เคลียร์ session แล้วกลับไปหน้า login */}
+        {/* Logout Button */}
         <Button
           variant="ghost"
           size="icon"

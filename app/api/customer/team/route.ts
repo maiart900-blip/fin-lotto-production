@@ -81,7 +81,7 @@ export async function GET() {
       members: membersWithBets,
     });
   } catch (error) {
-    console.error('Team API error:', error);
+    console.error('[v0] Team API error:', error);
     return NextResponse.json({ 
       totalMembers: 0, 
       totalCommission: 0, 

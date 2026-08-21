@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,55 +11,18 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 export default function AgentIncomePage() {
   const [period, setPeriod] = useState<'daily' | 'monthly' | 'yearly'>('daily');
   const [selectedAgent, setSelectedAgent] = useState('all');
-  const [agentId, setAgentId] = useState<string | null>(null);
   
   const { data: agents } = useSWR('/api/admin/agents', fetcher);
   const agentList = agents?.agents || [];
 
-  // ดึง agent ID จาก localStorage
-  useEffect(() => {
-    let userStr = localStorage.getItem('lottery_session');
-    if (!userStr) userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setAgentId(user.id);
-      } catch { /* ignore */ }
-    }
-  }, []);
-
-  // คำนวณ date range ตาม period
-  const getDateRange = () => {
-    const now = new Date();
-    let start = new Date();
-    if (period === 'daily') {
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (period === 'monthly') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else {
-      start = new Date(now.getFullYear(), 0, 1);
-    }
-    return {
-      start: start.toISOString().split('T')[0],
-      end: now.toISOString().split('T')[0],
-    };
+  // Mock data สำหรับแสดงผล (ในการใช้งานจริงจะดึงจาก API)
+  const incomeData = {
+    daily: { total: 15000, commission: 1500, entries: 45 },
+    monthly: { total: 450000, commission: 45000, entries: 1350 },
+    yearly: { total: 5400000, commission: 540000, entries: 16200 },
   };
 
-  const dateRange = getDateRange();
-  const queryAgentId = selectedAgent === 'all' ? agentId : selectedAgent;
-
-  // ดึงข้อมูลจาก API /api/agent/profit หรือ /api/bet-summary
-  const { data: profitData, isLoading } = useSWR(
-    queryAgentId ? `/api/agent/profit?agent_id=${queryAgentId}&start_date=${dateRange.start}&end_date=${dateRange.end}` : null,
-    fetcher
-  );
-
-  // Map data จาก API - ถ้าไม่มีข้อมูลจะแสดง 0
-  const currentData = {
-    total: profitData?.summary?.total_amount || 0,
-    commission: profitData?.summary?.agent_share || 0,
-    entries: profitData?.summary?.total_bets || 0,
-  };
+  const currentData = incomeData[period];
 
   return (
     <div className="p-6 space-y-6">

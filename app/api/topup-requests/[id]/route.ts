@@ -34,7 +34,7 @@ export async function GET(
     
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Topup request GET error:', error);
+    console.error('[v0] Topup request GET error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -134,7 +134,7 @@ export async function PATCH(
         });
         
         if (turnoverError) {
-          console.error('Turnover update error:', turnoverError);
+          console.error('[v0] Turnover update error:', turnoverError);
           // Fallback: direct update if RPC fails
           const turnoverAmount = topupRequest.amount * turnoverMultiplier;
           await supabase
@@ -231,7 +231,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     
   } catch (error) {
-    console.error('Topup request PATCH error:', error);
+    console.error('[v0] Topup request PATCH error:', error);
     if (error instanceof Error && error.message === 'Permission denied') {
       return NextResponse.json({ error: 'ไม่มีสิทธิ์ดำเนินการ' }, { status: 403 });
     }

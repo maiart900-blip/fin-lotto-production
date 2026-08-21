@@ -28,7 +28,7 @@ export default function LoginPage() {
     if (hasRedirectedRef.current) return;
     
     if (!authLoading && isAuthenticated) {
-      console.log('Login: Already authenticated, redirecting to:', redirectUrl);
+      console.log('[v0] Login: Already authenticated, redirecting to:', redirectUrl);
       hasRedirectedRef.current = true;
       router.replace(redirectUrl);
     }
@@ -46,22 +46,14 @@ export default function LoginPage() {
     try {
       const user = await login(username, password);
       
-      console.log('Login success:', user?.displayName, 'redirecting to:', redirectUrl);
+      console.log('[v0] Login success:', user?.displayName, 'redirecting to:', redirectUrl);
       toast.success('เข้าสู่ระบบสำเร็จ');
       
       // Redirect to intended page or user's default page
       const finalRedirect = redirectUrl !== '/' ? redirectUrl : (user?.redirectTo || '/');
       router.replace(finalRedirect);
-    } catch (error: any) {
-      console.error('Login error:', error);
-      
-      // Handle 2FA redirects
-      if (error.requires2FASetup || error.requires2FA) {
-        toast.info(error.message || 'กรุณาตั้งค่า 2FA');
-        router.push(error.redirectTo);
-        return;
-      }
-      
+    } catch (error) {
+      console.error('[v0] Login error:', error);
       toast.error(error instanceof Error ? error.message : 'เข้าสู่ระบบไม่สำเร็จ');
     } finally {
       setIsLoading(false);

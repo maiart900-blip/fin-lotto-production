@@ -163,7 +163,7 @@ export async function addCredit(params: WalletTransactionParams): Promise<Wallet
         transactionId: transaction?.id 
       };
     } catch (error) {
-      console.error('Wallet addCredit error:', error);
+      console.error('[v0] Wallet addCredit error:', error);
       return { success: false, newBalance: 0, error: 'Transaction failed' };
     }
   });
@@ -252,7 +252,7 @@ export async function subtractCredit(params: WalletTransactionParams): Promise<W
         transactionId: transaction?.id 
       };
     } catch (error) {
-      console.error('Wallet subtractCredit error:', error);
+      console.error('[v0] Wallet subtractCredit error:', error);
       return { success: false, newBalance: 0, error: 'Transaction failed' };
     }
   });

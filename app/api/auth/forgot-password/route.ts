@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Forgot password error:', error);
+    console.error('[v0] Forgot password error:', error);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาดในระบบ', found: false },
       { status: 500 }

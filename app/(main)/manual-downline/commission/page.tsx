@@ -222,7 +222,7 @@ export default function CommissionSettingsPage() {
                 <h3 className="font-bold text-blue-400 mb-1">Position Taking (PT)</h3>
                 <p className="text-sm text-slate-400">
                   อัตราการถือสู้ของเอเย่นต์ เช่น PT 20% หมายถึง เอเย่นต์รับผิดชอบ 20% ของยอดแทง 
-                  หากลูกค้าถูกรางวัล เอเย่นต์ต้องจ่าย 20% ของเงินรางวัล แต่ถ้���ลูกค้าแพ้ เอเย่นต์ได้กำไร 20% ของยอดแทง
+                  หากลูกค้าถูกรางวัล เอเย่นต์ต้องจ่าย 20% ของเงินรางวัล แต่ถ้าลูกค้าแพ้ เอเย่นต์ได้กำไร 20% ของยอดแทง
                 </p>
               </div>
             </div>
@@ -397,8 +397,9 @@ export default function CommissionSettingsPage() {
                 <User className="size-8 text-slate-400" />
               </div>
               <div className="text-sm font-bold text-white">Sub-Agent</div>
+              <div className="text-xs text-slate-400">รับ 20%</div>
               <Badge className="mt-1 bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px]">
-                สุทธิ 20%
+                เก็บ 20%
               </Badge>
             </div>
           </div>

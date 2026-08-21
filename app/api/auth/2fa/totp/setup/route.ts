@@ -81,7 +81,7 @@ export async function POST(request: Request) {
       }, { onConflict: 'user_id' });
 
     if (upsertError) {
-      console.error('2FA upsert error:', upsertError);
+      console.error('[v0] 2FA upsert error:', upsertError);
       return NextResponse.json({ error: 'Failed to save 2FA settings: ' + upsertError.message }, { status: 500 });
     }
 

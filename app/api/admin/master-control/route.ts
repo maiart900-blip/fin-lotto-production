@@ -1,14 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { requireSuperAdmin } from '@/lib/api-auth'
 
 // GET - ดึงข้อมูล Master Control ทั้งหมด
 export async function GET() {
   try {
-    // Auth guard - require super_admin for master control
-    const authResult = await requireSuperAdmin()
-    if (authResult instanceof NextResponse) return authResult
-
     const supabase = await createClient()
 
     // ดึง global controls

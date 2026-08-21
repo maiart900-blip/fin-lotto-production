@@ -87,12 +87,6 @@ interface SiteSettings {
   telegram_url?: string;
   facebook_url?: string;
   contact_message?: string;
-  // Notification settings (Admin Alerts)
-  line_notify_enabled?: boolean;
-  line_notify_token?: string;
-  telegram_enabled?: boolean;
-  telegram_bot_token?: string;
-  telegram_chat_id?: string;
   error?: string;
 }
 
@@ -420,7 +414,7 @@ export default function DesktopSettingsPage() {
       
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-8 w-full max-w-5xl">
+        <TabsList className="grid grid-cols-7 w-full max-w-4xl">
           <TabsTrigger value="general" className="flex items-center gap-1">
             <Settings className="size-4" />
             <span className="hidden sm:inline">ทั่วไป</span>
@@ -445,15 +439,11 @@ export default function DesktopSettingsPage() {
             <Bell className="size-4" />
             <span className="hidden sm:inline">ประกาศ</span>
           </TabsTrigger>
-<TabsTrigger value="lottery" className="flex items-center gap-1">
-<LayoutGrid className="size-4" />
-<span className="hidden sm:inline">หวย</span>
-</TabsTrigger>
-<TabsTrigger value="notifications" className="flex items-center gap-1">
-<Bell className="size-4" />
-<span className="hidden sm:inline">แจ้งเตือน</span>
-</TabsTrigger>
-</TabsList>
+          <TabsTrigger value="lottery" className="flex items-center gap-1">
+            <LayoutGrid className="size-4" />
+            <span className="hidden sm:inline">หวย</span>
+          </TabsTrigger>
+        </TabsList>
         
         {/* General Settings */}
         <TabsContent value="general" className="mt-6">
@@ -494,7 +484,7 @@ export default function DesktopSettingsPage() {
                   <Gift className="size-5" />
                   โปรโมชั่นสมัครสมาชิก
                 </CardTitle>
-                <CardDescription>จัดการ���ปรโมชั่นแจกเครดิตฟรีสำหรับสมาชิกใหม่</CardDescription>
+                <CardDescription>จัดการ���ปรโมชั่นแจกเครดิตฟรีสำหร��บสมาชิกใหม่</CardDescription>
               </div>
               <Button onClick={() => { setEditingPromo(null); setShowPromoDialog(true); }}>
                 <Plus className="size-4 mr-2" />
@@ -789,7 +779,7 @@ export default function DesktopSettingsPage() {
                     placeholder="@yourlineid"
                     className="mt-1"
                   />
-                        <p className="text-xs text-muted-foreground mt-1">ไม่ต้องใส่ @ นำหน้า</p>
+                  <p className="text-xs text-muted-foreground mt-1">ไม่ต้องใส��� @ นำหน้า</p>
                 </div>
                 <div>
                   <Label>LINE URL</Label>
@@ -1057,221 +1047,6 @@ export default function DesktopSettingsPage() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Notifications Settings Tab */}
-        <TabsContent value="notifications" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="size-5 text-amber-500" />
-                ตั้งค่าระบบแจ้งเตือนแอดมิน
-              </CardTitle>
-              <CardDescription>
-                รับการแจ้งเตือนผ่าน LINE Notify หรือ Telegram เมื่อมีรายการฝาก/ถอน หรือรายการเสี่ยง
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-8">
-              {/* LINE Notify Section */}
-              <div className="space-y-4 p-4 border rounded-lg bg-[#00B900]/5 border-[#00B900]/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#00B900] flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.349 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">LINE Notify</h3>
-                      <p className="text-sm text-muted-foreground">รับแจ้งเตือนผ่าน LINE</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.line_notify_enabled || false}
-                    onCheckedChange={(checked) => setSettings({ ...settings, line_notify_enabled: checked })}
-                  />
-                </div>
-                
-                {settings.line_notify_enabled && (
-                  <div className="space-y-4 pt-4 border-t border-[#00B900]/20">
-                    <div>
-                      <Label htmlFor="line_notify_token">LINE Notify Token</Label>
-                      <div className="flex gap-2 mt-1">
-                        <Input
-                          id="line_notify_token"
-                          type="password"
-                          value={settings.line_notify_token || ''}
-                          onChange={(e) => setSettings({ ...settings, line_notify_token: e.target.value })}
-                          placeholder="กรอก LINE Notify Token"
-                          className="font-mono"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={async () => {
-                            if (!settings.line_notify_token) {
-                              toast.error('กรุณากรอก Token ก่อน');
-                              return;
-                            }
-                            try {
-                              const res = await fetch('/api/notifications/test', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ type: 'line', token: settings.line_notify_token }),
-                              });
-                              const data = await res.json();
-                              if (data.success) {
-                                toast.success('ส่งข้อความทดสอบสำเร็จ!');
-                              } else {
-                                toast.error(data.error || 'ส่งไม่สำเร็จ');
-                              }
-                            } catch (err) {
-                              toast.error('เกิดข้อผิดพลาด');
-                            }
-                          }}
-                        >
-                          ทดสอบ
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        รับ Token ได้จาก{' '}
-                        <a 
-                          href="https://notify-bot.line.me/my/" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-[#00B900] hover:underline"
-                        >
-                          notify-bot.line.me/my/
-                        </a>
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Telegram Section */}
-              <div className="space-y-4 p-4 border rounded-lg bg-[#0088cc]/5 border-[#0088cc]/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#0088cc] flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">Telegram Bot</h3>
-                      <p className="text-sm text-muted-foreground">รับแจ้งเตือนผ่าน Telegram</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.telegram_enabled || false}
-                    onCheckedChange={(checked) => setSettings({ ...settings, telegram_enabled: checked })}
-                  />
-                </div>
-                
-                {settings.telegram_enabled && (
-                  <div className="space-y-4 pt-4 border-t border-[#0088cc]/20">
-                    <div>
-                      <Label htmlFor="telegram_bot_token">Bot Token</Label>
-                      <Input
-                        id="telegram_bot_token"
-                        type="password"
-                        value={settings.telegram_bot_token || ''}
-                        onChange={(e) => setSettings({ ...settings, telegram_bot_token: e.target.value })}
-                        placeholder="กรอก Bot Token จาก @BotFather"
-                        className="font-mono mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="telegram_chat_id">Chat ID</Label>
-                      <div className="flex gap-2 mt-1">
-                        <Input
-                          id="telegram_chat_id"
-                          value={settings.telegram_chat_id || ''}
-                          onChange={(e) => setSettings({ ...settings, telegram_chat_id: e.target.value })}
-                          placeholder="กรอก Chat ID หรือ Group ID"
-                          className="font-mono"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={async () => {
-                            if (!settings.telegram_bot_token || !settings.telegram_chat_id) {
-                              toast.error('กรุณากรอก Bot Token และ Chat ID ก่อน');
-                              return;
-                            }
-                            try {
-                              const res = await fetch('/api/notifications/test', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                  type: 'telegram', 
-                                  token: settings.telegram_bot_token,
-                                  chatId: settings.telegram_chat_id,
-                                }),
-                              });
-                              const data = await res.json();
-                              if (data.success) {
-                                toast.success('ส่งข้อความทดสอบสำเร็จ!');
-                              } else {
-                                toast.error(data.error || 'ส่งไม่สำเร็จ');
-                              }
-                            } catch (err) {
-                              toast.error('เกิดข้อผิดพลาด');
-                            }
-                          }}
-                        >
-                          ทดสอบ
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        สร้าง Bot ได้จาก{' '}
-                        <a 
-                          href="https://t.me/BotFather" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-[#0088cc] hover:underline"
-                        >
-                          @BotFather
-                        </a>
-                        {' '}• ดู Chat ID ได้จาก{' '}
-                        <a 
-                          href="https://t.me/userinfobot" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-[#0088cc] hover:underline"
-                        >
-                          @userinfobot
-                        </a>
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Notification Events Info */}
-              <div className="p-4 border rounded-lg bg-amber-500/5 border-amber-500/20">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Bell className="size-4 text-amber-500" />
-                  เหตุการณ์ที่จะแจ้งเตือน
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/30">💰 ฝากเงิน</Badge>
-                    <span className="text-muted-foreground">เมื่อลูกค้าแจ้งฝากเงิน</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">💸 ถอนเงิน</Badge>
-                    <span className="text-muted-foreground">เมื่อลูกค้าขอถอนเงิน</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/30">⚠️ เสี่ยง</Badge>
-                    <span className="text-muted-foreground">สลิปซ้ำ / ยอดฝากถอนผิดปกติ</span>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1595,7 +1370,7 @@ function PromotionDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-                <DialogTitle>{promotion ? 'แก้ไขโปรโมชั่น' : 'เพิ่มโปรโมชั่นใหม่'}</DialogTitle>
+          <DialogTitle>{promotion ? 'แก้ไขโปรโมชั่น' : 'เพิ่มโปรโมชั่นใ��ม่'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>

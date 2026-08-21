@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireSuperAdmin } from '@/lib/api-auth';
 
 // API สำหรับเว็บกลาง - จัดการยอดส่งของเอเย่น
 
 export async function GET(request: Request) {
   try {
-    // Auth guard - require super_admin for master settlements
-    const authResult = await requireSuperAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const agentId = searchParams.get('agent_id');

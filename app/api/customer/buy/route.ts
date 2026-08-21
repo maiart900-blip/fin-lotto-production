@@ -2,27 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { createAuditLog, getClientIP, getUserAgent } from '@/lib/audit-log';
-import { 
-  applyRateLimit, 
-  customerBuySchema, 
-  validateRequestBody,
-  verifyCustomerAccess,
-  logSecurityEvent 
-} from '@/lib/security/api-security';
-import { resolveCustomerAgentChain, buildAgentSnapshotFields } from '@/lib/agent-snapshot';
 
 export async function POST(request: NextRequest) {
   try {
-    // SECURITY: Rate limit financial operations (10 per minute)
-    const rateLimitResponse = await applyRateLimit('financial', 'customer_buy');
-    if (rateLimitResponse) {
-      await logSecurityEvent('rate_limit', { 
-        endpoint: '/api/customer/buy',
-        reason: 'Buy operation rate limited'
-      });
-      return rateLimitResponse;
-    }
-    
     const supabase = await createClient();
     const cookieStore = await cookies();
     
@@ -36,34 +18,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // SECURITY: Validate input with Zod schema (Anti-SQL Injection)
-    const validation = await validateRequestBody(request, customerBuySchema);
-    if (!validation.success) {
-      await logSecurityEvent('validation_failure', {
-        endpoint: '/api/customer/buy',
-        customer_id,
-        reason: 'Invalid buy request format'
-      });
-      return validation.response;
-    }
-    
-    const { lottery_id, entries, items } = validation.data;
+    const body = await request.json();
+    const { lottery_id, entries, items } = body;
     
     // Support both 'entries' and 'items' keys for backwards compatibility
     const entryItems = entries || items;
 
-    // entryItems is already validated by Zod schema above
-    if (!entryItems || entryItems.length === 0) {
+    if (!lottery_id || !entryItems || entryItems.length === 0) {
       return NextResponse.json(
         { error: 'ข้อมูลไม่ครบถ้วน' },
         { status: 400 }
       );
     }
 
-    // Get customer balance and tenant_id
+    // Get customer balance
     const { data: customer, error: customerError } = await supabase
       .from('customers')
-      .select('credit_balance, is_active, tenant_id, current_turnover, total_bets')
+      .select('credit_balance, is_active')
       .eq('id', customer_id)
       .single();
 
@@ -119,22 +90,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Resolve สายงานเอเย่นต์ของลูกค้าครั้งเดียว (agent + parent จากตาราง agents)
-    // เพื่อ snapshot ลงทุก entry — ถ้าลูกค้าไม่มี agent ผูกไว้ agentChain = null
-    const agentChain = await resolveCustomerAgentChain(supabase, customer_id);
-
     // Create entries (auto system - ลูกค้าแทงเอง)
     const entriesToInsert = entryItems.map((item: { number: string; bet_type?: string; betType?: string; amount: number }) => ({
       lottery_id,
       customer_id,
-      tenant_id: customer.tenant_id, // Include tenant_id for stats queries
       number: item.number,
       bet_type: item.bet_type || item.betType,
       amount: item.amount,
       source_type: 'auto', // ลูกค้าแทงเองผ่านระบบออโต้
-      product_type: 'lottery', // multi-product discriminator (โพยนี้คือหวย)
-      // snapshot สายงานเอเย่นต์ + ค่าคอม/ถือสู้ ณ เวลาที่แทง
-      ...(agentChain ? buildAgentSnapshotFields(agentChain, item.amount) : {}),
     }));
 
     const { data: createdEntries, error: entriesError } = await supabase

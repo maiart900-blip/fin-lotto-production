@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { requireAdmin } from '@/lib/api-auth';
 
 /**
  * API สำหรับสร้าง Agent (เอเย่นต์คีย์/ออโต้/hybrid)
@@ -11,11 +10,6 @@ import { requireAdmin } from '@/lib/api-auth';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Auth guard - require admin for creating agents
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-    const { user: creator } = authResult;
-
     const supabase = await createClient();
     const body = await request.json();
     
@@ -35,16 +29,7 @@ export async function POST(request: NextRequest) {
       enable_auto = false,
       role = 'agent_key',
       owner_id,
-      tenant_id: bodyTenantId, // super_admin (master) เท่านั้นที่ระบุ target tenant ได้
     } = body;
-
-    // Resolve tenant scope จาก session ผู้สร้าง (multi-tenant isolation)
-    // - tenant admin (มี tenant_id): agent ใหม่ถูกผูกกับ tenant ของ admin เสมอ (บังคับ, กัน cross-tenant)
-    // - super_admin/master (tenant_id null): เป็น master agent (null) หรือระบุ target tenant ผ่าน body ได้
-    const creatorIsMaster = creator.tenant_id == null;
-    const resolvedTenantId = creatorIsMaster
-      ? (bodyTenantId ?? null)
-      : creator.tenant_id;
     
     // Validate required fields
     if (!name?.trim()) {
@@ -118,23 +103,10 @@ export async function POST(request: NextRequest) {
     if (parent_agent_id) {
       const { data: parentAgent } = await supabase
         .from('agents')
-        .select('level, tenant_id')
+        .select('level')
         .eq('id', parent_agent_id)
         .single();
-
-      if (!parentAgent) {
-        return NextResponse.json({ error: 'ไม่พบเอเย่นต์แม่ (parent)' }, { status: 400 });
-      }
-
-      // parent ต้องอยู่ tenant เดียวกับ agent ใหม่ (กันผูกข้ามสาย/ข้าม tenant)
-      const parentTenant = parentAgent.tenant_id ?? null;
-      if (parentTenant !== resolvedTenantId) {
-        return NextResponse.json(
-          { error: 'เอเย่นต์แม่อยู่คนละ tenant ไม่สามารถผูกสายข้าม tenant ได้' },
-          { status: 400 }
-        );
-      }
-
+      
       agentLevel = (parentAgent?.level || 0) + 1;
     }
     
@@ -158,7 +130,6 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         role: role,
         level: agentLevel,
-        tenant_id: resolvedTenantId, // ผูก tenant จาก session ผู้สร้าง (multi-tenant isolation)
         parent_id: parent_agent_id || null,
         parent_agent_id: parent_agent_id || null,
         owner_id: owner_id || null,
@@ -183,39 +154,6 @@ export async function POST(request: NextRequest) {
         { error: `ไม่สามารถสร้างเอเย่นต์ได้: ${createError.message}` },
         { status: 500 }
       );
-    }
-    
-    // Also create user in users table for login functionality
-    const agentTierMap: Record<string, string> = {
-      'master': 'master',
-      'agent': 'agent',
-      'sub_agent': 'sub_agent',
-      'agent_key': agentLevel === 1 ? 'master' : agentLevel === 2 ? 'agent' : 'sub_agent',
-    };
-    
-    const { error: userCreateError } = await supabase
-      .from('users')
-      .insert({
-        username: agentCode,
-        password_hash: hashedPassword, // คอลัมน์จริงคือ password_hash (ไม่ใช่ password)
-        display_name: name,
-        phone: phone || null,
-        tenant_id: resolvedTenantId, // ผูก tenant เดียวกับ agents row (login scope)
-        role: 'agent', // All agents have 'agent' role for login
-        user_type: 'manual_key_agent',
-        agent_tier: agentTierMap[level] || agentTierMap[role] || 'agent',
-        source_type: system_type,
-        source: `agent_${newAgent.id}`,
-        is_active: status === 'active',
-        hierarchy_level: agentLevel,
-        parent_id: parent_agent_id || null,
-        commission_rate: commission_rate,
-      });
-    
-    if (userCreateError) {
-      console.error('Create user for agent error:', userCreateError);
-      // Don't fail the whole operation, agent is already created
-      // Just log the error - agent can be linked to user later
     }
     
     // Return success response

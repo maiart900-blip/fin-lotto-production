@@ -3,7 +3,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Allow dev origins for HMR in preview sandbox
+  // Allow dev origins for HMR in v0 sandbox
   allowedDevOrigins: ['*.vusercontent.net'],
   images: {
     unoptimized: true,
@@ -51,10 +51,6 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.line.me; frame-ancestors 'self';",
           },
         ],
       },

@@ -2,9 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState, useRef } from 'react';
-import type { UserType, SourceTable, DetailedRole } from '@/lib/identity';
 
-export type UserRole = 'super_admin' | 'admin' | 'agent' | 'agent_key' | 'sub_agent' | 'master_agent' | 'partner' | 'staff' | 'member' | 'customer';
+export type UserRole = 'super_admin' | 'admin' | 'agent' | 'partner' | 'staff' | 'member';
 
 export interface BranchInfo {
   id: string;
@@ -20,17 +19,6 @@ export interface SessionUser {
   username: string;
   displayName: string;
   role: UserRole;
-  // Identity model fields
-  user_type?: UserType;
-  source_table?: SourceTable;
-  // Tenant context (for agents)
-  tenant_id?: string | null;
-  tenant_mode?: 'auto_only' | 'manual_key_only' | 'hybrid' | 'both';
-  feature_flags?: string[];
-  system_type?: 'auto' | 'manual_key' | 'both' | 'hybrid';
-  enable_manual_key?: boolean;
-  enable_auto?: boolean;
-  // Other fields
   referralCode?: string;
   is_unlimited_credit?: boolean;
   credit_balance?: number;
@@ -39,7 +27,6 @@ export interface SessionUser {
   // Permission fields
   visible_menus?: string[];
   hidden_menus?: string[];
-  permissions?: Record<string, any>;
   can_create_sub_agent?: boolean;
   can_view_reports?: boolean;
   can_key_lottery?: boolean;
@@ -94,10 +81,6 @@ export function useAuth() {
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    // Clear old session BEFORE login to ensure fresh state
-    setStoredSession(null);
-    setUser(null);
-    
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -105,23 +88,6 @@ export function useAuth() {
     });
     
     const responseData = await res.json();
-    
-    // Handle 2FA requirements (returned as 200 OK with requires2FA flags)
-    if (responseData.requires2FASetup) {
-      // User needs to setup 2FA - throw with redirect info
-      const error = new Error(responseData.message || 'กรุณาตั้งค่า 2FA');
-      (error as any).requires2FASetup = true;
-      (error as any).redirectTo = responseData.redirectTo || '/auth/2fa-setup';
-      throw error;
-    }
-    
-    if (responseData.requires2FA) {
-      // User needs to verify 2FA - throw with redirect info
-      const error = new Error(responseData.message || 'กรุณายืนยัน 2FA');
-      (error as any).requires2FA = true;
-      (error as any).redirectTo = responseData.redirectTo || '/auth/2fa-verify';
-      throw error;
-    }
     
     if (!res.ok) {
       throw new Error(responseData.error || 'เข้าสู่ระบบไม่สำเร็จ');
@@ -131,8 +97,7 @@ export function useAuth() {
     setStoredSession(responseData.user);
     setUser(responseData.user);
     
-    // Return user with redirectTo from API response
-    return { ...responseData.user, redirectTo: responseData.redirectTo };
+    return responseData.user;
   }, []);
 
   const logout = useCallback(() => {
@@ -185,9 +150,6 @@ export function useAuth() {
 
   const isSuperAdmin = user?.role === 'super_admin';
   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
-  const isAgent = user?.role === 'agent' || user?.role === 'agent_key' || user?.role === 'partner';
-  const isMember = user?.role === 'member' || user?.role === 'staff' || user?.user_type === 'member';
-  const isCustomer = user?.role === 'customer' || user?.user_type === 'customer';
   
   // Branch context helpers
   const isMasterBranch = user?.branch?.is_master === true || user?.branch?.branch_type === 'master';
@@ -251,9 +213,6 @@ export function useAuth() {
     isAuthenticated: !!user,
     isSuperAdmin,
     isAdmin,
-    isAgent,
-    isMember,
-    isCustomer,
     isMasterBranch,
     hasBranch,
     branchId,

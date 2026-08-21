@@ -118,7 +118,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('Error loading branch data:', error);
+      console.error('[v0] Error loading branch data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -276,7 +276,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
 
       setLastSyncAt(new Date());
     } catch (error) {
-      console.error('Error pushing to parent:', error);
+      console.error('[v0] Error pushing to parent:', error);
     }
   }, [currentBranch, parentBranch, supabase]);
 

@@ -6,7 +6,7 @@ export async function GET() {
     const supabase = await createClient();
     const today = new Date().toISOString().split('T')[0];
 
-    console.log('Auto System Status - Starting fetch');
+    console.log('[v0] Auto System Status - Starting fetch');
 
     // Get system settings
     const { data: settings } = await supabase
@@ -37,7 +37,7 @@ export async function GET() {
     const todaySales = autoBets.reduce((sum, bet) => sum + Number(bet.total_amount || 0), 0);
     const todayEntriesCount = autoBets.length;
 
-    console.log('Today Auto Sales:', { todaySales, todayEntriesCount, error: betsError });
+    console.log('[v0] Today Auto Sales:', { todaySales, todayEntriesCount, error: betsError });
 
     // Get active agents count
     const { count: activeConnections } = await supabase
@@ -68,11 +68,11 @@ export async function GET() {
       autoSystemEnabled: settings?.value?.enabled ?? true,
     };
 
-    console.log('System Status:', status);
+    console.log('[v0] System Status:', status);
 
     return NextResponse.json(status);
   } catch (error) {
-    console.error('Error fetching auto system status:', error);
+    console.error('[v0] Error fetching auto system status:', error);
     // Return default status on error (graceful fallback)
     return NextResponse.json({
       isOnline: true,

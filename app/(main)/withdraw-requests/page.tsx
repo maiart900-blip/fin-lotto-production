@@ -86,18 +86,6 @@ interface WithdrawRequest {
   credit_before: number;
   credit_after: number | null;
   created_at: string;
-  // Source breakdown fields
-  source_breakdown?: {
-    lottery_winnings: number;    // เงินรางวัลหวย
-    lottery_refund: number;      // คืนยอดหวย
-    game_winnings: number;       // เงินรางวัลเกมส์
-    bonus: number;               // โบนัส
-    admin_add: number;           // Admin เพิ่ม
-    deposit: number;             // เงินฝาก
-    turnover_required: number;   // Turnover ที่ต้องการ
-    turnover_current: number;    // Turnover ปัจจุบัน
-    turnover_completed: boolean; // ครบ Turnover หรือยัง
-  };
   customer: {
     id: string;
     name: string;
@@ -222,7 +210,7 @@ export default function WithdrawRequestsPage() {
       setSlipPreview(null);
       mutate();
     } catch (err) {
-      console.error('Upload slip error:', err);
+      console.error('[v0] Upload slip error:', err);
       toast.error('เกิดข้อผิดพลาดในการอัพโหลด');
     } finally {
       setIsUploading(false);
@@ -616,117 +604,6 @@ export default function WithdrawRequestsPage() {
                   </div>
                 )}
               </div>
-
-              {/* Source Breakdown - แหล่งที่มาของเงิน */}
-              {selectedRequest.source_breakdown && (
-                <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                  <Label className="text-blue-400 font-semibold flex items-center gap-2 mb-3">
-                    <Building2 className="size-4" />
-                    แหล่งที่มาของเครดิต
-                  </Label>
-                  <div className="space-y-2 text-sm">
-                    {selectedRequest.source_breakdown.lottery_winnings > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">รางวัลหวย</span>
-                        <span className="font-mono text-green-400">+{formatMoney(selectedRequest.source_breakdown.lottery_winnings)}</span>
-                      </div>
-                    )}
-                    {selectedRequest.source_breakdown.lottery_refund > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">คืนยอดหวย</span>
-                        <span className="font-mono text-green-400">+{formatMoney(selectedRequest.source_breakdown.lottery_refund)}</span>
-                      </div>
-                    )}
-                    {selectedRequest.source_breakdown.game_winnings > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">รางวัลเกมส์</span>
-                        <span className="font-mono text-purple-400">+{formatMoney(selectedRequest.source_breakdown.game_winnings)}</span>
-                      </div>
-                    )}
-                    {selectedRequest.source_breakdown.bonus > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">โบนัส/โปรโมชั่น</span>
-                        <span className="font-mono text-amber-400">+{formatMoney(selectedRequest.source_breakdown.bonus)}</span>
-                      </div>
-                    )}
-                    {selectedRequest.source_breakdown.admin_add > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Admin เพิ่มให้</span>
-                        <span className="font-mono text-cyan-400">+{formatMoney(selectedRequest.source_breakdown.admin_add)}</span>
-                      </div>
-                    )}
-                    {selectedRequest.source_breakdown.deposit > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">เงินฝาก</span>
-                        <span className="font-mono text-white">+{formatMoney(selectedRequest.source_breakdown.deposit)}</span>
-                      </div>
-                    )}
-                    <div className="border-t border-blue-500/30 pt-2 mt-2">
-                      <div className="flex justify-between font-semibold">
-                        <span>รวมทั้งหมด</span>
-                        <span className="font-mono text-green-400">
-                          {formatMoney(
-                            (selectedRequest.source_breakdown.lottery_winnings || 0) +
-                            (selectedRequest.source_breakdown.lottery_refund || 0) +
-                            (selectedRequest.source_breakdown.game_winnings || 0) +
-                            (selectedRequest.source_breakdown.bonus || 0) +
-                            (selectedRequest.source_breakdown.admin_add || 0) +
-                            (selectedRequest.source_breakdown.deposit || 0)
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Turnover Status - สถานะ Turnover */}
-              {selectedRequest.source_breakdown && selectedRequest.source_breakdown.turnover_required > 0 && (
-                <div className={`p-4 rounded-lg border ${
-                  selectedRequest.source_breakdown.turnover_completed 
-                    ? 'bg-green-500/10 border-green-500/30' 
-                    : 'bg-amber-500/10 border-amber-500/30'
-                }`}>
-                  <Label className={`font-semibold flex items-center gap-2 mb-2 ${
-                    selectedRequest.source_breakdown.turnover_completed ? 'text-green-400' : 'text-amber-400'
-                  }`}>
-                    {selectedRequest.source_breakdown.turnover_completed ? (
-                      <CheckCircle2 className="size-4" />
-                    ) : (
-                      <AlertCircle className="size-4" />
-                    )}
-                    Turnover Status
-                  </Label>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Turnover ที่ต้องการ</span>
-                      <span className="font-mono">{formatMoney(selectedRequest.source_breakdown.turnover_required)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Turnover ปัจจุบัน</span>
-                      <span className="font-mono">{formatMoney(selectedRequest.source_breakdown.turnover_current)}</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2 mt-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all ${
-                          selectedRequest.source_breakdown.turnover_completed ? 'bg-green-500' : 'bg-amber-500'
-                        }`}
-                        style={{ 
-                          width: `${Math.min(100, (selectedRequest.source_breakdown.turnover_current / selectedRequest.source_breakdown.turnover_required) * 100)}%` 
-                        }}
-                      />
-                    </div>
-                    <p className={`text-xs mt-1 ${
-                      selectedRequest.source_breakdown.turnover_completed ? 'text-green-400' : 'text-amber-400'
-                    }`}>
-                      {selectedRequest.source_breakdown.turnover_completed 
-                        ? 'ครบ Turnover แล้ว - สามารถถอนได้' 
-                        : `ยังไม่ครบ Turnover (${Math.round((selectedRequest.source_breakdown.turnover_current / selectedRequest.source_breakdown.turnover_required) * 100)}%)`
-                      }
-                    </p>
-                  </div>
-                </div>
-              )}
 
               {selectedRequest.reject_reason && (
                 <div className="p-3 bg-red-500/10 rounded-lg">

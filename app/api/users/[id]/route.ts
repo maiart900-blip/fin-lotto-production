@@ -99,7 +99,7 @@ export async function PUT(
       .single();
     
     if (error) {
-      console.error('Supabase update error:', error);
+      console.error('[v0] Supabase update error:', error);
       return NextResponse.json({ 
         error: `ไม่สามารถอัปเดตข้อมูลได้: ${error.message}` 
       }, { status: 500 });
@@ -107,7 +107,7 @@ export async function PUT(
     
     return NextResponse.json(data);
   } catch (err) {
-    console.error('Update user exception:', err);
+    console.error('[v0] Update user exception:', err);
     return NextResponse.json({ 
       error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการบันทึก' 
     }, { status: 500 });

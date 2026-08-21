@@ -74,8 +74,6 @@ export interface MenuItem {
   icon: LucideIcon;
   description?: string;
   badgeKey?: 'topupPending' | 'withdrawPending' | 'depositIssuesPending' | 'newCustomersToday';
-  // Feature flag key - if set, item only shows when feature is enabled
-  featureKey?: string;
 }
 
 export interface MenuSection {
@@ -94,8 +92,6 @@ export interface MenuSection {
   staffVisible?: boolean;
   // Restricted - cannot be given to agents/members even if enabled
   restricted?: boolean;
-  // Feature flag key - if set, entire section only shows when feature is enabled
-  featureKey?: string;
 }
 
 // =====================================================
@@ -148,23 +144,13 @@ export const memberItems: MenuItem[] = [
 // 4. บัญชีและการเงิน
 export const financeItems: MenuItem[] = [
   { id: 'payment-gateway', title: 'จัดการ Payment Gateway', href: '/payment-gateway', icon: CreditCard, description: 'ตั้งค่าช่องทางชำระเงิน' },
-  { id: 'wallet-manager', title: 'จัดการกระเป๋าเงิน', href: '/wallet-manager', icon: Wallet, description: 'จัดการบัญชีธนาคาร / SCB แม่มณี' },
-  { id: 'finance-transactions', title: 'ประวัติธุรกรรมรวม', href: '/finance/transactions', icon: Receipt, description: 'ประวัติฝาก/ถอน/โอน/ปรับยอด รายวัน/เดือน/ปี' },
-  { id: 'finance-reports', title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart, description: 'รายงานทางการเงิน' },
-];
-
-// 4.1 จัดการกระเป๋าเงิน (Sub-menu ย่อย - ยุบเข้าใน wallet-manager)
-export const walletSubItems: MenuItem[] = [
+  { id: 'wallet-manager', title: 'จัดการกระเป๋าเงิน', href: '/wallet-manager', icon: Wallet, description: 'จัดการกระเป๋าเงินระบบ' },
   { id: 'bank-settings', title: 'ตั้งค่าธนาคาร', href: '/bank-settings', icon: Landmark, description: 'ตั้งค่าบัญชีธนาคาร' },
   { id: 'payment-accounts', title: 'บัญชีรับเงิน', href: '/payment-accounts', icon: QrCode, description: 'จัดการบัญชีรับเงิน' },
   { id: 'withdraw-accounts', title: 'บัญชีถอนเงิน', href: '/withdraw-accounts', icon: ArrowDownToLine, description: 'จัดการบัญชีถอนเงิน' },
   { id: 'scb-maemanee', title: 'SCB แม่มณี', href: '/scb-maemanee', icon: Landmark, description: 'ตั้งค่า SCB แม่มณี' },
-];
-
-// 4.5 ประวัติการเดิมพัน (แยกจากการเงิน)
-export const bettingHistoryItems: MenuItem[] = [
-  { id: 'betting-history', title: 'ประวัติการเดิมพัน', href: '/betting/history', icon: Ticket, description: 'ประวัติแทงหวย/คาสิโน/สล็อต/กีฬา' },
-  { id: 'betting-reports', title: 'รายงานการเดิมพัน', href: '/betting/reports', icon: FileBarChart, description: 'รายงานยอดแทง/ชนะ/แพ้' },
+  { id: 'transactions', title: 'ประวัติธุรกรรม', href: '/transactions', icon: Receipt, description: 'ดูประวัติธุรกรรมทั้งหมด' },
+  { id: 'finance-reports', title: 'รายงานการเงิน', href: '/finance-reports', icon: FileBarChart, description: 'รายงานทางการเงิน' },
 ];
 
 // 5. หวย
@@ -177,31 +163,30 @@ export const lotteryItems: MenuItem[] = [
 
 // 6. ระบบออโต้
 export const autoSystemItems: MenuItem[] = [
-  { id: 'auto-system', title: 'ภาพรวมออโต้', href: '/auto-system', icon: Zap, description: 'ดูภาพรวมระบบออโต้', featureKey: 'lottery_auto' },
-  { id: 'auto-entries', title: 'รายการออโต้', href: '/auto-system/entries', icon: List, description: 'รายการแทงจากระบบออโต้', featureKey: 'lottery_auto' },
-  { id: 'auto-customers', title: 'ลูกค้าออโต้', href: '/auto-system/customers', icon: Users, description: 'จัดการลูกค้าระบบออโต้', featureKey: 'lottery_auto' },
-  { id: 'auto-settings', title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings, description: 'ตั้งค่าระบบออโต้', featureKey: 'lottery_auto' },
+  { id: 'auto-system', title: 'ภาพรวมออโต้', href: '/auto-system', icon: Zap, description: 'ดูภาพรวมระบบออโต้' },
+  { id: 'auto-entries', title: 'รายการออโต้', href: '/auto-system/entries', icon: List, description: 'รายการแทงจากระบบออโต้' },
+  { id: 'auto-customers', title: 'ลูกค้าออโต้', href: '/auto-system/customers', icon: Users, description: 'จัดการลูกค้าระบบออโต้' },
+  { id: 'auto-settings', title: 'ตั้งค่าออโต้', href: '/auto-system/settings', icon: Settings, description: 'ตั้งค่าระบบออโต้' },
 ];
 
 // 7. ระบบคีย์หวย
 export const manualKeyItems: MenuItem[] = [
-  { id: 'manual-key', title: 'ภาพรวมคีย์หวย', href: '/manual-key', icon: Keyboard, description: 'ดูภาพรวมระบบคีย์หวย', featureKey: 'lottery_manual_key' },
-  { id: 'manual-key-entry', title: 'คีย์โพย', href: '/admin/key', icon: PenLine, description: 'คีย์โพยลูกค้า', featureKey: 'lottery_manual_key' },
-  { id: 'manual-key-entries', title: 'รายการคีย์หวย', href: '/manual-key/entries', icon: List, description: 'รายการแทงจากคีย์หวย', featureKey: 'lottery_manual_key' },
-  { id: 'manual-key-customers', title: 'ลูกค้าคีย์หวย', href: '/manual-key/customers', icon: Users, description: 'จัดการลูกค้าคีย์หวย', featureKey: 'lottery_manual_key' },
-  { id: 'manual-key-rates', title: 'ตั้งค่าเรท', href: '/manual-key/rates', icon: DollarSign, description: 'ตั้งค่าเรทจ่าย', featureKey: 'lottery_manual_key' },
+  { id: 'manual-key', title: 'ภาพรวมคีย์หวย', href: '/manual-key', icon: Keyboard, description: 'ดูภาพรวมระบบคีย์หวย' },
+  { id: 'manual-key-entry', title: 'คีย์โพย', href: '/admin/key', icon: PenLine, description: 'คีย์โพยลูกค้า' },
+  { id: 'manual-key-entries', title: 'รายการคีย์หวย', href: '/manual-key/entries', icon: List, description: 'รายการแทงจากคีย์หวย' },
+  { id: 'manual-key-customers', title: 'ลูกค้าคีย์หวย', href: '/manual-key/customers', icon: Users, description: 'จัดการลูกค้าคีย์หวย' },
+  { id: 'manual-key-rates', title: 'ตั้งค่าเรท', href: '/manual-key/rates', icon: DollarSign, description: 'ตั้งค่าเรทจ่าย' },
 ];
 
 // 8. สายงานเอเย่นต์
 export const agentSystemItems: MenuItem[] = [
-  { id: 'agent-system', title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound, description: 'จัดการเอเย่นต์ทั้งหมด', featureKey: 'agent_system' },
-  { id: 'agent-system-tree', title: 'โครงสร้างทีมเอเย่นต์ (4-Tier)', href: '/agent-system/tree', icon: GitBranch, description: 'แผนผังสายงานเอเย่นต์แบบลดหลั่น 4 ชั้น', featureKey: 'agent_system' },
-  { id: 'agent-system-members', title: 'จัดการแมมเบอร์', href: '/agent-system/members', icon: Users, description: 'จัดการแมมเบอร์ในระบบ', featureKey: 'agent_system' },
-  { id: 'agent-system-commission', title: 'คอมมิชชั่น', href: '/agent-system/commission', icon: DollarSign, description: 'ตั้งค่าคอมมิชชั่น', featureKey: 'agent_system' },
-  { id: 'agent-system-bank', title: 'ตั้งค่าธนาคาร', href: '/agent-system/bank-settings', icon: Building2, description: 'ตั้งค่าธนาคารเอเย่นต์', featureKey: 'agent_system' },
-  { id: 'agent-system-site', title: 'ตั้งค่าเว็บลูก', href: '/agent-system/site-settings', icon: Settings, description: 'ตั้งค่าเว็บลูก', featureKey: 'agent_system' },
-  { id: 'agent-system-settlement', title: 'ส่งยอดเข้าเว็บกลาง', href: '/agent-system/settlement', icon: Send, description: 'ส่งยอดให้เว็บแม่', featureKey: 'agent_settlement' },
-  { id: 'agent-system-report', title: 'รายงาน', href: '/agent-system/report', icon: BarChart3, description: 'รายงานสายงาน', featureKey: 'agent_system' },
+  { id: 'agent-system', title: 'จัดการเอเย่นต์', href: '/agent-system', icon: UsersRound, description: 'จัดการเอเย่นต์ทั้งหมด' },
+  { id: 'agent-system-members', title: 'จัดการแมมเบอร์', href: '/agent-system/members', icon: Users, description: 'จัดการแมมเบอร์ในระบบ' },
+  { id: 'agent-system-commission', title: 'คอมมิชชั่น', href: '/agent-system/commission', icon: DollarSign, description: 'ตั้งค่าคอมมิชชั่น' },
+  { id: 'agent-system-bank', title: 'ตั้งค่าธนาคาร', href: '/agent-system/bank-settings', icon: Building2, description: 'ตั้งค่าธนาคารเอเย่นต์' },
+  { id: 'agent-system-site', title: 'ตั้งค่าเว็บลูก', href: '/agent-system/site-settings', icon: Settings, description: 'ตั้งค่าเว็บลูก' },
+  { id: 'agent-system-settlement', title: 'ส่งยอดเข้าเว็บกลาง', href: '/agent-system/settlement', icon: Send, description: 'ส่งยอดให้เว็บแม่' },
+  { id: 'agent-system-report', title: 'รายงาน', href: '/agent-system/report', icon: BarChart3, description: 'รายงานสายงาน' },
 ];
 
 // 9. โปรโมชั่น
@@ -233,18 +218,16 @@ export const reportItems: MenuItem[] = [
 
 // 12. จัดการพนักงาน
 export const staffManagementItems: MenuItem[] = [
-  { id: 'staff-performance', title: 'ผลงานพนักงาน', href: '/staff-performance', icon: Target, description: 'ดูผลงานและค่าคอมมิชชั่นพนักงาน' },
-  { id: 'admin-attendance-report', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock, description: '��ายงานการเข้างาน' },
+  { id: 'admin-attendance-report', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock, description: 'รายงานการเข้างาน' },
   { id: 'admin-performance', title: 'ตรวจสอบการทำงาน', href: '/admin-performance', icon: ClipboardCheck, description: 'ตรวจสอบผลการทำงาน' },
   { id: 'payroll', title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet, description: 'สรุปเงินเดือนพนักงาน' },
   { id: 'payroll-settings', title: 'ตั้งค่า Payroll', href: '/payroll/settings', icon: Settings, description: 'ตั้งค่าระบบเงินเดือน' },
   { id: 'ot-report', title: 'รายงานโอที', href: '/payroll/ot-report', icon: Clock, description: 'รายงานการทำโอที' },
-  { id: 'admin-sales-report', title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3, description: 'รายงานยอดขายแอดม�����น' },
+  { id: 'admin-sales-report', title: 'รายงานยอดแอดมิน', href: '/admin-sales-report', icon: BarChart3, description: 'รายงานยอดขายแอดมิน' },
 ];
 
 // 13. ตั้งค่าเว็บ
 export const webSettingsItems: MenuItem[] = [
-  { id: 'tenant-web-settings', title: 'ตั้งค่าเว็บลูก', href: '/tenant-web-settings', icon: Settings, description: 'ตั้งค่าการตลาดและหน้าร้าน' },
   { id: 'web-theme', title: 'ตั้งค่าธีม', href: '/web-theme', icon: Palette, description: 'ปรับแต่งธีมเว็บไซต์' },
   { id: 'manage-images', title: 'จัดการรูปภาพ', href: '/manage-images', icon: Image, description: 'จัดการรูปภาพในระบบ' },
   { id: 'desktop-settings', title: 'ตั้งค่าหน้าเว็บ', href: '/desktop-settings', icon: MonitorSmartphone, description: 'ตั้งค่าหน้าเว็บ' },
@@ -278,8 +261,8 @@ export const multiTenantItems: MenuItem[] = [
 // 16. Super Admin (Restricted - ต้อง master_admin เท่านั้น)
 export const superAdminItems: MenuItem[] = [
   { id: 'super-downline', title: 'จัดการสายงาน', href: '/super-admin/downline', icon: Crown, description: 'จัดการสายงานทั้งหมด' },
-  { id: 'agent-network-settlement', title: 'เคลียร์ยอดเอเย่นต์', href: '/agent-network-settlement', icon: Percent, description: 'สรุปยอดได้-เสียและเคลียร์ยอดแยกตามเอเย่นต์' },
-  // REMOVED: agent-visibility and member-visibility - now consolidated into roles-permissions (ศูนย์กลาง)
+  { id: 'agent-visibility', title: 'ตั้งค่าการมองเห็นเอเย่น', href: '/agent-visibility', icon: Eye, description: 'กำหนดสิทธิ์มองเห็นเอเย่น' },
+  { id: 'member-visibility', title: 'ตั้งค่าการมองเห็นแมมเบอร์', href: '/member-visibility', icon: Users, description: 'กำหนดสิทธิ์มองเห็นแมมเบอร์' },
   { id: 'risk-management', title: 'ควบคุมความเสี่ยง', href: '/risk-management', icon: TrendingUp, description: 'จัดการความเสี่ยง' },
   { id: 'master-control', title: 'Master Control', href: '/master-control', icon: Shield, description: 'ควบคุมระบบหลัก' },
   { id: 'system-settings', title: 'ตั้งค่าระบบ', href: '/settings/system', icon: Settings, description: 'ตั้งค่าระบบทั้งหมด' },
@@ -287,8 +270,8 @@ export const superAdminItems: MenuItem[] = [
 
 // 17. ความปลอดภัย (Restricted)
 export const securityItems: MenuItem[] = [
-  { id: 'users', title: 'จัดการผู้ใช้ (ศูนย์กลาง)', href: '/users', icon: UsersRound, description: 'จัดการผู้ใช้ทุกประเภท - พนักงานและสายงานเอเย่นต์คีย์หวย' },
-  { id: 'roles-permissions', title: 'สิทธิ์การใช้งาน (ศูนย์กลาง)', href: '/roles-permissions', icon: Shield, description: 'จัดการสิทธิ์ทุกระดับ - Master/Agent/Sub-Agent/พนักงาน' },
+  { id: 'users', title: 'จัดการผู้ใช้', href: '/users', icon: UsersRound, description: 'จัดการผู้ใช้ในระบบ' },
+  { id: 'roles-permissions', title: 'สิทธิ์การใช้งาน', href: '/roles-permissions', icon: Shield, description: 'จัดการสิทธิ์' },
   { id: 'security-attendance', title: 'รายงานเข้างานแอดมิน', href: '/admin-attendance-report', icon: Clock, description: 'รายงานการเข้างาน' },
   { id: 'security-payroll', title: 'สรุปเงินเดือน', href: '/payroll', icon: Wallet, description: 'สรุปเงินเดือน' },
   { id: 'security-dashboard', title: 'Security Dashboard', href: '/security-dashboard', icon: ShieldAlert, description: 'แดชบอร์ดความปลอดภัย' },
@@ -306,10 +289,10 @@ export const agentOperationItems: MenuItem[] = [
 ];
 
 export const agentDownlineItems: MenuItem[] = [
-  { id: 'agent-members', title: 'ลูกค้าใต้สาย', href: '/agent-members', icon: Users, description: 'จัดการลูกค้าใ���้สาย' },
-  { id: 'agent-commission', title: 'คอมมิชชั่น', href: '/agent/commission', icon: DollarSign, description: 'ดูคอมมิชชั���น' },
+  { id: 'agent-members', title: 'ลูกค้าใต้สาย', href: '/agent-members', icon: Users, description: 'จัดการลูกค้าใต้สาย' },
+  { id: 'agent-commission', title: 'คอมมิชชั่น', href: '/agent/commission', icon: DollarSign, description: 'ดูคอมมิชชั่น' },
   { id: 'agent-profit-loss', title: 'รายงานแพ้ชนะ', href: '/agent-profit-loss', icon: PieChart, description: 'รายงานแพ้ชนะ' },
-  { id: 'agent-withdraw-history', title: 'ถอนคอมมิชชั่น', href: '/agent-withdraw-history', icon: ArrowDownToLine, description: 'ถอนคอม���ิชชั่น' },
+  { id: 'agent-withdraw-history', title: 'ถอนคอมมิชชั่น', href: '/agent-withdraw-history', icon: ArrowDownToLine, description: 'ถอนคอมมิชชั่น' },
 ];
 
 export const agentBettingItems: MenuItem[] = [
@@ -327,12 +310,11 @@ export const ALL_MENU_SECTIONS: MenuSection[] = [
   { id: 'operation', title: 'ศูนย์ปฏิบัติการ', icon: Headphones, items: operationItems, defaultOpen: true, adminOnly: true, staffVisible: true, memberVisible: true },
   { id: 'member-admin', title: 'ศูนย์แอดมิน', icon: BarChart3, items: memberAdminItems, defaultOpen: false, adminOnly: true },
   { id: 'members', title: 'สมาชิก', icon: Users, items: memberItems, defaultOpen: false, adminOnly: true, staffVisible: true },
-  { id: 'finance', title: 'ธุรกรรมการเงิน', icon: Wallet, items: financeItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
-  { id: 'betting', title: 'ประวัติการเดิมพัน', icon: Ticket, items: bettingHistoryItems, defaultOpen: false, adminOnly: true, staffVisible: true },
+  { id: 'finance', title: 'บัญชีและการเงิน', icon: Wallet, items: financeItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
   { id: 'lottery', title: 'หวย', icon: Ticket, items: lotteryItems, defaultOpen: false, adminOnly: true, staffVisible: true, memberVisible: true },
-  { id: 'auto-system', title: 'ระบบออโต้', icon: Zap, items: autoSystemItems, defaultOpen: false, adminOnly: true, featureKey: 'lottery_auto' },
-  { id: 'manual-key', title: 'ระบบคีย์หวย', icon: Keyboard, items: manualKeyItems, defaultOpen: false, adminOnly: true, featureKey: 'lottery_manual_key' },
-  { id: 'agent-system', title: 'สายงานเอเย่นต์', icon: GitBranch, items: agentSystemItems, defaultOpen: false, adminOnly: true, featureKey: 'agent_system' },
+  { id: 'auto-system', title: 'ระบบออโต้', icon: Zap, items: autoSystemItems, defaultOpen: false, adminOnly: true },
+  { id: 'manual-key', title: 'ระบบคีย์หวย', icon: Keyboard, items: manualKeyItems, defaultOpen: false, adminOnly: true },
+  { id: 'agent-system', title: 'สายงานเอเย่นต์', icon: GitBranch, items: agentSystemItems, defaultOpen: false, adminOnly: true },
   { id: 'promotions', title: 'โปรโมชั่น', icon: Sparkles, items: promoItems, defaultOpen: false, adminOnly: true },
   { id: 'marketing-center', title: 'ศูนย์การตลาด', icon: Megaphone, items: marketingCenterItems, defaultOpen: false, adminOnly: true },
   { id: 'reports', title: 'รายงาน', icon: BarChart3, items: reportItems, defaultOpen: false, adminOnly: true, staffVisible: true },

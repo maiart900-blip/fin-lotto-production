@@ -44,7 +44,7 @@ export async function createAuditLog(params: AuditLogParams): Promise<void> {
       created_at: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Audit log error:', error);
+    console.error('[v0] Audit log error:', error);
     // Don't throw - audit logs shouldn't break the main operation
   }
 }

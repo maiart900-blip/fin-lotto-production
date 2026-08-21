@@ -264,7 +264,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Dashboard stats error:', error);
+    console.error('[v0] Dashboard stats error:', error);
     return NextResponse.json({
       success: false,
       stats: {

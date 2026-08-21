@@ -6,11 +6,8 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
-    const category = searchParams.get('category');
     const userId = searchParams.get('user_id');
     const tableName = searchParams.get('table_name');
-    const entityType = searchParams.get('entity_type');
-    const tenantId = searchParams.get('tenant_id');
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -27,22 +24,11 @@ export async function GET(request: NextRequest) {
     if (action && action !== 'all') {
       query = query.eq('action', action);
     }
-    if (category && category !== 'all') {
-      query = query.eq('category', category);
-    }
     if (userId) {
       query = query.eq('user_id', userId);
     }
     if (tableName) {
       query = query.eq('table_name', tableName);
-    }
-    // Support entity_type filter for feature toggle logs
-    if (entityType) {
-      query = query.eq('entity_type', entityType);
-    }
-    // Support tenant_id filter via JSONB changes column
-    if (tenantId) {
-      query = query.contains('changes', { tenant_id: tenantId });
     }
 
     const { data, error, count } = await query;
@@ -58,7 +44,6 @@ export async function GET(request: NextRequest) {
     const uniqueActions = [...new Set(actions?.map(a => a.action) || [])];
 
     return NextResponse.json({ 
-      data: data,
       logs: data, 
       total: count,
       actions: uniqueActions,

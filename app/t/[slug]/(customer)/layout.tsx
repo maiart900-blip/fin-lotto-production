@@ -97,23 +97,23 @@ export default function TenantCustomerLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a2e3d] to-[#051d2a] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+      <div className="min-h-screen bg-[#0a0a1a] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a2e3d] to-[#051d2a] text-white flex flex-col">
+    <div className="min-h-screen bg-[#0a0a1a] text-white flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0a2e3d]/95 backdrop-blur border-b border-white/10">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-[#12122a]/95 backdrop-blur border-b border-white/10">
+        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           {/* Logo/Name */}
           <Link href={basePath} className="flex items-center gap-2">
             {tenant?.logo_url ? (
               <img src={tenant.logo_url} alt={tenant.name} className="h-8 w-8 rounded" />
             ) : (
-              <div className="h-8 w-8 rounded bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-sm">
+              <div className="h-8 w-8 rounded bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-bold text-sm">
                 {tenant?.name?.charAt(0) || 'T'}
               </div>
             )}
@@ -123,11 +123,11 @@ export default function TenantCustomerLayout({
           {/* Right side */}
           <div className="flex items-center gap-2">
             {/* Credit Display */}
-            <div className="bg-emerald-500/20 px-3 py-1.5 rounded-lg">
-              <span className="text-emerald-400 font-semibold text-sm">
+            <div className="bg-amber-500/20 px-3 py-1.5 rounded-lg">
+              <span className="text-amber-400 font-semibold text-sm">
                 {customer?.credit_balance?.toLocaleString() || 0}
               </span>
-              <span className="text-emerald-400/70 text-xs ml-1">บาท</span>
+              <span className="text-amber-400/70 text-xs ml-1">บาท</span>
             </div>
 
             {/* Notification */}
@@ -149,8 +149,8 @@ export default function TenantCustomerLayout({
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#0a2e3d] border-t border-white/10 py-2">
-            <div className="container mx-auto px-4 space-y-1">
+          <div className="md:hidden bg-[#12122a] border-t border-white/10 py-2">
+            <div className="max-w-lg mx-auto px-4 space-y-1">
               {navItems.map((item) => {
                 const href = `${basePath}${item.href}`;
                 const isActive = pathname === href || (item.href && pathname.startsWith(href));
@@ -163,7 +163,7 @@ export default function TenantCustomerLayout({
                     className={cn(
                       "flex items-center gap-3 px-3 py-2 rounded-lg text-sm",
                       isActive 
-                        ? "bg-emerald-500/20 text-emerald-400" 
+                        ? "bg-amber-500/20 text-amber-400" 
                         : "text-gray-400 hover:bg-white/5"
                     )}
                   >
@@ -184,16 +184,16 @@ export default function TenantCustomerLayout({
         )}
       </header>
 
-      {/* Main Content - Full width responsive */}
+      {/* Main Content */}
       <main className="flex-1 pb-20">
-        <div className="container mx-auto px-4 py-4">
+        <div className="max-w-lg mx-auto">
           {children}
         </div>
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0a2e3d]/95 backdrop-blur border-t border-white/10 z-50">
-        <div className="container mx-auto px-2 h-16 flex items-center justify-around max-w-xl">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#12122a]/95 backdrop-blur border-t border-white/10 z-50">
+        <div className="max-w-lg mx-auto px-2 h-16 flex items-center justify-around">
           {navItems.slice(0, 5).map((item) => {
             const href = `${basePath}${item.href}`;
             const isActive = pathname === href || (item.href && pathname.startsWith(href));
@@ -205,7 +205,7 @@ export default function TenantCustomerLayout({
                 className={cn(
                   "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors",
                   isActive 
-                    ? "text-emerald-400" 
+                    ? "text-amber-400" 
                     : "text-gray-500 hover:text-gray-300"
                 )}
               >

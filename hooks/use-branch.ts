@@ -2,7 +2,8 @@
 
 import { useAuth, BranchInfo } from './use-auth';
 import useSWR from 'swr';
-import { fetcher } from '@/lib/fetcher';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export interface BranchWithDetails extends BranchInfo {
   branch_settings?: {

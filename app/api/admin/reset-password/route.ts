@@ -3,17 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
-import { requireAdmin } from '@/lib/api-auth';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET || 'finlotto-master-secret-key';
 
 // POST - Reset user password
 export async function POST(request: NextRequest) {
   try {
-    // Auth guard - require admin
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     const body = await request.json();
     const { userId, newPassword, reason, notifyUser } = body;

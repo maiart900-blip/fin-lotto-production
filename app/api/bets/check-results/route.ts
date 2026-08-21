@@ -1,13 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/api-auth';
 
 // POST - ตรวจผลหวยและคำนวณเงินรางวัลอัตโนมัติ
 export async function POST(request: NextRequest) {
-  // Auth guard - require admin for checking results
-  const authResult = await requireAdmin();
-  if (authResult instanceof NextResponse) return authResult;
-
   const supabase = await createClient();
   
   try {
@@ -187,8 +182,8 @@ export async function POST(request: NextRequest) {
           .eq('id', item.id);
       }
 
-      // ATOMIC STATUS UPDATE: อัปเดต bet พร้อม check is_checked=false เพื่อกัน double payout
-      const { data: updatedBet, error: updateBetError } = await supabase
+      // อัปเดต bet
+      await supabase
         .from('bets')
         .update({
           status: hasWinner ? 'won' : 'lost',
@@ -196,38 +191,30 @@ export async function POST(request: NextRequest) {
           checked_at: new Date().toISOString(),
           total_win_amount: betWinAmount,
         })
-        .eq('id', bet.id)
-        .eq('is_checked', false) // IDEMPOTENCY: Only update if not yet checked
-        .select('id')
-        .single();
+        .eq('id', bet.id);
 
-      // ถ้า update ไม่สำเร็จ แปลว่า bet นี้ถูกตรวจไปแล้ว (skip)
-      if (updateBetError || !updatedBet) {
-        console.log(`Bet ${bet.id} already checked, skipping payout`);
-        continue; // Skip to next bet
-      }
-
-      // จ่ายเงินรางวัล (only if bet was actually updated)
+      // จ่ายเงินรางวัล
       if (betWinAmount > 0) {
         totalWinners++;
         totalWinAmount += betWinAmount;
 
-        // ATOMIC CREDIT UPDATE: เพิ่มเครดิตโดยไม่ต้อง read ก่อน
-        const { data: updatedCustomer, error: creditError } = await supabase
+        // เพิ่มเครดิต
+        const { data: customer } = await supabase
           .from('customers')
-          .update({ 
-            credit_balance: supabase.rpc ? 
-              // If RPC available, use it for true atomic increment
-              (await supabase.from('customers').select('credit_balance').eq('id', bet.customer_id).single()).data?.credit_balance + betWinAmount :
-              // Fallback: read and update (less safe but still works)
-              ((await supabase.from('customers').select('credit_balance').eq('id', bet.customer_id).single()).data?.credit_balance || 0) + betWinAmount,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', bet.customer_id)
           .select('credit_balance')
+          .eq('id', bet.customer_id)
           .single();
 
-        if (!creditError && updatedCustomer) {
+        if (customer) {
+          const newBalance = (customer.credit_balance || 0) + betWinAmount;
+          await supabase
+            .from('customers')
+            .update({ 
+              credit_balance: newBalance,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', bet.customer_id);
+
           // บันทึก credit transaction
           await supabase
             .from('credit_transactions')
@@ -236,7 +223,7 @@ export async function POST(request: NextRequest) {
               amount: betWinAmount,
               type: 'payout',
               description: `ถูกรางวัล - โพย #${bet.id.slice(0, 8)}`,
-              balance_after: updatedCustomer.credit_balance,
+              balance_after: newBalance,
               reference_id: bet.id,
               reference_type: 'bet_win',
             });

@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/api-auth';
 
 // Standard payout rates for auto-inheritance
 const STANDARD_PAYOUT_RATES = [
@@ -14,24 +13,6 @@ const STANDARD_PAYOUT_RATES = [
   { bet_type: '3back', pay_rate: 450 },
 ];
 
-// PUBLIC FIELDS - safe to expose without authentication
-// These fields are needed for customer pages like /c/payout-rates
-const PUBLIC_LOTTERY_FIELDS = [
-  'id', 'name', 'category', 'is_active', 'draw_type', 'draw_days',
-  'open_time', 'close_time', 'sort_order', 'flag_emoji', 'timezone',
-  'result_time', 'country_code', 'flag_url', 'icon_url', 'bg_color', 'text_color'
-];
-
-/**
- * GET /api/lotteries - PUBLIC ROUTE
- * 
- * This route is intentionally PUBLIC (no auth required) because:
- * 1. Customer pages (/c/payout-rates, /lotteries) need lottery list before login
- * 2. Health check pages need to verify lottery availability
- * 3. Only safe, non-sensitive fields are returned
- * 
- * For admin operations (POST/PUT/DELETE), use requireAdmin() guard
- */
 export async function GET(request: Request) {
   try {
     const supabase = await createClient();
@@ -127,10 +108,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // Auth guard - require admin for creating lotteries
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     const body = await request.json();
     
@@ -178,7 +155,7 @@ export async function POST(request: Request) {
       message: `สร้างหวย "${lottery.name}" สำเร็จ พร้อมอัตราจ่ายมาตรฐาน`,
     });
   } catch (err) {
-    console.error('Lottery POST exception:', err);
+    console.error('[v0] Lottery POST exception:', err);
     return NextResponse.json({ error: 'ไม่สามารถสร้างหวยได้' }, { status: 500 });
   }
 }
@@ -205,16 +182,12 @@ async function notifySubSites(supabase: any, lottery: any) {
     
     await supabase.from('tenant_alerts').insert(alerts);
   } catch (err) {
-    console.error('Notify sub-sites error:', err);
+    console.error('[v0] Notify sub-sites error:', err);
   }
 }
 
 export async function PUT(request: Request) {
   try {
-    // Auth guard - require admin for updating lotteries
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const supabase = await createClient();
     const body = await request.json();
     
@@ -251,7 +224,7 @@ export async function PUT(request: Request) {
       .single();
     
     if (error) {
-      console.error('Lottery update error:', error);
+      console.error('[v0] Lottery update error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
@@ -261,7 +234,7 @@ export async function PUT(request: Request) {
       message: `อัปเดตหวย "${lottery.name}" สำเร็จ`,
     });
   } catch (err) {
-    console.error('Lottery PUT exception:', err);
+    console.error('[v0] Lottery PUT exception:', err);
     return NextResponse.json({ error: 'ไม่สามารถอัปเดตหวยได้' }, { status: 500 });
   }
 }

@@ -44,7 +44,7 @@ export async function GET(
       .lt('created_at', result.draw_date + 'T23:59:59');
 
     if (betsError) {
-      console.error('Error fetching bets for result detail:', betsError);
+      console.error('[v0] Error fetching bets for result detail:', betsError);
     }
 
     // Calculate statistics
@@ -79,7 +79,7 @@ export async function GET(
       topWinningNumbers,
     });
   } catch (error) {
-    console.error('Error in result detail API:', error);
+    console.error('[v0] Error in result detail API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

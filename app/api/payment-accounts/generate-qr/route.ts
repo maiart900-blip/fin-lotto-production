@@ -125,7 +125,7 @@ export async function POST(request: Request) {
       amount: amount || null,
     });
   } catch (err) {
-    console.error('Generate QR error:', err);
+    console.error('[v0] Generate QR error:', err);
     return NextResponse.json({ error: 'ไม่สามารถสร้าง QR Code ได้' }, { status: 500 });
   }
 }
@@ -158,7 +158,7 @@ export async function GET(request: Request) {
       qrUrl,
     });
   } catch (err) {
-    console.error('Generate QR GET error:', err);
+    console.error('[v0] Generate QR GET error:', err);
     return NextResponse.json({ error: 'ไม่สามารถสร้าง QR Code ได้' }, { status: 500 });
   }
 }

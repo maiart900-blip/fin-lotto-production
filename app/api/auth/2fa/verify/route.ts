@@ -1,303 +1,127 @@
-// 2FA Verify API - ยืนยันรหัส TOTP หรือ Backup Code
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { 
-  applyRateLimit, 
-  twoFAVerifySchema, 
-  validateRequestBody,
-  logSecurityEvent 
-} from '@/lib/security/api-security';
 
-// Force Node.js runtime for crypto compatibility
-export const runtime = 'nodejs';
+export async function POST(request: Request) {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const pendingUserId = cookieStore.get('pending_2fa_user')?.value;
 
-// Inline TOTP verification to avoid import issues
-// Time Window: window: 2 = accepts codes from 2 periods before/after (±60 seconds total)
-async function verifyTOTPCode(secret: string, code: string): Promise<boolean> {
-  try {
-    const OTPAuth = await import('otpauth');
-    const totp = new OTPAuth.TOTP({
-      issuer: 'FinLotto',
-      algorithm: 'SHA1',
-      digits: 6,
-      period: 30,
-      secret: OTPAuth.Secret.fromBase32(secret),
+  if (!pendingUserId) {
+    return NextResponse.json({ error: 'No pending 2FA verification' }, { status: 400 });
+  }
+
+  const { code } = await request.json();
+
+  if (!code) {
+    return NextResponse.json({ error: 'กรุณากรอกรหัส OTP' }, { status: 400 });
+  }
+
+  // Get latest OTP code
+  const { data: otpRecord, error } = await supabase
+    .from('two_factor_codes')
+    .select('*')
+    .eq('user_id', pendingUserId)
+    .eq('is_used', false)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !otpRecord) {
+    // Log failed attempt
+    await supabase.from('security_logs').insert({
+      user_id: pendingUserId,
+      action: '2fa_verify',
+      status: 'failed',
+      details: { reason: 'no_valid_code' },
     });
-    
-    // window: 2 allows codes from ±60 seconds (2 periods before/after)
-    // This prevents false negatives during:
-    // - Browser automation delays
-    // - Server/client time drift
-    // - User entering code near period boundary
-    const delta = totp.validate({ token: code, window: 2 });
-    console.log('TOTP validate - code:', code, 'delta:', delta, 'window: 2');
-    return delta !== null;
-  } catch (error) {
-    console.error('TOTP verification error:', error);
-    return false;
+
+    return NextResponse.json({ error: 'รหัส OTP ไม่ถูกต้องหรือหมดอายุ' }, { status: 400 });
   }
-}
 
-// Inline backup code verification
-async function verifyAndUseBackupCode(userId: string, code: string): Promise<boolean> {
-  try {
-    const supabase = await createClient();
-    
-    // Get user's backup codes
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('two_factor_backup_codes')
-      .eq('id', userId)
-      .single();
-    
-    if (error || !user?.two_factor_backup_codes) {
-      return false;
-    }
-    
-    const backupCodes = user.two_factor_backup_codes as string[];
-    const codeIndex = backupCodes.indexOf(code);
-    
-    if (codeIndex === -1) {
-      return false;
-    }
-    
-    // Remove used backup code
-    backupCodes.splice(codeIndex, 1);
-    
-    await supabase
-      .from('users')
-      .update({ two_factor_backup_codes: backupCodes })
-      .eq('id', userId);
-    
-    return true;
-  } catch (error) {
-    console.error('Backup code verification error:', error);
-    return false;
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    // SECURITY: Rate limit - strict limit for 2FA attempts (5 per minute)
-    const rateLimitResponse = await applyRateLimit('login', 'twofa_verify');
-    if (rateLimitResponse) {
-      await logSecurityEvent('rate_limit', { 
-        endpoint: '/api/auth/2fa/verify',
-        reason: '2FA verification rate limited'
-      });
-      return rateLimitResponse;
-    }
-    
-    // SECURITY: Validate input with Zod schema
-    const validation = await validateRequestBody(request, twoFAVerifySchema);
-    if (!validation.success) {
-      await logSecurityEvent('validation_failure', {
-        endpoint: '/api/auth/2fa/verify',
-        reason: 'Invalid 2FA code format'
-      });
-      return validation.response;
-    }
-    
-    const { code, isBackupCode } = validation.data;
-    
-    console.log('2FA verify: Starting verification');
-    
-    const supabase = await createClient();
-    const cookieStore = await cookies();
-    const pendingUserId = cookieStore.get('pending_2fa_user')?.value;
-
-    console.log('2FA verify: pendingUserId =', pendingUserId);
-
-    if (!pendingUserId) {
-      return NextResponse.json({ error: 'No pending 2FA verification' }, { status: 400 });
-    }
-
-    console.log('2FA verify: code length =', code?.length, 'isBackupCode =', isBackupCode);
-
-    // Code and isBackupCode already validated and extracted above
-
-    // Get user data first
-    console.log('2FA verify: Fetching user data');
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, username, role, tenant_id, display_name, two_factor_secret, two_factor_backup_codes, failed_login_attempts, locked_until')
-      .eq('id', pendingUserId)
+  // Verify code (simple comparison for now, should use bcrypt hash in production)
+  if (otpRecord.code_hash !== code) {
+    // Increment failed attempts
+    const { data: settings } = await supabase
+      .from('two_factor_settings')
+      .select('failed_attempts')
+      .eq('user_id', pendingUserId)
       .single();
 
-    if (userError) {
-      console.error('2FA verify: User fetch error:', userError);
-      return NextResponse.json({ error: 'Database error' }, { status: 500 });
-    }
+    const failedAttempts = (settings?.failed_attempts || 0) + 1;
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    console.log('2FA verify: User found:', user.username, 'has secret:', !!user.two_factor_secret);
-
-    // Check if account is locked
-    if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      return NextResponse.json({ 
-        error: 'บัญชีถูกล็อคชั่วคราว กรุณาลองใหม่ภายหลัง' 
-      }, { status: 429 });
-    }
-
-    let isValid = false;
-
-    if (isBackupCode) {
-      // Verify backup code
-      console.log('2FA verify: Verifying backup code');
-      isValid = await verifyAndUseBackupCode(pendingUserId, code);
-    } else {
-      // Verify TOTP code using the guard function
-      console.log('2FA verify: Verifying TOTP code');
-      const secret = user.two_factor_secret;
-      console.log('2FA verify: secret exists:', !!secret, 'secret length:', secret?.length);
-      
-      if (secret) {
-        try {
-          isValid = await verifyTOTPCode(secret, code);
-          console.log('2FA verify: TOTP result:', isValid);
-        } catch (verifyErr) {
-          console.error('2FA verify: verifyTOTPCode threw:', verifyErr);
-          return NextResponse.json({ 
-            error: 'OTP verification failed', 
-            details: verifyErr instanceof Error ? verifyErr.message : 'Unknown error' 
-          }, { status: 500 });
-        }
-        
-        // Update last verified time if valid
-        if (isValid) {
-          await supabase
-            .from('users')
-            .update({ two_factor_verified_at: new Date().toISOString() })
-            .eq('id', pendingUserId);
-        }
-      } else {
-        console.log('2FA verify: No secret found for user');
-        return NextResponse.json({ error: 'ไม่พบการตั้งค่า 2FA กรุณาตั้งค่าใหม่' }, { status: 400 });
-      }
-    }
-    
-    console.log('2FA verify: isValid =', isValid);
-
-    if (!isValid) {
-      // Smart Account Lockout:
-      // - Max 5 failed attempts within 10 minutes
-      // - Lock duration: 5 minutes (not 30)
-      // - Auto-unlock after timeout
-      const currentAttempts = (user.failed_login_attempts || 0) + 1;
-      const lockUntil = currentAttempts >= 5 
-        ? new Date(Date.now() + 5 * 60 * 1000).toISOString()  // 5 minutes lock
-        : null;
-
-      await supabase
-        .from('users')
-        .update({ 
-          failed_login_attempts: currentAttempts,
-          locked_until: lockUntil,
-        })
-        .eq('id', pendingUserId);
-
-      // Log failed attempt (silent fail if audit_logs table doesn't exist)
-      try {
-        await supabase.from('audit_logs').insert({
-          user_id: pendingUserId,
-          action: '2fa_verify_failed',
-          metadata: { 
-            attempt: currentAttempts,
-            isBackupCode,
-          },
-          created_at: new Date().toISOString(),
-        });
-      } catch {
-        // Ignore audit log errors
-      }
-
-      if (currentAttempts >= 5) {
-        return NextResponse.json({ 
-          error: 'บัญชีถูกล็อค 5 นาที เนื่องจากกรอกรหัสผิดหลายครั้ง' 
-        }, { status: 429 });
-      }
-
-      return NextResponse.json({ 
-        error: `รหัส OTP ไม่ถูกต้อง (เหลือ ${5 - currentAttempts} ครั้ง)` 
-      }, { status: 400 });
-    }
-
-    // Reset failed attempts on success
     await supabase
-      .from('users')
+      .from('two_factor_settings')
       .update({ 
-        failed_login_attempts: 0, 
-        locked_until: null,
-        last_login: new Date().toISOString(),
+        failed_attempts: failedAttempts,
+        locked_until: failedAttempts >= 5 ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : null,
       })
-      .eq('id', pendingUserId);
+      .eq('user_id', pendingUserId);
 
-    // Log success (silent fail if audit_logs table doesn't exist)
-    try {
-      await supabase.from('audit_logs').insert({
-        user_id: pendingUserId,
-        action: '2fa_verify_success',
-        metadata: { isBackupCode },
-        created_at: new Date().toISOString(),
-      });
-    } catch {
-      // Ignore audit log errors
-    }
-
-    // Determine redirect URL based on role
-    let redirectTo = '/dashboard';
-    if (user.role === 'super_admin' || user.role === 'admin') {
-      redirectTo = '/admin/dashboard';
-    } else if (user.role === 'agent') {
-      redirectTo = '/agent/dashboard';
-    } else if (user.role === 'tenant_admin') {
-      redirectTo = user.tenant_id ? `/t/${user.tenant_id}/admin` : '/dashboard';
-    }
-
-    // Create response with session
-    const response = NextResponse.json({ 
-      success: true, 
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        tenant_id: user.tenant_id,
-        displayName: user.display_name || user.username,
-        redirectTo,
-      },
-      redirectTo,
-      message: 'ยืนยันตัวตนสำเร็จ' 
+    // Log failed attempt
+    await supabase.from('security_logs').insert({
+      user_id: pendingUserId,
+      action: '2fa_verify',
+      status: 'failed',
+      details: { reason: 'wrong_code', attempt: failedAttempts },
     });
 
-    // Set session cookie
-    const sessionData = {
-      userId: user.id,
-      username: user.username,
-      role: user.role,
-      tenantId: user.tenant_id,
-      twoFactorVerified: true,
-      loginAt: new Date().toISOString(),
-    };
+    if (failedAttempts >= 5) {
+      return NextResponse.json({ error: 'บัญชีถูกล็อค 30 นาที เนื่องจากกรอกรหัสผิดหลายครั้ง' }, { status: 429 });
+    }
 
-    response.cookies.set('session', JSON.stringify(sessionData), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/',
-    });
-
-    // Remove pending cookie
-    response.cookies.delete('pending_2fa_user');
-
-    return response;
-
-  } catch (error) {
-    console.error('2FA verify: Unexpected error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'รหัส OTP ไม่ถูกต้อง' }, { status: 400 });
   }
+
+  // Mark code as used
+  await supabase
+    .from('two_factor_codes')
+    .update({ is_used: true, used_at: new Date().toISOString() })
+    .eq('id', otpRecord.id);
+
+  // Reset failed attempts
+  await supabase
+    .from('two_factor_settings')
+    .update({ 
+      failed_attempts: 0, 
+      locked_until: null,
+      last_verified_at: new Date().toISOString(),
+    })
+    .eq('user_id', pendingUserId);
+
+  // Get user data
+  const { data: user } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', pendingUserId)
+    .single();
+
+  // Log success
+  await supabase.from('security_logs').insert({
+    user_id: pendingUserId,
+    action: '2fa_verify',
+    status: 'success',
+  });
+
+  // Create response with session
+  const response = NextResponse.json({ 
+    success: true, 
+    user,
+    message: 'ยืนยันตัวตนสำเร็จ' 
+  });
+
+  // Set session cookie
+  response.cookies.set('admin_id', pendingUserId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7,
+    path: '/',
+  });
+
+  // Remove pending cookie
+  response.cookies.delete('pending_2fa_user');
+
+  return response;
 }

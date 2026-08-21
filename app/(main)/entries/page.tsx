@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,18 +34,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { useLotteryStore } from '@/hooks/use-lottery-store';
 import { useAuth } from '@/hooks/use-auth';
 import { BET_TYPE_LABELS, BET_TYPE_COLORS, type BetType } from '@/types/lottery';
-import { 
-  List, Search, Filter, Download, Printer, Trash2, 
-  Receipt, Loader2, ChevronDown, ChevronRight, Calendar 
-} from 'lucide-react';
+import { List, Search, Filter, Download, Printer, Trash2, ArrowUpDown, FileText, Receipt, Loader2 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -67,49 +59,18 @@ interface DBEntry {
   customer?: { name: string; phone?: string };
 }
 
-interface DateLotteryGroup {
-  dateKey: string;
-  dateLabel: string;
-  lotteryId: string;
-  lotteryName: string;
-  entries: DBEntry[];
-  totalAmount: number;
-  entryCount: number;
-  isToday: boolean;
-}
-
-// Helper to format date in Thai
-function formatDateThai(dateStr: string): string {
-  const date = new Date(dateStr);
-  const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-  const day = date.getDate();
-  const month = months[date.getMonth()];
-  const year = date.getFullYear() + 543;
-  return `${day} ${month} ${year}`;
-}
-
-// Helper to get date key (YYYY-MM-DD)
-function getDateKey(dateStr: string): string {
-  return dateStr.split('T')[0];
-}
-
-// Helper to check if date is today
-function isToday(dateStr: string): boolean {
-  const today = new Date().toISOString().split('T')[0];
-  return getDateKey(dateStr) === today;
-}
-
 export default function EntriesPage() {
   const { settings } = useLotteryStore();
   const { isAdmin, isSuperAdmin } = useAuth();
   
+  // Permission helper - admin and super_admin can do everything
+  const canAccess = (permission: string) => isAdmin || isSuperAdmin;
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<BetType | 'all'>('all');
   const [filterDate, setFilterDate] = useState('');
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [groupByDate, setGroupByDate] = useState(true);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [groupByLottery, setGroupByLottery] = useState(true); // default group by lottery
   const printRef = useRef<HTMLDivElement>(null);
 
   // Fetch entries from database
@@ -162,76 +123,47 @@ export default function EntriesPage() {
     [filteredEntries]
   );
 
-  // Group entries by Date + Lottery Type
-  const groupedByDateLottery = useMemo(() => {
-    if (!groupByDate) return null;
+  // Group entries by lottery
+  const groupedByLottery = useMemo(() => {
+    if (!groupByLottery) return null;
     
-    const groups: Record<string, DateLotteryGroup> = {};
+    const groups: Record<string, { 
+      lotteryId: string; 
+      lotteryName: string; 
+      entries: DBEntry[]; 
+      totalAmount: number;
+      entryCount: number;
+    }> = {};
     
     filteredEntries.forEach((entry) => {
-      const dateKey = getDateKey(entry.created_at);
       const lotteryId = entry.lottery?.id || 'unknown';
       const lotteryName = entry.lottery?.name || 'ไม่ระบุหวย';
-      const groupKey = `${dateKey}-${lotteryId}`;
       
-      if (!groups[groupKey]) {
-        groups[groupKey] = {
-          dateKey,
-          dateLabel: formatDateThai(entry.created_at),
+      if (!groups[lotteryId]) {
+        groups[lotteryId] = {
           lotteryId,
           lotteryName,
           entries: [],
           totalAmount: 0,
           entryCount: 0,
-          isToday: isToday(entry.created_at),
         };
       }
       
-      groups[groupKey].entries.push(entry);
-      groups[groupKey].totalAmount += entry.amount;
-      groups[groupKey].entryCount += 1;
+      groups[lotteryId].entries.push(entry);
+      groups[lotteryId].totalAmount += entry.amount;
+      groups[lotteryId].entryCount += 1;
     });
     
-    // Sort by date (newest first), then by lottery name
-    return Object.values(groups).sort((a, b) => {
-      const dateCompare = b.dateKey.localeCompare(a.dateKey);
-      if (dateCompare !== 0) return dateCompare;
-      return a.lotteryName.localeCompare(b.lotteryName);
-    });
-  }, [filteredEntries, groupByDate]);
+    return Object.values(groups).sort((a, b) => b.totalAmount - a.totalAmount);
+  }, [filteredEntries, groupByLottery]);
 
-  // Initialize expanded groups - today's entries are expanded by default
-  useMemo(() => {
-    if (groupedByDateLottery && expandedGroups.size === 0) {
-      const todayGroups = groupedByDateLottery
-        .filter(g => g.isToday)
-        .map(g => `${g.dateKey}-${g.lotteryId}`);
-      if (todayGroups.length > 0) {
-        setExpandedGroups(new Set(todayGroups));
-      }
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
     }
-  }, [groupedByDateLottery]);
-
-  const toggleGroup = (groupKey: string) => {
-    setExpandedGroups(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(groupKey)) {
-        newSet.delete(groupKey);
-      } else {
-        newSet.add(groupKey);
-      }
-      return newSet;
-    });
-  };
-
-  const expandAll = () => {
-    if (groupedByDateLottery) {
-      setExpandedGroups(new Set(groupedByDateLottery.map(g => `${g.dateKey}-${g.lotteryId}`)));
-    }
-  };
-
-  const collapseAll = () => {
-    setExpandedGroups(new Set());
   };
 
   const handleExportCSV = () => {
@@ -254,7 +186,7 @@ export default function EntriesPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `entries-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `salakplus-entries-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
 
@@ -277,7 +209,7 @@ export default function EntriesPage() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>บิล - ${settings.siteName}</title>
+          <title>บิลสลากพลัส</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -286,28 +218,76 @@ export default function EntriesPage() {
               padding: 20px;
               max-width: 400px;
               margin: 0 auto;
+              background: white;
+              color: black;
             }
-            .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 15px; margin-bottom: 15px; }
+            .header { 
+              text-align: center; 
+              border-bottom: 2px dashed #333; 
+              padding-bottom: 15px; 
+              margin-bottom: 15px;
+            }
             .logo { font-size: 24px; font-weight: 700; color: #c41e3a; }
+            .sublogo { font-size: 10px; letter-spacing: 3px; color: #666; }
             .date { font-size: 12px; color: #666; margin-top: 8px; }
             .section { margin: 15px 0; }
-            .section-title { font-weight: 600; background: #333; color: white; padding: 5px 10px; margin-bottom: 8px; }
-            .entry-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dotted #ddd; }
+            .section-title { 
+              font-weight: 600; 
+              font-size: 14px; 
+              background: #333;
+              color: white;
+              padding: 5px 10px;
+              margin-bottom: 8px;
+            }
+            .entry-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 4px 0;
+              border-bottom: 1px dotted #ddd;
+              font-size: 14px;
+            }
             .entry-number { font-weight: 600; font-family: monospace; font-size: 16px; }
             .entry-amount { font-weight: 600; color: #c41e3a; }
-            .total-section { border-top: 2px dashed #333; margin-top: 20px; padding-top: 15px; }
-            .total-row { display: flex; justify-content: space-between; padding: 3px 0; }
-            .grand-total { font-size: 20px; font-weight: 700; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; }
+            .total-section { 
+              border-top: 2px dashed #333; 
+              margin-top: 20px; 
+              padding-top: 15px;
+            }
+            .total-row {
+              display: flex;
+              justify-content: space-between;
+              font-size: 14px;
+              padding: 3px 0;
+            }
+            .grand-total {
+              font-size: 20px;
+              font-weight: 700;
+              margin-top: 10px;
+              padding-top: 10px;
+              border-top: 1px solid #333;
+            }
             .grand-total .amount { color: #c41e3a; }
-            .footer { text-align: center; margin-top: 20px; font-size: 10px; color: #999; }
-            @media print { body { padding: 10px; } }
+            .footer { 
+              text-align: center; 
+              margin-top: 20px; 
+              font-size: 10px; 
+              color: #999;
+              border-top: 1px dashed #ddd;
+              padding-top: 15px;
+            }
+            @media print { 
+              body { padding: 10px; }
+              .no-print { display: none; }
+            }
           </style>
         </head>
         <body>
           <div class="header">
             <div class="logo">${settings.siteName}</div>
+            <div class="sublogo">LOTTO PREMIUM</div>
             <div class="date">วันที่: ${new Date().toLocaleString('th-TH')}</div>
           </div>
+
           ${Object.entries(groupedByType).map(([type, items]) => `
             <div class="section">
               <div class="section-title">${BET_TYPE_LABELS[type as BetType]} (${items.length} รายการ)</div>
@@ -319,6 +299,7 @@ export default function EntriesPage() {
               `).join('')}
             </div>
           `).join('')}
+
           <div class="total-section">
             ${Object.entries(groupedByType).map(([type, items]) => `
               <div class="total-row">
@@ -331,14 +312,17 @@ export default function EntriesPage() {
               <span class="amount">฿${totalAmount.toLocaleString()}</span>
             </div>
           </div>
+
           <div class="footer">
             <p>จำนวน ${filteredEntries.length} รายการ</p>
             <p>ขอบคุณที่ใช้บริการ ${settings.siteName}</p>
           </div>
+
           <script>window.onload = function() { window.print(); }</script>
         </body>
       </html>
     `);
+
     printWindow.document.close();
   };
 
@@ -359,6 +343,7 @@ export default function EntriesPage() {
             th, td { border: 1px solid #333; padding: 8px; text-align: left; font-size: 12px; }
             th { background: #333; color: white; }
             .total { font-weight: bold; font-size: 16px; margin-top: 15px; }
+            @media print { body { print-color-adjust: exact; } }
           </style>
         </head>
         <body>
@@ -366,7 +351,13 @@ export default function EntriesPage() {
           <p style="font-size: 12px; color: #666;">วันที่พิมพ์: ${new Date().toLocaleString('th-TH')}</p>
           <table>
             <thead>
-              <tr><th>เลข</th><th>ประเภท</th><th>ยอด</th><th>ลูกค้า</th><th>วันที่</th></tr>
+              <tr>
+                <th>เลข</th>
+                <th>ประเภท</th>
+                <th>ยอด</th>
+                <th>ลูกค้า</th>
+                <th>วันที่</th>
+              </tr>
             </thead>
             <tbody>
               ${filteredEntries.map(e => `
@@ -385,6 +376,7 @@ export default function EntriesPage() {
         </body>
       </html>
     `);
+
     printWindow.document.close();
   };
 
@@ -412,7 +404,6 @@ export default function EntriesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -485,12 +476,12 @@ export default function EntriesPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-xs">แสดงผล</Label>
-              <Select value={groupByDate ? 'grouped' : 'flat'} onValueChange={(v) => setGroupByDate(v === 'grouped')}>
+              <Select value={groupByLottery ? 'grouped' : 'flat'} onValueChange={(v) => setGroupByLottery(v === 'grouped')}>
                 <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="grouped">จัดกลุ่มตามวัน+หวย</SelectItem>
+                  <SelectItem value="grouped">จัดกลุ่มตามหวย</SelectItem>
                   <SelectItem value="flat">รายการทั้งหมด</SelectItem>
                 </SelectContent>
               </Select>
@@ -506,8 +497,8 @@ export default function EntriesPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="created_at-desc">วันที่ (ใหม่สุด)</SelectItem>
-                  <SelectItem value="created_at-asc">วันที่ (เก่าสุด)</SelectItem>
+                  <SelectItem value="createdAt-desc">วันที่ (ใหม่สุด)</SelectItem>
+                  <SelectItem value="createdAt-asc">วันที่ (เก่าสุด)</SelectItem>
                   <SelectItem value="amount-desc">ยอด (สูงสุด)</SelectItem>
                   <SelectItem value="amount-asc">ยอด (ต่ำสุด)</SelectItem>
                   <SelectItem value="number-asc">เลข (น้อยไปมาก)</SelectItem>
@@ -519,193 +510,166 @@ export default function EntriesPage() {
         </CardContent>
       </Card>
 
-      {/* Expand/Collapse All Buttons */}
-      {groupByDate && groupedByDateLottery && groupedByDateLottery.length > 0 && (
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={expandAll}>
-            กางทั้งหมด
-          </Button>
-          <Button variant="outline" size="sm" onClick={collapseAll}>
-            พับทั้งหมด
-          </Button>
-        </div>
-      )}
-
-      {/* Entries Display */}
-      <div ref={printRef}>
-        {filteredEntries.length > 0 ? (
-          groupByDate && groupedByDateLottery ? (
-            // Grouped by Date + Lottery with Collapsible Accordion
-            <div className="space-y-3">
-              {groupedByDateLottery.map((group) => {
-                const groupKey = `${group.dateKey}-${group.lotteryId}`;
-                const isExpanded = expandedGroups.has(groupKey);
-                
-                return (
-                  <Collapsible
-                    key={groupKey}
-                    open={isExpanded}
-                    onOpenChange={() => toggleGroup(groupKey)}
-                  >
-                    <Card className="overflow-hidden">
-                      {/* Accordion Header */}
-                      <CollapsibleTrigger asChild>
-                        <div 
-                          className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors hover:bg-muted/50 ${
-                            group.isToday ? 'bg-primary/10 border-l-4 border-l-primary' : 'bg-muted/30'
-                          }`}
-                        >
-                          <div className="flex items-center gap-4">
-                            {isExpanded ? (
-                              <ChevronDown className="size-5 text-muted-foreground" />
-                            ) : (
-                              <ChevronRight className="size-5 text-muted-foreground" />
-                            )}
-                            
-                            <div className="flex items-center gap-2">
-                              <Calendar className="size-4 text-muted-foreground" />
-                              <span className="font-semibold">
-                                {group.dateLabel}
-                                {group.isToday && (
-                                  <Badge className="ml-2 bg-primary text-primary-foreground text-xs">
-                                    วันนี้
-                                  </Badge>
-                                )}
-                              </span>
-                            </div>
-                            
-                            <Badge variant="outline" className="font-medium">
-                              {group.lotteryName}
-                            </Badge>
-                            
-                            <Badge variant="secondary">
-                              {group.entryCount} รายการ
-                            </Badge>
-                          </div>
-                          
-                          <span className="font-mono font-bold text-primary text-lg">
-                            ฿{group.totalAmount.toLocaleString()}
-                          </span>
+      {/* Table */}
+      <Card>
+        <CardContent className="pt-6" ref={printRef}>
+          {filteredEntries.length > 0 ? (
+            groupByLottery && groupedByLottery ? (
+              // Grouped by lottery view
+              <div className="space-y-4">
+                {groupedByLottery.map((group) => (
+                  <div key={group.lotteryId} className="border rounded-lg overflow-hidden">
+                    {/* Lottery header */}
+                    <div className="bg-muted/50 px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-lg">{group.lotteryName}</span>
+                        <Badge variant="secondary">{group.entryCount} รายการ</Badge>
+                      </div>
+                      <span className="font-mono font-bold text-primary text-lg">
+                        ฿{group.totalAmount.toLocaleString()}
+                      </span>
+                    </div>
+                    {/* Entries table */}
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>เลข</TableHead>
+                          <TableHead>ประเภท</TableHead>
+                          <TableHead>ยอด</TableHead>
+                          <TableHead>ลูกค้า</TableHead>
+                          <TableHead className="hidden sm:table-cell">วันที่</TableHead>
+                          <TableHead className="text-right">จัดการ</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {group.entries.map((entry) => (
+                          <TableRow key={entry.id}>
+                            <TableCell>
+                              <span className="font-mono font-bold text-lg">{entry.number}</span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`${BET_TYPE_COLORS[entry.bet_type]} text-white text-xs`}>
+                                {BET_TYPE_LABELS[entry.bet_type]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono font-bold text-primary">
+                              {entry.amount.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <p className="font-medium text-sm">{entry.customer?.name || entry.customer_name || '-'}</p>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell text-muted-foreground text-xs">
+                              {new Date(entry.created_at).toLocaleString('th-TH', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {canAccess('delete') && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive">
+                                      <Trash2 className="size-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        คุณต้องการลบรายการ {entry.number} ({BET_TYPE_LABELS[entry.bet_type]}) {entry.amount.toLocaleString()} บาท หรือไม่?
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDelete(entry.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                        ลบ
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Flat list view
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('number')}>
+                      <div className="flex items-center gap-1">
+                        เลข
+                        <ArrowUpDown className="size-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead>ประเภท</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('amount')}>
+                      <div className="flex items-center gap-1">
+                        ยอด
+                        <ArrowUpDown className="size-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead>ลูกค้า</TableHead>
+                    <TableHead className="hidden md:table-cell">หวย</TableHead>
+                    <TableHead className="cursor-pointer hidden sm:table-cell" onClick={() => handleSort('created_at')}>
+                      <div className="flex items-center gap-1">
+                        วันที่
+                        <ArrowUpDown className="size-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">จัดการ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEntries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>
+                        <span className="font-mono font-bold text-lg">{entry.number}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${BET_TYPE_COLORS[entry.bet_type]} text-white text-xs`}>
+                          {BET_TYPE_LABELS[entry.bet_type]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono font-bold text-primary">
+                        {entry.amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-sm">{entry.customer?.name || entry.customer_name || '-'}</p>
+                          {entry.customer?.phone && (
+                            <p className="text-xs text-muted-foreground">{entry.customer.phone}</p>
+                          )}
                         </div>
-                      </CollapsibleTrigger>
-
-                      {/* Accordion Content - Entries Table */}
-                      <CollapsibleContent>
-                        <div className="border-t">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/20">
-                                <TableHead className="w-24">เลข</TableHead>
-                                <TableHead className="w-28">ประเภท</TableHead>
-                                <TableHead className="w-28">ยอด</TableHead>
-                                <TableHead>ลูกค้า</TableHead>
-                                <TableHead className="hidden sm:table-cell w-40">เวลา</TableHead>
-                                <TableHead className="text-right w-20">จัดการ</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {group.entries.map((entry) => (
-                                <TableRow key={entry.id} className="hover:bg-muted/10">
-                                  <TableCell>
-                                    <span className="font-mono font-bold text-lg">{entry.number}</span>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge className={`${BET_TYPE_COLORS[entry.bet_type]} text-white text-xs`}>
-                                      {BET_TYPE_LABELS[entry.bet_type]}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="font-mono font-bold text-primary">
-                                    {entry.amount.toLocaleString()}
-                                  </TableCell>
-                                  <TableCell className="text-muted-foreground">
-                                    {entry.customer?.name || entry.customer_name || '-'}
-                                  </TableCell>
-                                  <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                                    {new Date(entry.created_at).toLocaleTimeString('th-TH', { 
-                                      hour: '2-digit', 
-                                      minute: '2-digit' 
-                                    })}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive">
-                                          <Trash2 className="size-4" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            ต้องการลบรายการเลข {entry.number} ({BET_TYPE_LABELS[entry.bet_type]}) ยอด ฿{entry.amount.toLocaleString()} หรือไม่?
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() => handleDelete(entry.id)}
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                          >
-                                            ลบ
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
-                );
-              })}
-            </div>
-          ) : (
-            // Flat list view (no grouping)
-            <Card>
-              <CardContent className="pt-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>เลข</TableHead>
-                      <TableHead>ประเภท</TableHead>
-                      <TableHead>ยอด</TableHead>
-                      <TableHead>ลูกค้า</TableHead>
-                      <TableHead>หวย</TableHead>
-                      <TableHead className="hidden sm:table-cell">วันที่</TableHead>
-                      <TableHead className="text-right">จัดการ</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEntries.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell>
-                          <span className="font-mono font-bold text-lg">{entry.number}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={`${BET_TYPE_COLORS[entry.bet_type]} text-white text-xs`}>
-                            {BET_TYPE_LABELS[entry.bet_type]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-mono font-bold text-primary">
-                          {entry.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {entry.customer?.name || entry.customer_name || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{entry.lottery?.name || '-'}</Badge>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                          {new Date(entry.created_at).toLocaleString('th-TH')}
-                        </TableCell>
-                        <TableCell className="text-right">
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground text-xs max-w-[150px] truncate">
+                        {entry.lottery?.name || '-'}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-muted-foreground text-xs">
+                        {new Date(entry.created_at).toLocaleString('th-TH', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {canAccess('delete') ? (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-destructive hover:text-destructive"
+                              >
                                 <Trash2 className="size-4" />
                               </Button>
                             </AlertDialogTrigger>
@@ -713,7 +677,7 @@ export default function EntriesPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  ต้องการลบรายการเลข {entry.number} ยอด ฿{entry.amount.toLocaleString()} หรือไม่?
+                                  คุณต้องการลบรายการ {entry.number} ({BET_TYPE_LABELS[entry.bet_type]}) {entry.amount.toLocaleString()} บาท หรือไม่?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -727,24 +691,24 @@ export default function EntriesPage() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )
-        ) : (
-          <Card>
-            <CardContent className="py-16 text-center">
-              <List className="size-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p className="text-muted-foreground">ไม่พบรายการ</p>
-              <p className="text-sm text-muted-foreground/70">ลองเปลี่ยนเงื่อนไขการค้นหา</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            )
+          ) : (
+            <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground">
+              <List className="size-12 mb-4 opacity-30" />
+              <p>ไม่พบรายการ</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

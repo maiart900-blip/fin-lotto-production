@@ -14,7 +14,7 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('locked-accounts error:', error.message);
+    console.error('[v0] locked-accounts error:', error.message);
     // Return empty array instead of error for UI compatibility
     return NextResponse.json([]);
   }

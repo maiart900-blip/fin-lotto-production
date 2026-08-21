@@ -1,249 +1,191 @@
 /**
- * MASTER AUDIT LOG SYSTEM - Enhanced
- * ====================================
+ * MASTER AUDIT LOG SYSTEM
+ * ========================
  * Records all admin/agent actions for fraud prevention
- * Supports risk scoring, categorization, and suspicious activity detection
- * 
- * PR 1.2: Comprehensive Audit Trail
+ * Supports risk scoring and suspicious activity detection
  */
 
 import { headers } from 'next/headers';
-import { createClient as createServerClient } from '@/lib/supabase/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Service client for background operations (outside request scope)
-function getServiceClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !serviceKey) {
-    throw new Error('Missing Supabase credentials');
-  }
-  
-  return createClient(supabaseUrl, serviceKey);
-}
 
 // =====================================================
 // TYPES
 // =====================================================
 
-export type AuditCategory = 
-  | 'auth'       // Authentication events
-  | 'data'       // Data changes (CRUD)
-  | 'admin'      // Administrative actions
-  | 'financial'  // Money-related operations
-  | 'system'     // System configuration
-  | 'security';  // Security events
-
-export type AuditSeverity = 
-  | 'debug'    // Development only
-  | 'info'     // Normal operations
-  | 'warning'  // Unusual but not critical
-  | 'error'    // Errors that need attention
-  | 'critical'; // Immediate attention required
-
 export type AuditAction =
   // Authentication
-  | 'login'
-  | 'logout'
-  | 'login_failed'
-  | 'password_change'
-  | 'session_expired'
-  | 'token_refresh'
+  | 'auth.login'
+  | 'auth.logout'
+  | 'auth.login_failed'
+  | 'auth.password_change'
+  | 'auth.session_expired'
   
   // User Management
-  | 'user_create'
-  | 'user_update'
-  | 'user_delete'
-  | 'user_suspend'
-  | 'user_activate'
-  | 'role_change'
-  | 'credit_adjust'
-  | 'permission_change'
+  | 'user.create'
+  | 'user.update'
+  | 'user.delete'
+  | 'user.suspend'
+  | 'user.activate'
+  | 'user.role_change'
+  | 'user.credit_adjust'
   
   // Wallet Operations
-  | 'wallet_deposit'
-  | 'wallet_withdraw'
-  | 'wallet_transfer'
-  | 'wallet_adjustment'
-  | 'wallet_freeze'
-  | 'wallet_unfreeze'
+  | 'wallet.deposit'
+  | 'wallet.withdraw'
+  | 'wallet.transfer'
+  | 'wallet.adjustment'
+  | 'wallet.freeze'
+  | 'wallet.unfreeze'
   
   // Betting Operations
-  | 'bet_place'
-  | 'bet_cancel'
-  | 'bet_void'
-  | 'bet_settle'
-  | 'bet_refund'
+  | 'bet.place'
+  | 'bet.cancel'
+  | 'bet.void'
+  | 'bet.settle'
+  | 'bet.refund'
+  
+  // Site Management
+  | 'site.create'
+  | 'site.update'
+  | 'site.suspend'
+  | 'site.activate'
+  | 'site.delete'
+  | 'site.branding_update'
   
   // Lottery Management
-  | 'lottery_create'
-  | 'lottery_update'
-  | 'rate_change'
-  | 'round_open'
-  | 'round_close'
-  | 'result_input'
-  | 'result_confirm'
+  | 'lottery.create'
+  | 'lottery.update'
+  | 'lottery.rate_change'
+  | 'lottery.round_open'
+  | 'lottery.round_close'
+  | 'lottery.result_input'
+  | 'lottery.result_confirm'
   
   // Risk & Limits
-  | 'limit_create'
-  | 'limit_update'
-  | 'limit_delete'
-  | 'emergency_stop'
-  | 'threshold_breach'
+  | 'limit.create'
+  | 'limit.update'
+  | 'limit.delete'
+  | 'risk.emergency_stop'
+  | 'risk.threshold_breach'
   
-  // Security
-  | 'rate_limited'
-  | 'access_denied'
-  | 'suspicious_activity'
-  | 'ip_blocked'
+  // Settlements
+  | 'settlement.create'
+  | 'settlement.approve'
+  | 'settlement.reject'
+  | 'settlement.pay'
   
   // System
-  | 'config_change'
-  | 'maintenance_mode'
-  | 'backup'
-  | 'export_data'
-  | 'migration_run';
+  | 'system.config_change'
+  | 'system.maintenance_mode'
+  | 'system.backup'
+  | 'system.export_data';
 
-export type ActorType = 'user' | 'agent' | 'system' | 'api' | 'customer';
+export type EntityType =
+  | 'user'
+  | 'wallet'
+  | 'bet'
+  | 'site'
+  | 'lottery'
+  | 'round'
+  | 'limit'
+  | 'settlement'
+  | 'system';
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
 export interface AuditLogEntry {
-  // Core fields
+  id?: string;
+  siteId?: string;
   userId: string;
   action: AuditAction;
-  
-  // Context
-  actorType?: ActorType;
-  category?: AuditCategory;
-  severity?: AuditSeverity;
-  
-  // Target
-  tableName?: string;
-  recordId?: string;
-  
-  // Change tracking
-  oldData?: Record<string, unknown>;
-  newData?: Record<string, unknown>;
-  
-  // Request context
+  entityType?: EntityType;
+  entityId?: string;
+  oldValues?: Record<string, unknown>;
+  newValues?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   sessionId?: string;
-  requestId?: string;
-  
-  // Multi-tenant
-  tenantId?: string;
-  branchId?: string;
-  customerId?: string;
-  
-  // Risk assessment
   riskLevel?: RiskLevel;
   isSuspicious?: boolean;
-  
-  // Performance
-  durationMs?: number;
-  
-  // Additional data
-  description?: string;
   metadata?: Record<string, unknown>;
+  createdAt?: Date;
 }
 
-// Action to category/severity mapping
-const ACTION_CONFIG: Record<AuditAction, { category: AuditCategory; severity: AuditSeverity }> = {
-  // Auth
-  login: { category: 'auth', severity: 'info' },
-  logout: { category: 'auth', severity: 'info' },
-  login_failed: { category: 'auth', severity: 'warning' },
-  password_change: { category: 'auth', severity: 'warning' },
-  session_expired: { category: 'auth', severity: 'info' },
-  token_refresh: { category: 'auth', severity: 'debug' },
-  
-  // User management
-  user_create: { category: 'admin', severity: 'info' },
-  user_update: { category: 'admin', severity: 'info' },
-  user_delete: { category: 'admin', severity: 'warning' },
-  user_suspend: { category: 'admin', severity: 'warning' },
-  user_activate: { category: 'admin', severity: 'info' },
-  role_change: { category: 'admin', severity: 'warning' },
-  credit_adjust: { category: 'financial', severity: 'warning' },
-  permission_change: { category: 'admin', severity: 'warning' },
-  
-  // Wallet
-  wallet_deposit: { category: 'financial', severity: 'info' },
-  wallet_withdraw: { category: 'financial', severity: 'warning' },
-  wallet_transfer: { category: 'financial', severity: 'info' },
-  wallet_adjustment: { category: 'financial', severity: 'warning' },
-  wallet_freeze: { category: 'financial', severity: 'warning' },
-  wallet_unfreeze: { category: 'financial', severity: 'info' },
-  
-  // Betting
-  bet_place: { category: 'data', severity: 'info' },
-  bet_cancel: { category: 'data', severity: 'warning' },
-  bet_void: { category: 'data', severity: 'warning' },
-  bet_settle: { category: 'data', severity: 'info' },
-  bet_refund: { category: 'financial', severity: 'warning' },
-  
-  // Lottery
-  lottery_create: { category: 'admin', severity: 'info' },
-  lottery_update: { category: 'admin', severity: 'info' },
-  rate_change: { category: 'admin', severity: 'warning' },
-  round_open: { category: 'data', severity: 'info' },
-  round_close: { category: 'data', severity: 'info' },
-  result_input: { category: 'data', severity: 'warning' },
-  result_confirm: { category: 'data', severity: 'warning' },
-  
-  // Risk
-  limit_create: { category: 'admin', severity: 'info' },
-  limit_update: { category: 'admin', severity: 'info' },
-  limit_delete: { category: 'admin', severity: 'warning' },
-  emergency_stop: { category: 'security', severity: 'critical' },
-  threshold_breach: { category: 'security', severity: 'warning' },
-  
-  // Security
-  rate_limited: { category: 'security', severity: 'warning' },
-  access_denied: { category: 'security', severity: 'warning' },
-  suspicious_activity: { category: 'security', severity: 'error' },
-  ip_blocked: { category: 'security', severity: 'warning' },
-  
-  // System
-  config_change: { category: 'system', severity: 'warning' },
-  maintenance_mode: { category: 'system', severity: 'warning' },
-  backup: { category: 'system', severity: 'info' },
-  export_data: { category: 'system', severity: 'warning' },
-  migration_run: { category: 'system', severity: 'warning' },
-};
+// =====================================================
+// RISK SCORING RULES
+// =====================================================
 
-// Risk scoring rules
 interface RiskRule {
-  actions: AuditAction[];
+  action: AuditAction | AuditAction[];
   condition?: (entry: AuditLogEntry) => boolean;
   riskLevel: RiskLevel;
+  description: string;
 }
 
 const RISK_RULES: RiskRule[] = [
-  // Critical
-  { actions: ['emergency_stop'], riskLevel: 'critical' },
-  { actions: ['suspicious_activity'], riskLevel: 'critical' },
-  
-  // High
-  { actions: ['config_change', 'role_change', 'permission_change'], riskLevel: 'high' },
-  { 
-    actions: ['wallet_adjustment', 'wallet_withdraw'],
-    condition: (e) => Math.abs(Number(e.newData?.amount) || 0) > 100000,
-    riskLevel: 'high'
+  // Critical Actions
+  {
+    action: 'risk.emergency_stop',
+    riskLevel: 'critical',
+    description: 'Emergency stop triggered'
   },
-  { 
-    actions: ['credit_adjust'],
-    condition: (e) => Math.abs(Number(e.newData?.amount) || 0) > 50000,
-    riskLevel: 'high'
+  {
+    action: 'system.config_change',
+    riskLevel: 'high',
+    description: 'System configuration changed'
+  },
+  {
+    action: 'user.role_change',
+    riskLevel: 'high',
+    description: 'User role escalation'
   },
   
-  // Medium
-  { actions: ['user_delete', 'user_suspend', 'rate_change', 'result_input'], riskLevel: 'medium' },
-  { actions: ['login_failed', 'rate_limited', 'access_denied'], riskLevel: 'medium' },
-  { actions: ['bet_void', 'bet_cancel', 'bet_refund'], riskLevel: 'medium' },
+  // High Risk - Large amounts
+  {
+    action: 'wallet.adjustment',
+    condition: (entry) => {
+      const amount = Math.abs(Number(entry.newValues?.amount) || 0);
+      return amount > 100000; // More than 100k
+    },
+    riskLevel: 'high',
+    description: 'Large wallet adjustment'
+  },
+  {
+    action: 'wallet.withdraw',
+    condition: (entry) => {
+      const amount = Number(entry.newValues?.amount) || 0;
+      return amount > 500000; // More than 500k
+    },
+    riskLevel: 'high',
+    description: 'Large withdrawal'
+  },
+  
+  // Medium Risk
+  {
+    action: ['user.suspend', 'user.delete', 'site.suspend'],
+    riskLevel: 'medium',
+    description: 'Account/site suspension or deletion'
+  },
+  {
+    action: 'lottery.rate_change',
+    riskLevel: 'medium',
+    description: 'Payout rate modified'
+  },
+  {
+    action: 'lottery.result_input',
+    riskLevel: 'medium',
+    description: 'Lottery result entered'
+  },
+  
+  // Suspicious Patterns
+  {
+    action: 'auth.login_failed',
+    condition: (entry) => {
+      // Multiple failed logins would be tracked separately
+      return true;
+    },
+    riskLevel: 'medium',
+    description: 'Failed login attempt'
+  },
 ];
 
 // =====================================================
@@ -253,13 +195,13 @@ const RISK_RULES: RiskRule[] = [
 class AuditLogger {
   private static instance: AuditLogger;
   private buffer: AuditLogEntry[] = [];
-  private flushInterval: ReturnType<typeof setInterval> | null = null;
-  private readonly BUFFER_SIZE = 50;
-  private readonly FLUSH_INTERVAL_MS = 3000;
-  private isServer = typeof window === 'undefined';
+  private flushInterval: NodeJS.Timeout | null = null;
+  private readonly BUFFER_SIZE = 100;
+  private readonly FLUSH_INTERVAL_MS = 5000;
 
   private constructor() {
-    if (this.isServer) {
+    // Start periodic flush
+    if (typeof window === 'undefined') {
       this.startPeriodicFlush();
     }
   }
@@ -271,191 +213,194 @@ class AuditLogger {
     return AuditLogger.instance;
   }
 
-  /**
-   * Main logging method - use for custom entries
-   */
+  // Main logging method
   async log(entry: AuditLogEntry): Promise<void> {
+    // Enrich entry
     const enrichedEntry = await this.enrichEntry(entry);
+    
+    // Calculate risk
     const { riskLevel, isSuspicious } = this.calculateRisk(enrichedEntry);
     enrichedEntry.riskLevel = riskLevel;
     enrichedEntry.isSuspicious = isSuspicious;
     
+    // Add to buffer
     this.buffer.push(enrichedEntry);
     
-    // Immediate flush for critical/high risk
-    if (riskLevel === 'critical' || riskLevel === 'high' || enrichedEntry.severity === 'critical') {
+    // Immediate flush for high-risk entries
+    if (riskLevel === 'critical' || riskLevel === 'high') {
       await this.flush();
     } else if (this.buffer.length >= this.BUFFER_SIZE) {
       await this.flush();
     }
   }
 
-  /**
-   * Log authentication events
-   */
+  // Convenience methods for common actions
   async logAuth(
     userId: string,
-    action: 'login' | 'logout' | 'login_failed' | 'password_change' | 'session_expired',
-    sessionId?: string,
+    action: 'login' | 'logout' | 'login_failed' | 'password_change',
+    siteId?: string,
     metadata?: Record<string, unknown>
   ): Promise<void> {
     await this.log({
       userId,
-      action,
-      actorType: 'user',
-      tableName: 'users',
-      recordId: userId,
-      sessionId,
-      metadata,
+      siteId,
+      action: `auth.${action}` as AuditAction,
+      entityType: 'user',
+      entityId: userId,
+      metadata
     });
   }
 
-  /**
-   * Log data changes (CRUD operations)
-   */
-  async logData(
+  async logWallet(
     userId: string,
-    action: AuditAction,
-    tableName: string,
-    recordId: string,
-    oldData?: Record<string, unknown>,
-    newData?: Record<string, unknown>,
-    metadata?: Record<string, unknown>
-  ): Promise<void> {
-    await this.log({
-      userId,
-      action,
-      actorType: 'user',
-      tableName,
-      recordId,
-      oldData,
-      newData,
-      metadata,
-    });
-  }
-
-  /**
-   * Log financial operations
-   */
-  async logFinancial(
-    userId: string,
-    action: 'wallet_deposit' | 'wallet_withdraw' | 'wallet_transfer' | 'wallet_adjustment' | 'credit_adjust',
-    amount: number,
+    action: 'deposit' | 'withdraw' | 'transfer' | 'adjustment' | 'freeze' | 'unfreeze',
     walletId: string,
+    amount: number,
     balanceBefore: number,
     balanceAfter: number,
-    metadata?: Record<string, unknown>
+    siteId?: string,
+    performedBy?: string,
+    reason?: string
   ): Promise<void> {
     await this.log({
       userId,
-      action,
-      actorType: 'user',
-      tableName: 'wallets',
-      recordId: walletId,
-      oldData: { balance: balanceBefore },
-      newData: { balance: balanceAfter, amount },
-      metadata,
+      siteId,
+      action: `wallet.${action}` as AuditAction,
+      entityType: 'wallet',
+      entityId: walletId,
+      oldValues: { balance: balanceBefore },
+      newValues: { 
+        balance: balanceAfter, 
+        amount,
+        performedBy,
+        reason
+      }
     });
   }
 
-  /**
-   * Log security events
-   */
-  async logSecurity(
-    action: 'rate_limited' | 'access_denied' | 'suspicious_activity' | 'ip_blocked',
+  async logBet(
     userId: string,
-    ipAddress: string,
-    metadata?: Record<string, unknown>
+    action: 'place' | 'cancel' | 'void' | 'settle' | 'refund',
+    betId: string,
+    siteId: string,
+    details: Record<string, unknown>
   ): Promise<void> {
     await this.log({
       userId,
-      action,
-      actorType: 'system',
-      ipAddress,
-      metadata,
+      siteId,
+      action: `bet.${action}` as AuditAction,
+      entityType: 'bet',
+      entityId: betId,
+      newValues: details
     });
   }
 
-  /**
-   * Log administrative actions
-   */
-  async logAdmin(
+  async logSite(
     userId: string,
-    action: AuditAction,
-    targetTable: string,
-    targetId: string,
-    description?: string,
-    metadata?: Record<string, unknown>
+    action: 'create' | 'update' | 'suspend' | 'activate' | 'delete' | 'branding_update',
+    siteId: string,
+    oldValues?: Record<string, unknown>,
+    newValues?: Record<string, unknown>
   ): Promise<void> {
     await this.log({
       userId,
-      action,
-      actorType: 'user',
-      tableName: targetTable,
-      recordId: targetId,
-      description,
-      metadata,
+      action: `site.${action}` as AuditAction,
+      entityType: 'site',
+      entityId: siteId,
+      oldValues,
+      newValues
     });
   }
 
-  /**
-   * Log system events
-   */
+  async logLottery(
+    userId: string,
+    action: 'create' | 'update' | 'rate_change' | 'round_open' | 'round_close' | 'result_input' | 'result_confirm',
+    lotteryId: string,
+    siteId?: string,
+    details?: Record<string, unknown>
+  ): Promise<void> {
+    await this.log({
+      userId,
+      siteId,
+      action: `lottery.${action}` as AuditAction,
+      entityType: 'lottery',
+      entityId: lotteryId,
+      newValues: details
+    });
+  }
+
+  async logRisk(
+    userId: string,
+    action: 'emergency_stop' | 'threshold_breach',
+    siteId?: string,
+    details?: Record<string, unknown>
+  ): Promise<void> {
+    await this.log({
+      userId,
+      siteId,
+      action: `risk.${action}` as AuditAction,
+      entityType: 'system',
+      newValues: details
+    });
+  }
+
   async logSystem(
-    action: 'config_change' | 'maintenance_mode' | 'backup' | 'export_data' | 'migration_run',
-    description: string,
-    metadata?: Record<string, unknown>
+    userId: string,
+    action: 'config_change' | 'maintenance_mode' | 'backup' | 'export_data',
+    details?: Record<string, unknown>
   ): Promise<void> {
     await this.log({
-      userId: 'system',
-      action,
-      actorType: 'system',
-      description,
-      metadata,
+      userId,
+      action: `system.${action}` as AuditAction,
+      entityType: 'system',
+      newValues: details
     });
   }
 
-  // Enrich entry with context
+  // Enrich entry with request context
   private async enrichEntry(entry: AuditLogEntry): Promise<AuditLogEntry> {
     let ipAddress: string | undefined;
     let userAgent: string | undefined;
 
     try {
       const headersList = await headers();
-      ipAddress = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+      ipAddress = headersList.get('x-forwarded-for')?.split(',')[0] || 
                   headersList.get('x-real-ip') || 
                   undefined;
       userAgent = headersList.get('user-agent') || undefined;
     } catch {
-      // Headers not available
+      // Headers not available (client-side or test)
     }
-
-    const config = ACTION_CONFIG[entry.action] || { category: 'data', severity: 'info' };
 
     return {
       ...entry,
+      id: crypto.randomUUID(),
       ipAddress: entry.ipAddress || ipAddress,
       userAgent: entry.userAgent || userAgent,
-      category: entry.category || config.category,
-      severity: entry.severity || config.severity,
-      actorType: entry.actorType || 'user',
+      createdAt: new Date(),
       riskLevel: entry.riskLevel || 'low',
-      isSuspicious: entry.isSuspicious || false,
+      isSuspicious: entry.isSuspicious || false
     };
   }
 
-  // Calculate risk level
+  // Calculate risk level based on rules
   private calculateRisk(entry: AuditLogEntry): { riskLevel: RiskLevel; isSuspicious: boolean } {
     let maxRiskLevel: RiskLevel = 'low';
     let isSuspicious = false;
-    const riskOrder: RiskLevel[] = ['low', 'medium', 'high', 'critical'];
 
     for (const rule of RISK_RULES) {
-      if (rule.actions.includes(entry.action)) {
+      const actions = Array.isArray(rule.action) ? rule.action : [rule.action];
+      
+      if (actions.includes(entry.action)) {
+        // Check condition if exists
         if (!rule.condition || rule.condition(entry)) {
+          // Update max risk level
+          const riskOrder: RiskLevel[] = ['low', 'medium', 'high', 'critical'];
           if (riskOrder.indexOf(rule.riskLevel) > riskOrder.indexOf(maxRiskLevel)) {
             maxRiskLevel = rule.riskLevel;
           }
+          
+          // Mark suspicious if high or critical
           if (rule.riskLevel === 'high' || rule.riskLevel === 'critical') {
             isSuspicious = true;
           }
@@ -474,52 +419,17 @@ class AuditLogger {
     this.buffer = [];
 
     try {
-      // Use service client for background flush (outside request scope)
-      const supabase = getServiceClient();
-      
-      // Map entries to database format
-      const dbEntries = entries.map(entry => ({
-        user_id: entry.userId === 'system' ? null : entry.userId,
-        customer_id: entry.customerId || null,
-        action: entry.action,
-        table_name: entry.tableName || null,
-        record_id: entry.recordId || null,
-        old_data: entry.oldData || null,
-        new_data: entry.newData || null,
-        ip_address: entry.ipAddress || null,
-        user_agent: entry.userAgent || null,
-        description: entry.description || null,
-        // New enhanced fields
-        actor_type: entry.actorType || 'user',
-        session_id: entry.sessionId || null,
-        tenant_id: entry.tenantId || null,
-        branch_id: entry.branchId || null,
-        severity: entry.severity || 'info',
-        category: entry.category || 'general',
-        duration_ms: entry.durationMs || null,
-        request_id: entry.requestId || null,
-        metadata: {
-          ...(entry.metadata || {}),
-          risk_level: entry.riskLevel,
-          is_suspicious: entry.isSuspicious,
-        },
-      }));
-
-      const { error } = await supabase.from('audit_logs').insert(dbEntries);
-      
-      if (error) {
-        console.error('[AuditLogger] Failed to insert logs:', error.message);
-        // Re-add failed entries (up to buffer size)
-        if (this.buffer.length < this.BUFFER_SIZE) {
-          this.buffer = [...entries.slice(0, this.BUFFER_SIZE - this.buffer.length), ...this.buffer];
-        }
-      }
+      // In production, this would insert into database
+      // For now, we'll use the API endpoint
+      await fetch('/api/audit-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries })
+      });
     } catch (error) {
-      console.error('[AuditLogger] Flush error:', error);
-      // Re-add on failure
-      if (this.buffer.length < this.BUFFER_SIZE) {
-        this.buffer = [...entries.slice(0, this.BUFFER_SIZE - this.buffer.length), ...this.buffer];
-      }
+      console.error('[AuditLogger] Failed to flush logs:', error);
+      // Re-add failed entries to buffer
+      this.buffer = [...entries, ...this.buffer];
     }
   }
 
@@ -529,12 +439,12 @@ class AuditLogger {
     }, this.FLUSH_INTERVAL_MS);
   }
 
-  // Force flush and cleanup
-  async destroy(): Promise<void> {
+  // Cleanup
+  destroy(): void {
     if (this.flushInterval) {
       clearInterval(this.flushInterval);
     }
-    await this.flush();
+    this.flush();
   }
 }
 
@@ -544,17 +454,13 @@ class AuditLogger {
 
 export const auditLogger = AuditLogger.getInstance();
 
-/**
- * Helper function for server components/actions
- */
+// Helper function for server components/actions
 export async function logAudit(entry: AuditLogEntry): Promise<void> {
   return auditLogger.log(entry);
 }
 
-/**
- * Decorator for auditing class methods
- */
-export function Audited(action: AuditAction) {
+// Decorator for auditing class methods
+export function Audited(action: AuditAction, entityType?: EntityType) {
   return function (
     _target: unknown,
     _propertyKey: string,
@@ -573,14 +479,17 @@ export function Audited(action: AuditAction) {
         error = e as Error;
         throw e;
       } finally {
+        // Log the action
         await auditLogger.log({
           userId: (this as { userId?: string }).userId || 'system',
           action,
-          durationMs: Date.now() - startTime,
+          entityType,
           metadata: {
+            args: args.length > 0 ? args : undefined,
+            duration: Date.now() - startTime,
             success: !error,
-            error: error?.message,
-          },
+            error: error?.message
+          }
         });
       }
 
@@ -590,65 +499,3 @@ export function Audited(action: AuditAction) {
     return descriptor;
   };
 }
-
-/**
- * Query helpers for audit log analysis
- */
-export const auditQueries = {
-  // Get recent high-risk events
-  async getHighRiskEvents(limit = 50) {
-    const supabase = await createClient();
-    return supabase
-      .from('audit_logs')
-      .select('*')
-      .or('severity.eq.critical,severity.eq.error')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-  },
-
-  // Get events by user
-  async getByUser(userId: string, limit = 100) {
-    const supabase = await createClient();
-    return supabase
-      .from('audit_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-  },
-
-  // Get events by category
-  async getByCategory(category: AuditCategory, limit = 100) {
-    const supabase = await createClient();
-    return supabase
-      .from('audit_logs')
-      .select('*')
-      .eq('category', category)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-  },
-
-  // Get security events
-  async getSecurityEvents(hours = 24) {
-    const supabase = await createClient();
-    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-    return supabase
-      .from('audit_logs')
-      .select('*')
-      .eq('category', 'security')
-      .gte('created_at', since)
-      .order('created_at', { ascending: false });
-  },
-
-  // Get failed login attempts by IP
-  async getFailedLoginsByIP(ip: string, hours = 1) {
-    const supabase = await createClient();
-    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-    return supabase
-      .from('audit_logs')
-      .select('*', { count: 'exact' })
-      .eq('action', 'login_failed')
-      .eq('ip_address', ip)
-      .gte('created_at', since);
-  },
-};

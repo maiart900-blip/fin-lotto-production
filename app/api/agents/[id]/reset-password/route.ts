@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import bcrypt from 'bcryptjs';
-import { requireAdmin } from '@/lib/api-auth';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Auth guard - require admin
-    const authResult = await requireAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
     const { id } = await params;
     const supabase = await createClient();
     

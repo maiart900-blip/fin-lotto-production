@@ -18,21 +18,17 @@ import {
   Building2,
   QrCode,
   Copy,
+  Smartphone,
   ImageIcon,
   X,
   Check,
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  ArrowLeft,
-  Sparkles,
-  Shield,
-  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
-import Link from 'next/link';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -88,9 +84,9 @@ const BANK_LABELS: Record<string, string> = {
 const QUICK_AMOUNTS = [100, 300, 500, 1000, 2000, 5000];
 
 const statusConfig = {
-  pending: { label: 'รอตรวจสอบ', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Clock },
-  approved: { label: 'อนุมัติแล้ว', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle },
-  rejected: { label: 'ปฏิเสธ', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
+  pending: { label: 'รอตรวจสอบ', color: 'bg-yellow-500/10 text-yellow-500', icon: Clock },
+  approved: { label: 'อนุมัติแล้ว', color: 'bg-green-500/10 text-green-500', icon: CheckCircle },
+  rejected: { label: 'ปฏิเสธ', color: 'bg-red-500/10 text-red-500', icon: XCircle },
 };
 
 export default function CustomerTopupPage() {
@@ -217,6 +213,7 @@ export default function CustomerTopupPage() {
         slip_url: slipUrl,
       };
       
+      
       const res = await fetch('/api/customer/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -254,110 +251,96 @@ export default function CustomerTopupPage() {
     }
   };
 
-  // Success State
+  // Success State - แสดงหลังส่งคำขอสำเร็จ
   if (submitSuccess) {
     return (
-      <div className="min-h-screen bg-black premium-bg-pattern flex items-center justify-center p-4">
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-green-500/10 rounded-full blur-[100px]" />
-        </div>
-        
-        <div className="glass-card-gold max-w-md w-full p-8 text-center relative z-10">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500/30 to-emerald-500/20 border border-green-500/40 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">แจ้งฝากสำเร็จ!</h2>
-          <p className="text-neutral-400 mb-6">
-            รายการของคุณถูกส่งเรียบร้อยแล้ว<br/>
-            กรุณารอแอดมินตรวจสอบ
-          </p>
-          <div className="space-y-3">
-            <Button
-              onClick={() => {
-                setSubmitSuccess(false);
-                setSelectedAccount(null);
-                setAmount('');
-                removeSlip();
-                setShowHistory(true);
-              }}
-              className="w-full h-12 btn-luxury"
-            >
-              ดูประวัติรายการ
-            </Button>
-            <Button
-              onClick={() => {
-                setSubmitSuccess(false);
-                setSelectedAccount(null);
-                setAmount('');
-                removeSlip();
-              }}
-              variant="outline"
-              className="w-full h-12 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-            >
-              แจ้งฝากเงินอีกครั้ง
-            </Button>
-          </div>
-        </div>
+      <div className="min-h-screen bg-[#0A0F1C] flex items-center justify-center p-4">
+        <Card className="bg-[#0D1321] border-green-500/30 max-w-md w-full">
+          <CardContent className="p-8 text-center">
+            <div className="size-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="size-10 text-green-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">แจ้งฝากสำเร็จ!</h2>
+            <p className="text-white/60 mb-6">
+              รายการของคุณถูกส่งเรียบร้อยแล้ว<br/>
+              กรุณารอแอดมินตรวจสอบ
+            </p>
+            <div className="space-y-3">
+              <Button
+                onClick={() => {
+                  setSubmitSuccess(false);
+                  setSelectedAccount(null);
+                  setAmount('');
+                  removeSlip();
+                  setShowHistory(true);
+                }}
+                className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold"
+              >
+                ดูประวัติรายการ
+              </Button>
+              <Button
+                onClick={() => {
+                  setSubmitSuccess(false);
+                  setSelectedAccount(null);
+                  setAmount('');
+                  removeSlip();
+                }}
+                variant="outline"
+                className="w-full border-white/20 text-white hover:bg-white/10"
+              >
+                แจ้งฝากเงินอีกครั้ง
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black premium-bg-pattern pb-24">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-amber-500/5 rounded-full blur-[100px]" />
-        <div className="absolute bottom-40 left-0 w-[300px] h-[300px] bg-amber-600/3 rounded-full blur-[80px]" />
-      </div>
-
+    <div className="min-h-screen bg-[#0A0F1C] pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-amber-500/20">
-        <div className="flex items-center justify-between px-4 h-14">
-          <Link href="/c">
-            <Button variant="ghost" size="icon" className="text-amber-400 hover:bg-amber-500/10">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-400" />
-            เติมเงินอัตโนมัติ
-          </h1>
-          <div className="w-10" />
+      <div className="bg-gradient-to-b from-[#1a1f35] to-[#0A0F1C] px-4 py-6">
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-white">เติมเงิน</h1>
+          <p className="text-sm text-white/60 mt-1">เลือกบัญชี กรอกยอด แนบสลิป ครบจบในหน้าเดียว</p>
         </div>
-      </div>
         
-      {/* Credit Balance Card */}
-      <div className="px-4 pt-4">
-        <div className="glass-card-gold p-4 glow-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-600/20 border border-amber-500/40 flex items-center justify-center">
-              <CreditCard className="w-7 h-7 text-amber-400" />
+        {/* Credit Balance */}
+        <Card className="mt-4 bg-gradient-to-r from-amber-500/20 to-amber-600/10 border-amber-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <CreditCard className="size-5 text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/60">เครดิตคงเหลือ</p>
+                  <p className="text-xl font-bold text-amber-400">
+                    {customer?.credit_balance?.toLocaleString() || '0'} <span className="text-sm">บาท</span>
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-sm text-neutral-400">เครดิตคงเหลือ</p>
-              <p className="text-2xl font-bold gold-amount">
-                {customer?.credit_balance?.toLocaleString() || '0'} <span className="text-sm font-normal text-neutral-400">บาท</span>
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="px-4 py-4 space-y-4 relative z-10">
+      <div className="px-4 space-y-4">
         {/* Step 1: เลือกบัญชีรับเงิน */}
-        <div className="glass-card overflow-hidden">
-          <div className="p-4 border-b border-amber-500/20 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 text-black flex items-center justify-center text-sm font-bold">1</div>
+        <Card className="bg-[#0D1321] border-white/10 overflow-hidden">
+          <div className="p-4 border-b border-white/10 flex items-center gap-3">
+            <div className="size-8 rounded-full bg-amber-500 text-black flex items-center justify-center text-sm font-bold">1</div>
             <h2 className="font-semibold text-white">เลือกบัญชีรับเงิน</h2>
           </div>
-          <div className="p-4">
+          <CardContent className="p-4">
             {loadingAccounts ? (
               <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+                <Loader2 className="size-6 animate-spin text-amber-400" />
               </div>
             ) : accounts.length === 0 ? (
-              <div className="text-center py-8 text-neutral-400">
-                <Building2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <div className="text-center py-8 text-white/60">
+                <Building2 className="size-12 mx-auto mb-2 opacity-50" />
                 <p>ยังไม่มีบัญชีรับเงิน</p>
               </div>
             ) : (
@@ -372,132 +355,151 @@ export default function CustomerTopupPage() {
                     className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
                       selectedAccount?.id === account.id
                         ? 'border-amber-500 bg-amber-500/10'
-                        : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600'
+                        : 'border-white/10 bg-white/5 hover:border-white/20'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        selectedAccount?.id === account.id ? 'bg-gradient-to-br from-amber-500 to-amber-600' : 'bg-neutral-700'
+                      <div className={`size-10 rounded-lg flex items-center justify-center ${
+                        selectedAccount?.id === account.id ? 'bg-amber-500' : 'bg-white/10'
                       }`}>
                         {account.qr_image_url ? (
-                          <QrCode className={`w-5 h-5 ${selectedAccount?.id === account.id ? 'text-black' : 'text-neutral-300'}`} />
+                          <QrCode className={`size-5 ${selectedAccount?.id === account.id ? 'text-black' : 'text-white/70'}`} />
                         ) : (
-                          <Building2 className={`w-5 h-5 ${selectedAccount?.id === account.id ? 'text-black' : 'text-neutral-300'}`} />
+                          <Building2 className={`size-5 ${selectedAccount?.id === account.id ? 'text-black' : 'text-white/70'}`} />
                         )}
                       </div>
                       <div className="flex-1">
                         <p className="font-medium text-white">{account.account_name}</p>
-                        <p className="text-sm text-neutral-400">{getBankLabel(account.bank_name)}</p>
+                        <p className="text-sm text-white/60">{getBankLabel(account.bank_name)}</p>
                         {account.display_mode !== 'qr_only' && account.account_number && (
-                          <p className="text-xs text-neutral-500 font-mono mt-1">{account.account_number}</p>
+                          <p className="text-xs text-white/40 font-mono mt-1">{account.account_number}</p>
                         )}
                       </div>
                       {selectedAccount?.id === account.id && (
-                        <Check className="w-5 h-5 text-amber-400" />
+                        <Check className="size-5 text-amber-400" />
                       )}
                     </div>
                   </button>
                 ))}
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Step 2: กรอกจำนวนเงิน */}
-        <div className="glass-card overflow-hidden">
-          <div className="p-4 border-b border-amber-500/20 flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              selectedAccount ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-black' : 'bg-neutral-700 text-neutral-400'
+        <Card className="bg-[#0D1321] border-white/10 overflow-hidden">
+          <div className="p-4 border-b border-white/10 flex items-center gap-3">
+            <div className={`size-8 rounded-full flex items-center justify-center text-sm font-bold ${
+              selectedAccount ? 'bg-amber-500 text-black' : 'bg-white/20 text-white/60'
             }`}>2</div>
-            <h2 className={`font-semibold ${selectedAccount ? 'text-white' : 'text-neutral-500'}`}>กรอกจำนวนเงิน</h2>
+            <h2 className={`font-semibold ${selectedAccount ? 'text-white' : 'text-white/60'}`}>กรอกจำนวนเงิน</h2>
           </div>
-          <div className="p-4 space-y-4">
-            <div className="relative">
-              <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400" />
-              <Input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0"
-                className="pl-11 pr-12 h-14 text-2xl font-bold text-center bg-neutral-800/50 border-neutral-700 text-white input-premium"
-                disabled={!selectedAccount}
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400">บาท</span>
-            </div>
-            
-            {/* Quick Amounts */}
-            <div className="grid grid-cols-3 gap-2">
-              {QUICK_AMOUNTS.map((quickAmount) => (
-                <Button
-                  key={quickAmount}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAmount(quickAmount.toString())}
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              <div className="relative">
+                <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-amber-400" />
+                <Input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0"
+                  className="pl-11 pr-12 h-14 text-2xl font-bold text-center bg-white/5 border-white/10 text-white"
                   disabled={!selectedAccount}
-                  className={`h-10 ${
-                    amount === quickAmount.toString()
-                      ? 'bg-amber-500 text-black border-amber-500 hover:bg-amber-600'
-                      : 'bg-neutral-800/50 border-neutral-700 text-white hover:bg-neutral-700'
-                  }`}
-                >
-                  {quickAmount.toLocaleString()}
-                </Button>
-              ))}
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60">บาท</span>
+              </div>
+              
+              {/* Quick Amounts */}
+              <div className="grid grid-cols-3 gap-2">
+                {QUICK_AMOUNTS.map((quickAmount) => (
+                  <Button
+                    key={quickAmount}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAmount(quickAmount.toString())}
+                    disabled={!selectedAccount}
+                    className={`h-10 ${
+                      amount === quickAmount.toString()
+                        ? 'bg-amber-500 text-black border-amber-500 hover:bg-amber-600'
+                        : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {quickAmount.toLocaleString()}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Step 3: แสดง QR Code */}
         {selectedAccount && amount && parseFloat(amount) > 0 && (
-          <div className="glass-card overflow-hidden">
-            <div className="p-4 border-b border-amber-500/20 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 text-black flex items-center justify-center text-sm font-bold">3</div>
+          <Card className="bg-[#0D1321] border-white/10 overflow-hidden">
+            <div className="p-4 border-b border-white/10 flex items-center gap-3">
+              <div className="size-8 rounded-full bg-amber-500 text-black flex items-center justify-center text-sm font-bold">3</div>
               <h2 className="font-semibold text-white">สแกน QR / โอนเงิน</h2>
             </div>
-            <div className="p-4">
+            <CardContent className="p-4">
               <div className="flex flex-col items-center">
-                {/* QR Error Alert */}
+                {/* QR Error Alert - แสดงเล็กๆ ไม่บังหน้า */}
                 {qrImageError && (
                   <div className="w-full mb-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <QrCode className="w-4 h-4 text-amber-400" />
+                      <QrCode className="size-4 text-amber-400" />
                       <span className="text-sm text-amber-400">QR โหลดไม่สำเร็จ - ใช้ข้อมูลด้านล่างแทน</span>
                     </div>
                     <Button 
                       variant="ghost" 
                       size="sm"
                       className="h-6 px-2 text-amber-400 hover:text-amber-300"
-                      onClick={() => setQrImageError(false)}
+                      onClick={() => {
+                        setQrImageError(false);
+                      }}
                     >
-                      <RefreshCw className="w-3 h-3" />
+                      <RefreshCw className="size-3" />
                     </Button>
                   </div>
                 )}
 
-                {/* QR Code Display */}
+                {/* QR Code Display - แสดงตาม qr_mode */}
                 {(() => {
                   const hasValidQrUrl = selectedAccount.qr_image_url && isValidUrl(selectedAccount.qr_image_url);
                   const qrMode = selectedAccount.qr_mode || 'upload';
 
+                  // ถ้า qrImageError หรือไม่มี QR URL ที่ valid
                   if (qrImageError || !hasValidQrUrl) {
+                    // Fallback: แสดงข้อมูลบัญชีแทน QR
                     return (
-                      <div className="w-64 h-48 bg-gradient-to-b from-neutral-800 to-neutral-900 rounded-xl flex flex-col items-center justify-center p-4 border border-neutral-700">
-                        <Building2 className="w-10 h-10 text-amber-400 mb-3" />
+                      <div className="w-64 h-48 bg-gradient-to-b from-white/10 to-white/5 rounded-xl flex flex-col items-center justify-center p-4 border border-white/10">
+                        <Building2 className="size-10 text-amber-400 mb-3" />
                         <p className="text-sm font-medium text-white text-center">โอนเงินตามข้อมูลด้านล่าง</p>
                         {qrMode === 'upload' && !selectedAccount.qr_image_url && (
-                          <p className="text-xs text-neutral-500 mt-1">ยังไม่ได้อัปโหลด QR</p>
+                          <p className="text-xs text-white/50 mt-1">ยังไม่ได้อัปโหลด QR</p>
+                        )}
+                        {qrMode === 'merchant_id' && (
+                          <p className="text-xs text-white/50 mt-1">Merchant ID ยังไม่พร้อม</p>
+                        )}
+                        {qrMode === 'promptpay' && !selectedAccount.promptpay_number && (
+                          <p className="text-xs text-white/50 mt-1">ยังไม่ได้ตั้งค่า PromptPay</p>
                         )}
                       </div>
                     );
                   }
 
+                  // แสดง QR ปกติ
                   return (
-                    <div className="bg-white p-4 rounded-xl shadow-lg shadow-amber-500/10">
+                    <div className="bg-white p-4 rounded-xl">
                       <img
                         src={selectedAccount.qr_image_url!}
                         alt="QR Code"
                         className="w-56 h-56 object-contain"
-                        onError={() => setQrImageError(true)}
+                        onError={() => {
+                          console.error('[v0] QR image load failed:', {
+                            url: selectedAccount.qr_image_url,
+                            qr_mode: selectedAccount.qr_mode,
+                          });
+                          setQrImageError(true);
+                        }}
                       />
                     </div>
                   );
@@ -508,164 +510,230 @@ export default function CustomerTopupPage() {
                   <div className="text-center">
                     <p className="text-lg font-semibold text-white">{selectedAccount.account_name}</p>
                     {selectedAccount.display_mode !== 'qr_only' && (
-                      <p className="text-sm text-neutral-400">{getBankLabel(selectedAccount.bank_name)}</p>
+                      <p className="text-sm text-white/60">{getBankLabel(selectedAccount.bank_name)}</p>
                     )}
                   </div>
 
-                  {/* Account Number - Copyable */}
+                  {/* Account Number */}
                   {selectedAccount.display_mode !== 'qr_only' && selectedAccount.account_number && (
                     <button
                       onClick={() => copyToClipboard(selectedAccount.account_number!)}
-                      className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-neutral-800/50 hover:bg-neutral-700/50 transition-colors border border-neutral-700"
+                      className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
                     >
                       <span className="text-lg font-mono text-white">{selectedAccount.account_number}</span>
-                      <Copy className="w-4 h-4 text-amber-400" />
+                      <Copy className="size-4 text-white/60" />
+                    </button>
+                  )}
+
+                  {/* PromptPay Number */}
+                  {selectedAccount.display_mode !== 'qr_only' && selectedAccount.promptpay_number && (
+                    <button
+                      onClick={() => copyToClipboard(selectedAccount.promptpay_number!)}
+                      className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                    >
+                      <Smartphone className="size-4 text-blue-400" />
+                      <span className="font-mono text-blue-400">{selectedAccount.promptpay_number}</span>
+                      <Copy className="size-4 text-blue-400/60" />
                     </button>
                   )}
 
                   {/* Amount to transfer */}
-                  <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-center">
-                    <p className="text-sm text-amber-400 mb-1">จำนวนเงินที่ต้องโอน</p>
-                    <p className="text-2xl font-bold gold-amount">{parseFloat(amount).toLocaleString()} บาท</p>
-                  </div>
+                  <button
+                    onClick={() => copyToClipboard(amount)}
+                    className="w-full flex items-center justify-center gap-2 p-4 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors"
+                  >
+                    <Banknote className="size-5 text-green-400" />
+                    <span className="text-xl font-bold text-green-400">
+                      {parseFloat(amount).toLocaleString()} บาท
+                    </span>
+                    <Copy className="size-4 text-green-400/60" />
+                  </button>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Step 4: แนบสลิป */}
-        {selectedAccount && amount && parseFloat(amount) > 0 && (
-          <div className="glass-card overflow-hidden">
-            <div className="p-4 border-b border-amber-500/20 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 text-black flex items-center justify-center text-sm font-bold">4</div>
-              <h2 className="font-semibold text-white">แนบสลิปการโอนเงิน</h2>
-            </div>
-            <div className="p-4">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleSlipSelect}
-                className="hidden"
-              />
-
-              {!slipPreview ? (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-40 rounded-xl border-2 border-dashed border-amber-500/30 hover:border-amber-500/50 bg-amber-500/5 hover:bg-amber-500/10 transition-all flex flex-col items-center justify-center gap-3"
-                >
-                  <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center">
-                    <Upload className="w-7 h-7 text-amber-400" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-white font-medium">อัพโหลดสลิป</p>
-                    <p className="text-xs text-neutral-500 mt-1">รองรับ JPG, PNG, WEBP (สูงสุด 5MB)</p>
-                  </div>
-                </button>
-              ) : (
-                <div className="relative rounded-xl overflow-hidden">
-                  <img src={slipPreview} alt="Slip Preview" className="w-full max-h-64 object-contain bg-neutral-900" />
+        <Card className="bg-[#0D1321] border-white/10 overflow-hidden">
+          <div className="p-4 border-b border-white/10 flex items-center gap-3">
+            <div className={`size-8 rounded-full flex items-center justify-center text-sm font-bold ${
+              selectedAccount && amount && parseFloat(amount) > 0 ? 'bg-amber-500 text-black' : 'bg-white/20 text-white/60'
+            }`}>4</div>
+            <h2 className={`font-semibold ${
+              selectedAccount && amount && parseFloat(amount) > 0 ? 'text-white' : 'text-white/60'
+            }`}>แนบสลิปการโอนเงิน</h2>
+          </div>
+          <CardContent className="p-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleSlipSelect}
+              className="hidden"
+            />
+            
+            {slipPreview ? (
+              <div className="space-y-3">
+                <div className="relative rounded-xl overflow-hidden border-2 border-green-500/30">
+                  <img
+                    src={slipPreview}
+                    alt="Slip preview"
+                    className="w-full max-h-64 object-contain bg-black/50"
+                  />
                   <button
                     onClick={removeSlip}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                    className="absolute top-2 right-2 size-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="size-4" />
                   </button>
+                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-green-500/90 text-white text-xs flex items-center gap-1">
+                    <Check className="size-3" />
+                    แนบสลิปแล้ว
+                  </div>
                 </div>
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10"
+                >
+                  <RefreshCw className="size-4 mr-2" />
+                  เปลี่ยนสลิป
+                </Button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!selectedAccount || !amount || parseFloat(amount) <= 0}
+                className={`w-full p-8 rounded-xl border-2 border-dashed transition-colors flex flex-col items-center gap-3 ${
+                  selectedAccount && amount && parseFloat(amount) > 0
+                    ? 'border-amber-500/50 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer'
+                    : 'border-white/10 bg-white/5 cursor-not-allowed opacity-50'
+                }`}
+              >
+                <div className="size-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <ImageIcon className="size-6 text-amber-400" />
+                </div>
+                <div className="text-center">
+                  <p className="font-medium text-white">กดเพื่อแนบสลิป</p>
+                  <p className="text-xs text-white/60 mt-1">รองรับ JPG, PNG, WEBP (สูงสุด 5MB)</p>
+                </div>
+              </button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Step 5: ปุ่มแจ้งเติมเงิน */}
+        <Button
+          onClick={handleSubmit}
+          disabled={submitting || !selectedAccount || !amount || parseFloat(amount) <= 0 || !slipFile}
+          className="w-full h-14 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold text-lg rounded-xl shadow-lg shadow-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="size-5 mr-2 animate-spin" />
+              {uploadingSlip ? 'กำลังอัพโหลดสลิป...' : 'กำลังส่งรายการ...'}
+            </>
+          ) : (
+            <>
+              <Upload className="size-5 mr-2" />
+              แจ้งเติมเงิน
+            </>
+          )}
+        </Button>
+
+        {/* Checklist */}
+        <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+          <p className="text-xs text-white/60 mb-2">ตรวจสอบก่อนแจ้งเติมเงิน:</p>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs">
+              {selectedAccount ? (
+                <Check className="size-3 text-green-400" />
+              ) : (
+                <div className="size-3 rounded-full border border-white/30" />
               )}
+              <span className={selectedAccount ? 'text-green-400' : 'text-white/40'}>เลือกบัญชีแล้ว</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              {amount && parseFloat(amount) > 0 ? (
+                <Check className="size-3 text-green-400" />
+              ) : (
+                <div className="size-3 rounded-full border border-white/30" />
+              )}
+              <span className={amount && parseFloat(amount) > 0 ? 'text-green-400' : 'text-white/40'}>กรอกจำนวนเงินแล้ว</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              {slipFile ? (
+                <Check className="size-3 text-green-400" />
+              ) : (
+                <div className="size-3 rounded-full border border-white/30" />
+              )}
+              <span className={slipFile ? 'text-green-400' : 'text-white/40'}>แนบสลิปแล้ว</span>
             </div>
           </div>
-        )}
-
-        {/* Submit Button */}
-        {selectedAccount && amount && parseFloat(amount) > 0 && (
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting || !slipFile}
-            className="w-full h-14 btn-luxury text-lg"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                {uploadingSlip ? 'กำลังอัพโหลดสลิป...' : 'กำลังส่งคำขอ...'}
-              </>
-            ) : (
-              <>
-                <Shield className="w-5 h-5 mr-2" />
-                ยืนยันแจ้งฝากเงิน
-              </>
-            )}
-          </Button>
-        )}
+        </div>
 
         {/* History Section */}
-        <div className="glass-card overflow-hidden">
+        <Card className="bg-[#0D1321] border-white/10 overflow-hidden">
           <button
             onClick={() => setShowHistory(!showHistory)}
             className="w-full p-4 flex items-center justify-between"
           >
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-neutral-400" />
+            <div className="flex items-center gap-3">
+              <Clock className="size-5 text-white/60" />
               <span className="font-medium text-white">ประวัติการเติมเงิน</span>
-              {history.length > 0 && (
-                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
-                  {history.length} รายการ
+              {history.filter(h => h.status === 'pending').length > 0 && (
+                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                  {history.filter(h => h.status === 'pending').length} รอตรวจสอบ
                 </Badge>
               )}
             </div>
             {showHistory ? (
-              <ChevronUp className="w-5 h-5 text-neutral-400" />
+              <ChevronUp className="size-5 text-white/60" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-400" />
+              <ChevronDown className="size-5 text-white/60" />
             )}
           </button>
           
           {showHistory && (
-            <div className="border-t border-neutral-800">
+            <CardContent className="p-4 pt-0 border-t border-white/10">
               {history.length === 0 ? (
-                <div className="p-8 text-center text-neutral-500">
-                  <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <div className="text-center py-8 text-white/60">
+                  <Clock className="size-12 mx-auto mb-2 opacity-50" />
                   <p>ยังไม่มีประวัติการเติมเงิน</p>
                 </div>
               ) : (
-                <div className="divide-y divide-neutral-800">
-                  {history.slice(0, 5).map((req) => {
-                    const status = statusConfig[req.status];
+                <div className="space-y-3 mt-4">
+                  {history.slice(0, 10).map((item) => {
+                    const status = statusConfig[item.status];
                     const StatusIcon = status.icon;
                     return (
-                      <div key={req.id} className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${status.color.split(' ')[0]}`}>
-                              <StatusIcon className={`w-5 h-5 ${status.color.split(' ')[1]}`} />
-                            </div>
-                            <div>
-                              <p className="font-bold text-white">
-                                {Number(req.amount).toLocaleString()} <span className="text-sm font-normal text-neutral-400">บาท</span>
-                              </p>
-                              <p className="text-xs text-neutral-500">
-                                {formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: th })}
-                              </p>
-                            </div>
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-white/5"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`size-8 rounded-full flex items-center justify-center ${status.color}`}>
+                            <StatusIcon className="size-4" />
                           </div>
-                          <Badge className={`${status.color}`}>
-                            {status.label}
-                          </Badge>
+                          <div>
+                            <p className="font-medium text-white">
+                              {item.amount.toLocaleString()} บาท
+                            </p>
+                            <p className="text-xs text-white/60">
+                              {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: th })}
+                            </p>
+                          </div>
                         </div>
-                        {req.status === 'rejected' && req.reject_reason && (
-                          <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
-                            <p className="text-xs text-red-400">เหตุผล: {req.reject_reason}</p>
-                          </div>
-                        )}
+                        <Badge className={status.color}>{status.label}</Badge>
                       </div>
                     );
                   })}
                 </div>
               )}
-            </div>
+            </CardContent>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

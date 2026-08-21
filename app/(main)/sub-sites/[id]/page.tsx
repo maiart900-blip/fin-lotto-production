@@ -566,7 +566,7 @@ export default function SubSiteDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                     <div>
                       <p className="font-medium text-white">ค่าธรรมเนียมฝากเงิน</p>
-                      <p className="text-sm text-slate-400">% ที่เว็บแม่เก็บจากยอดฝาก</p>
+                      <p className="text-sm text-slate-400">% ที่เว็บแม่เก็บ���ากยอดฝาก</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -885,13 +885,13 @@ export default function SubSiteDetailPage({ params }: { params: Promise<{ id: st
               รีเซ็ตรหัสผ่าน
             </DialogTitle>
             <DialogDescription>
-              รีเซ็ตรหัสผ่านของ {resetPasswordUser?.username}
+              รีเซ็ตรห��สผ่านของ {resetPasswordUser?.username}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
               <p className="text-sm text-amber-300">
-                รหัสผ่านใหม่จะถูกตั้งค่าทันที ผู้ใช้จะต้องใช้รหัสผ่านใหม่ในการเข้าสู่ระบบ
+                รหัสผ่านใหม่จะถูกตั้งค่าทันที ��ู้ใช้จะต้องใช้รหัสผ่านใหม่ในการเข้าสู่ระบบ
               </p>
             </div>
             <div className="space-y-2">

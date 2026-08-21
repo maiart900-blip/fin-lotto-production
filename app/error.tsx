@@ -17,7 +17,7 @@ export default function Error({
   const maxRetries = 3;
 
   useEffect(() => {
-    console.error('App Error:', error);
+    console.error('[v0] App Error:', error);
     
     // Auto-retry mechanism
     if (retryCount < maxRetries) {

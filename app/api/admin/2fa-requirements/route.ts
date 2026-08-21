@@ -1,29 +1,15 @@
 import { NextResponse } from 'next/server';
-import { is2FARequiredForRole } from '@/lib/2fa-guard';
-import { requireSuperAdmin } from '@/lib/api-auth';
-
-// Hardcoded roles that require 2FA (for security, not configurable via UI)
-const ROLES_REQUIRING_2FA = ['super_admin', 'admin', 'agent'];
-const ALL_ROLES = ['super_admin', 'admin', 'agent', 'member', 'customer'];
+import { createClient } from '@/lib/supabase/server';
+import { get2FARequirements, update2FARequirement } from '@/lib/2fa-guard';
 
 // GET - ดึงการตั้งค่า 2FA requirements ทั้งหมด
 export async function GET() {
   try {
-    // Auth guard - require super_admin for 2FA settings
-    const authResult = await requireSuperAdmin();
-    if (authResult instanceof NextResponse) return authResult;
-
-    // Return hardcoded requirements
-    const requirements = ALL_ROLES.map(role => ({
-      role,
-      is_required: ROLES_REQUIRING_2FA.includes(role),
-      is_configurable: false, // Security policy - not configurable via UI
-    }));
+    const requirements = await get2FARequirements();
     
     return NextResponse.json({
       success: true,
       requirements,
-      note: '2FA requirements are enforced by security policy and cannot be modified via UI.',
     });
   } catch (error) {
     console.error('Error fetching 2FA requirements:', error);
@@ -35,26 +21,80 @@ export async function GET() {
 }
 
 // PUT - อัปเดตการตั้งค่า 2FA requirement ของ role
-// Disabled for security - 2FA requirements are hardcoded
-export async function PUT() {
-  return NextResponse.json(
-    { 
-      success: false, 
-      error: '2FA requirements are enforced by security policy and cannot be modified.',
-      note: 'Contact system administrator to change 2FA policy.',
-    },
-    { status: 403 }
-  );
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { role, is_required } = body;
+    
+    if (!role) {
+      return NextResponse.json(
+        { success: false, error: 'Role is required' },
+        { status: 400 }
+      );
+    }
+    
+    const success = await update2FARequirement(role, is_required);
+    
+    if (!success) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to update 2FA requirement' },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: `2FA requirement for ${role} updated to ${is_required}`,
+    });
+  } catch (error) {
+    console.error('Error updating 2FA requirement:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update 2FA requirement' },
+      { status: 500 }
+    );
+  }
 }
 
 // POST - เพิ่ม role ใหม่
-// Disabled for security
-export async function POST() {
-  return NextResponse.json(
-    { 
-      success: false, 
-      error: '2FA requirements are enforced by security policy and cannot be modified.',
-    },
-    { status: 403 }
-  );
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { role, is_required = false } = body;
+    
+    if (!role) {
+      return NextResponse.json(
+        { success: false, error: 'Role is required' },
+        { status: 400 }
+      );
+    }
+    
+    const supabase = await createClient();
+    
+    const { data, error } = await supabase
+      .from('system_2fa_requirements')
+      .insert({ role, is_required })
+      .select()
+      .single();
+    
+    if (error) {
+      if (error.code === '23505') {
+        return NextResponse.json(
+          { success: false, error: 'Role already exists' },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
+    
+    return NextResponse.json({
+      success: true,
+      requirement: data,
+    });
+  } catch (error) {
+    console.error('Error creating 2FA requirement:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create 2FA requirement' },
+      { status: 500 }
+    );
+  }
 }

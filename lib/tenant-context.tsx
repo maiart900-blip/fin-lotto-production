@@ -137,7 +137,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           setTenant({ ...defaultMasterConfig, siteId, isMaster: false });
         }
       } catch (error) {
-        console.error('Failed to load tenant config:', error);
+        console.error('[v0] Failed to load tenant config:', error);
         setTenant(defaultMasterConfig);
       } finally {
         setIsLoading(false);

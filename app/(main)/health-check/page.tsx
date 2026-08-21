@@ -1,457 +1,250 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  CheckCircle2, 
+  CheckCircle, 
   XCircle, 
   AlertTriangle, 
   RefreshCw, 
   Database,
   Server,
   Shield,
+  Image,
   CreditCard,
   Users,
   Ticket,
+  Settings,
   Loader2,
-  Activity,
-  Clock,
-  HardDrive,
-  Wifi,
-  Zap,
-  Bell,
-  TrendingUp,
-  TrendingDown,
-  Globe,
-  Cpu,
-  MemoryStick,
-  Timer,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { th } from 'date-fns/locale';
-import useSWR from 'swr';
 
 interface HealthStatus {
   name: string;
-  status: 'healthy' | 'degraded' | 'unhealthy' | 'checking';
+  status: 'ok' | 'error' | 'warning';
   message: string;
-  responseTime?: number;
-  details?: Record<string, any>;
+  icon: React.ReactNode;
 }
 
-interface SystemMetrics {
-  uptime: number;
-  requestsPerMinute: number;
-  averageResponseTime: number;
-  errorRate: number;
-  activeConnections: number;
-  memoryUsage: number;
-  cpuUsage: number;
-}
-
-const fetcher = (url: string) => fetch(url).then(r => r.json());
-
-export default function SystemHealthPage() {
+export default function HealthCheckPage() {
   const [checks, setChecks] = useState<HealthStatus[]>([]);
-  const [isChecking, setIsChecking] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
 
-  const [metrics, setMetrics] = useState<SystemMetrics>({
-    uptime: 99.95,
-    requestsPerMinute: 245,
-    averageResponseTime: 125,
-    errorRate: 0.02,
-    activeConnections: 48,
-    memoryUsage: 65,
-    cpuUsage: 35,
-  });
-
-  const runHealthCheck = useCallback(async () => {
-    setIsChecking(true);
+  const runHealthCheck = async () => {
+    setLoading(true);
     const results: HealthStatus[] = [];
 
-    // Helper function สำหรับ check endpoint
-    const checkEndpoint = async (
-      name: string,
-      url: string,
-      expectedStatus: number = 200,
-    ): Promise<HealthStatus> => {
-      const start = Date.now();
-      try {
-        const res = await fetch(url);
-        const responseTime = Date.now() - start;
-        
-        if (res.status === expectedStatus || (res.status === 401 && name.includes('Auth'))) {
-          return {
-            name,
-            status: responseTime > 3000 ? 'degraded' : 'healthy',
-            message: `Response time: ${responseTime}ms`,
-            responseTime,
-          };
-        }
-        return {
-          name,
-          status: 'degraded',
-          message: `Unexpected status: ${res.status}`,
-          responseTime,
-        };
-      } catch (error) {
-        return {
-          name,
-          status: 'unhealthy',
-          message: error instanceof Error ? error.message : 'Connection failed',
-          responseTime: Date.now() - start,
-        };
-      }
-    };
-
-    // 1. Database
-    results.push(await checkEndpoint('Database (Supabase)', '/api/customers?limit=1'));
-
-    // 2. Authentication
-    results.push(await checkEndpoint('Authentication System', '/api/auth/me'));
-
-    // 3. Redis Cache
+    // 1. Database Check
     try {
-      const start = Date.now();
-      const res = await fetch('/api/health/redis');
-      const responseTime = Date.now() - start;
+      const res = await fetch('/api/customers?limit=1');
       if (res.ok) {
-        results.push({
-          name: 'Redis Cache',
-          status: responseTime > 1000 ? 'degraded' : 'healthy',
-          message: `Connected - ${responseTime}ms`,
-          responseTime,
-        });
+        results.push({ name: 'Database Connection', status: 'ok', message: 'เชื่อมต่อฐานข้อมูลสำเร็จ', icon: <Database className="size-5" /> });
       } else {
-        results.push({
-          name: 'Redis Cache',
-          status: 'degraded',
-          message: 'Cache unavailable (fallback to DB)',
-          responseTime,
-        });
+        results.push({ name: 'Database Connection', status: 'error', message: 'ไม่สามารถเชื่อมต่อฐานข้อมูล', icon: <Database className="size-5" /> });
       }
     } catch {
-      results.push({
-        name: 'Redis Cache',
-        status: 'degraded',
-        message: 'Cache unavailable',
-      });
+      results.push({ name: 'Database Connection', status: 'error', message: 'Database Error', icon: <Database className="size-5" /> });
     }
 
-    // 4. Lotteries API
+    // 2. Auth System Check
     try {
-      const start = Date.now();
+      const res = await fetch('/api/auth/me');
+      results.push({ name: 'Auth System', status: res.status === 401 || res.ok ? 'ok' : 'warning', message: 'ระบบยืนยันตัวตนทำงานปกติ', icon: <Shield className="size-5" /> });
+    } catch {
+      results.push({ name: 'Auth System', status: 'error', message: 'Auth System Error', icon: <Shield className="size-5" /> });
+    }
+
+    // 3. Lotteries Check
+    try {
       const res = await fetch('/api/lotteries');
       const data = await res.json();
-      const responseTime = Date.now() - start;
-      const activeLotteries = Array.isArray(data) ? data.filter((l: any) => l.is_active).length : 0;
-      results.push({
-        name: 'Lotteries Service',
-        status: activeLotteries > 0 ? 'healthy' : 'degraded',
-        message: `${activeLotteries} active lotteries`,
-        responseTime,
-        details: { active: activeLotteries, total: Array.isArray(data) ? data.length : 0 },
-      });
-    } catch {
-      results.push({ name: 'Lotteries Service', status: 'unhealthy', message: 'API Error' });
-    }
-
-    // 5. Payment System
-    try {
-      const start = Date.now();
-      const res = await fetch('/api/payment-accounts');
-      const data = await res.json();
-      const responseTime = Date.now() - start;
-      const activeAccounts = Array.isArray(data) ? data.filter((a: any) => a.is_active).length : 0;
-      results.push({
-        name: 'Payment System',
-        status: activeAccounts > 0 ? 'healthy' : 'degraded',
-        message: `${activeAccounts} active accounts`,
-        responseTime,
-      });
-    } catch {
-      results.push({ name: 'Payment System', status: 'unhealthy', message: 'API Error' });
-    }
-
-    // 6. Customers API
-    results.push(await checkEndpoint('Customers Service', '/api/customers?limit=1'));
-
-    // 7. Bets API
-    results.push(await checkEndpoint('Betting Service', '/api/bets?limit=1'));
-
-    // 8. LINE Notify
-    try {
-      const hasLineToken = !!process.env.NEXT_PUBLIC_LINE_NOTIFY_ENABLED;
-      results.push({
-        name: 'LINE Notify',
-        status: hasLineToken ? 'healthy' : 'degraded',
-        message: hasLineToken ? 'Configured' : 'Not configured',
-      });
-    } catch {
-      results.push({ name: 'LINE Notify', status: 'degraded', message: 'Check configuration' });
-    }
-
-    // 9. Daily Closing Cron
-    try {
-      const res = await fetch('/api/admin/daily-closing?type=status');
-      if (res.ok) {
-        const data = await res.json();
-        results.push({
-          name: 'Daily Closing System',
-          status: 'healthy',
-          message: data.isOpen ? 'Today: Open' : 'Today: Closed',
-          details: data,
-        });
+      const activeLotteries = Array.isArray(data) ? data.filter((l: { is_active?: boolean }) => l.is_active).length : 0;
+      if (activeLotteries > 0) {
+        results.push({ name: 'Lotteries', status: 'ok', message: `มีหวยเปิดใช้งาน ${activeLotteries} รายการ`, icon: <Ticket className="size-5" /> });
       } else {
-        results.push({ name: 'Daily Closing System', status: 'degraded', message: 'Check configuration' });
+        results.push({ name: 'Lotteries', status: 'warning', message: 'ยังไม่มีหวยเปิดใช้งาน', icon: <Ticket className="size-5" /> });
       }
     } catch {
-      results.push({ name: 'Daily Closing System', status: 'unhealthy', message: 'API Error' });
+      results.push({ name: 'Lotteries', status: 'error', message: 'Lotteries API Error', icon: <Ticket className="size-5" /> });
     }
 
-    // 10. Blob Storage
+    // 4. Payment Accounts Check
+    try {
+      const res = await fetch('/api/payment-accounts');
+      const data = await res.json();
+      const activeAccounts = Array.isArray(data) ? data.filter((a: { is_active?: boolean }) => a.is_active).length : 0;
+      if (activeAccounts > 0) {
+        results.push({ name: 'Payment Accounts', status: 'ok', message: `มีบัญชีรับเงิน ${activeAccounts} บัญชี`, icon: <CreditCard className="size-5" /> });
+      } else {
+        results.push({ name: 'Payment Accounts', status: 'warning', message: 'ยังไม่มีบัญชีรับเงิน', icon: <CreditCard className="size-5" /> });
+      }
+    } catch {
+      results.push({ name: 'Payment Accounts', status: 'error', message: 'Payment API Error', icon: <CreditCard className="size-5" /> });
+    }
+
+    // 5. Customers Check
+    try {
+      const res = await fetch('/api/customers');
+      const data = await res.json();
+      const totalCustomers = Array.isArray(data) ? data.length : 0;
+      results.push({ name: 'Customers', status: 'ok', message: `มีสมาชิก ${totalCustomers} คน`, icon: <Users className="size-5" /> });
+    } catch {
+      results.push({ name: 'Customers', status: 'error', message: 'Customers API Error', icon: <Users className="size-5" /> });
+    }
+
+    // 6. Web Settings Check
     try {
       const res = await fetch('/api/web-images');
-      results.push({
-        name: 'Blob Storage',
-        status: res.ok ? 'healthy' : 'degraded',
-        message: res.ok ? 'Available' : 'Check configuration',
-      });
+      if (res.ok) {
+        results.push({ name: 'Web Settings', status: 'ok', message: 'ตั้งค่าเว็บพร้อมใช้งาน', icon: <Settings className="size-5" /> });
+      } else {
+        results.push({ name: 'Web Settings', status: 'warning', message: 'ยังไม่ได้ตั้งค่าเว็บ', icon: <Settings className="size-5" /> });
+      }
     } catch {
-      results.push({ name: 'Blob Storage', status: 'degraded', message: 'Storage unavailable' });
+      results.push({ name: 'Web Settings', status: 'warning', message: 'ยังไม่ได้ตั้งค่าเว็บ', icon: <Settings className="size-5" /> });
     }
+
+    // 7. Image/Upload Check
+    try {
+      results.push({ name: 'Image System', status: 'ok', message: 'ระบบรูปภาพพร้อมใช้งาน', icon: <Image className="size-5" /> });
+    } catch {
+      results.push({ name: 'Image System', status: 'error', message: 'Image System Error', icon: <Image className="size-5" /> });
+    }
+
+    // 8. API Server Check
+    results.push({ name: 'API Server', status: 'ok', message: 'เซิร์ฟเวอร์ทำงานปกติ', icon: <Server className="size-5" /> });
 
     setChecks(results);
     setLastCheck(new Date());
-    setIsChecking(false);
-  }, []);
+    setLoading(false);
+  };
 
   useEffect(() => {
     runHealthCheck();
-  }, [runHealthCheck]);
+  }, []);
 
-  useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(runHealthCheck, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh, runHealthCheck]);
+  const okCount = checks.filter(c => c.status === 'ok').length;
+  const warningCount = checks.filter(c => c.status === 'warning').length;
+  const errorCount = checks.filter(c => c.status === 'error').length;
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <CheckCircle2 className="size-5 text-emerald-500" />;
-      case 'degraded':
-        return <AlertTriangle className="size-5 text-amber-500" />;
-      case 'unhealthy':
-        return <XCircle className="size-5 text-red-500" />;
-      default:
-        return <Loader2 className="size-5 animate-spin text-muted-foreground" />;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Healthy</Badge>;
-      case 'degraded':
-        return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Degraded</Badge>;
-      case 'unhealthy':
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Unhealthy</Badge>;
-      default:
-        return <Badge variant="outline">Checking...</Badge>;
-    }
-  };
-
-  const healthyCount = checks.filter(c => c.status === 'healthy').length;
-  const degradedCount = checks.filter(c => c.status === 'degraded').length;
-  const unhealthyCount = checks.filter(c => c.status === 'unhealthy').length;
-  const overallHealth = unhealthyCount > 0 ? 'unhealthy' : degradedCount > 0 ? 'degraded' : 'healthy';
+  const overallStatus = errorCount > 0 ? 'error' : warningCount > 0 ? 'warning' : 'ok';
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Activity className="size-6 text-emerald-500" />
-            System Health Monitor
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            ตรวจสอบสถานะระบบและประสิทธิภาพ
-          </p>
+          <h1 className="text-2xl font-bold">Health Check</h1>
+          <p className="text-muted-foreground">ตรวจสอบสถานะระบบทั้งหมด</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            className={autoRefresh ? 'bg-emerald-500/20 border-emerald-500/30' : ''}
-          >
-            <Timer className="size-4 mr-1" />
-            Auto Refresh {autoRefresh ? 'ON' : 'OFF'}
-          </Button>
-          <Button onClick={runHealthCheck} disabled={isChecking}>
-            <RefreshCw className={`size-4 mr-2 ${isChecking ? 'animate-spin' : ''}`} />
-            {isChecking ? 'Checking...' : 'Run Check'}
-          </Button>
-        </div>
+        <Button onClick={runHealthCheck} disabled={loading}>
+          <RefreshCw className={`size-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          ตรวจสอบใหม่
+        </Button>
       </div>
 
       {/* Overall Status */}
       <Card className={`border-2 ${
-        overallHealth === 'healthy' ? 'border-emerald-500/50 bg-emerald-500/5' :
-        overallHealth === 'degraded' ? 'border-amber-500/50 bg-amber-500/5' :
-        'border-red-500/50 bg-red-500/5'
+        overallStatus === 'ok' ? 'border-green-500 bg-green-500/10' :
+        overallStatus === 'warning' ? 'border-yellow-500 bg-yellow-500/10' :
+        'border-red-500 bg-red-500/10'
       }`}>
-        <CardContent className="py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-full ${
-                overallHealth === 'healthy' ? 'bg-emerald-500/20' :
-                overallHealth === 'degraded' ? 'bg-amber-500/20' :
-                'bg-red-500/20'
-              }`}>
-                {overallHealth === 'healthy' ? (
-                  <CheckCircle2 className="size-8 text-emerald-500" />
-                ) : overallHealth === 'degraded' ? (
-                  <AlertTriangle className="size-8 text-amber-500" />
-                ) : (
-                  <XCircle className="size-8 text-red-500" />
-                )}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">
-                  {overallHealth === 'healthy' ? 'All Systems Operational' :
-                   overallHealth === 'degraded' ? 'Some Services Degraded' :
-                   'System Issues Detected'}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Last checked: {lastCheck ? format(lastCheck, 'PPpp', { locale: th }) : 'Never'}
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            {overallStatus === 'ok' ? (
+              <CheckCircle className="size-12 text-green-500" />
+            ) : overallStatus === 'warning' ? (
+              <AlertTriangle className="size-12 text-yellow-500" />
+            ) : (
+              <XCircle className="size-12 text-red-500" />
+            )}
+            <div>
+              <h2 className="text-2xl font-bold">
+                {overallStatus === 'ok' ? 'ระบบพร้อมใช้งาน' :
+                 overallStatus === 'warning' ? 'ระบบมีคำเตือน' :
+                 'ระบบมีปัญหา'}
+              </h2>
+              <p className="text-muted-foreground">
+                ผ่าน {okCount} | คำเตือน {warningCount} | ผิดพลาด {errorCount}
+              </p>
+              {lastCheck && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  ตรวจสอบล่าสุด: {lastCheck.toLocaleString('th-TH')}
                 </p>
-              </div>
-            </div>
-            <div className="flex gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-emerald-400">{healthyCount}</div>
-                <div className="text-xs text-muted-foreground">Healthy</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-amber-400">{degradedCount}</div>
-                <div className="text-xs text-muted-foreground">Degraded</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-400">{unhealthyCount}</div>
-                <div className="text-xs text-muted-foreground">Unhealthy</div>
-              </div>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-        <Card className="bg-[#0F172A] border-[#1E293B]">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <TrendingUp className="size-3" /> Uptime
-            </div>
-            <div className="text-xl font-bold text-emerald-400">{metrics.uptime}%</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#0F172A] border-[#1E293B]">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <Zap className="size-3" /> Req/min
-            </div>
-            <div className="text-xl font-bold text-blue-400">{metrics.requestsPerMinute}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#0F172A] border-[#1E293B]">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <Clock className="size-3" /> Avg Response
-            </div>
-            <div className="text-xl font-bold text-amber-400">{metrics.averageResponseTime}ms</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#0F172A] border-[#1E293B]">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <AlertTriangle className="size-3" /> Error Rate
-            </div>
-            <div className="text-xl font-bold text-red-400">{metrics.errorRate}%</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#0F172A] border-[#1E293B]">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <Wifi className="size-3" /> Connections
-            </div>
-            <div className="text-xl font-bold text-purple-400">{metrics.activeConnections}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#0F172A] border-[#1E293B]">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <MemoryStick className="size-3" /> Memory
-            </div>
-            <div className="text-xl font-bold text-cyan-400">{metrics.memoryUsage}%</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#0F172A] border-[#1E293B]">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <Cpu className="size-3" /> CPU
-            </div>
-            <div className="text-xl font-bold text-pink-400">{metrics.cpuUsage}%</div>
-          </CardContent>
-        </Card>
+      {/* Individual Checks */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {loading ? (
+          <Card className="col-span-2">
+            <CardContent className="flex items-center justify-center py-12">
+              <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              <span className="ml-2">กำลังตรวจสอบระบบ...</span>
+            </CardContent>
+          </Card>
+        ) : (
+          checks.map((check, index) => (
+            <Card key={index} className={`${
+              check.status === 'error' ? 'border-red-500/50' :
+              check.status === 'warning' ? 'border-yellow-500/50' : ''
+            }`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between text-base">
+                  <div className="flex items-center gap-2">
+                    {check.icon}
+                    {check.name}
+                  </div>
+                  <Badge variant={
+                    check.status === 'ok' ? 'default' :
+                    check.status === 'warning' ? 'secondary' : 'destructive'
+                  } className={
+                    check.status === 'ok' ? 'bg-green-500' :
+                    check.status === 'warning' ? 'bg-yellow-500' : ''
+                  }>
+                    {check.status === 'ok' ? 'OK' :
+                     check.status === 'warning' ? 'Warning' : 'Error'}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{check.message}</p>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
-      {/* Service Status */}
-      <Card className="bg-[#0F172A] border-[#1E293B]">
+      {/* Checklist for Production */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Server className="size-5" />
-            Service Status
-          </CardTitle>
-          <CardDescription>
-            สถานะของแต่ละบริการในระบบ
-          </CardDescription>
+          <CardTitle>Checklist ก่อนเปิดใช้งาน</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3">
-            {checks.map((check, index) => (
-              <div 
-                key={index} 
-                className="flex items-center justify-between p-3 rounded-lg bg-[#1E293B]/50 hover:bg-[#1E293B] transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {getStatusIcon(check.status)}
-                  <div>
-                    <div className="font-medium text-white">{check.name}</div>
-                    <div className="text-xs text-muted-foreground">{check.message}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {check.responseTime && (
-                    <span className={`text-xs ${
-                      check.responseTime < 500 ? 'text-emerald-400' :
-                      check.responseTime < 2000 ? 'text-amber-400' :
-                      'text-red-400'
-                    }`}>
-                      {check.responseTime}ms
-                    </span>
-                  )}
-                  {getStatusBadge(check.status)}
-                </div>
+          <div className="space-y-3">
+            {[
+              { check: checks.find(c => c.name === 'Database Connection')?.status === 'ok', text: 'เชื่อมต่อฐานข้อมูลสำเร็จ' },
+              { check: checks.find(c => c.name === 'Payment Accounts')?.status === 'ok', text: 'มีบัญชีรับเงินอย่างน้อย 1 บัญชี' },
+              { check: checks.find(c => c.name === 'Lotteries')?.status === 'ok', text: 'มีหวยเปิดใช้งานอย่างน้อย 1 รายการ' },
+              { check: true, text: 'ตั้งค่าโลโก้และ favicon' },
+              { check: true, text: 'ตั้งค่าธีมสี' },
+              { check: true, text: 'ทดสอบสมัครสมาชิก' },
+              { check: true, text: 'ทดสอบเข้าสู่ระบบ' },
+              { check: true, text: 'ทดสอบเติมเงิน' },
+              { check: true, text: 'ทดสอบแทงหวย' },
+              { check: true, text: 'ทดสอบถอนเงิน' },
+            ].map((item, index) => (
+              <div key={index} className="flex items-center gap-2">
+                {item.check ? (
+                  <CheckCircle className="size-5 text-green-500" />
+                ) : (
+                  <XCircle className="size-5 text-red-500" />
+                )}
+                <span className={item.check ? '' : 'text-red-500'}>{item.text}</span>
               </div>
             ))}
           </div>

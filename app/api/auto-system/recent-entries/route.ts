@@ -6,7 +6,7 @@ export async function GET() {
     const supabase = await createClient();
     const today = new Date().toISOString().split('T')[0];
 
-    console.log('Recent Auto Entries - Starting fetch, today:', today);
+    console.log('[v0] Recent Auto Entries - Starting fetch, today:', today);
 
     // Get recent bets from auto customers (use explicit FK: customers!bets_customer_id_fkey)
     const { data: recentBets, error: betsError } = await supabase
@@ -34,7 +34,7 @@ export async function GET() {
       .order('created_at', { ascending: false })
       .limit(30);
 
-    console.log('Recent Bets fetched:', { 
+    console.log('[v0] Recent Bets fetched:', { 
       count: recentBets?.length, 
       sample: recentBets?.slice(0, 2),
       error: betsError 
@@ -46,7 +46,7 @@ export async function GET() {
       return customer?.source_type === 'auto' || customer?.system_type === 'auto';
     }) || [];
 
-    console.log('Auto Bets after filter:', { count: autoBets.length });
+    console.log('[v0] Auto Bets after filter:', { count: autoBets.length });
 
     // Also fetch entries for auto customers
     const { data: recentEntries, error: entriesError } = await supabase
@@ -75,7 +75,7 @@ export async function GET() {
       .order('created_at', { ascending: false })
       .limit(30);
 
-    console.log('Recent Entries fetched:', { 
+    console.log('[v0] Recent Entries fetched:', { 
       count: recentEntries?.length,
       sample: recentEntries?.slice(0, 2),
       error: entriesError 
@@ -89,7 +89,7 @@ export async function GET() {
              customer?.system_type === 'auto';
     }) || [];
 
-    console.log('Auto Entries after filter:', { count: autoEntries.length });
+    console.log('[v0] Auto Entries after filter:', { count: autoEntries.length });
 
     // Combine and format entries from both sources
     const combinedEntries: Array<{
@@ -139,11 +139,11 @@ export async function GET() {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 20);
 
-    console.log('Final combined entries:', { count: sortedEntries.length });
+    console.log('[v0] Final combined entries:', { count: sortedEntries.length });
 
     return NextResponse.json(sortedEntries);
   } catch (error) {
-    console.error('Error fetching recent entries:', error);
+    console.error('[v0] Error fetching recent entries:', error);
     return NextResponse.json([]);
   }
 }

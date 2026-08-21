@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { fetcher } from '@/lib/fetcher';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 // Format number with Thai style
 const formatCurrency = (amount: number, showSign = false) => {
@@ -47,7 +48,7 @@ export default function FinancialHubPage() {
   });
 
   // Fetch sites data
-  const { data: sitesData, error: sitesError } = useSWR('/api/sites', fetcher, {
+  const { data: sitesData } = useSWR('/api/sites', fetcher, {
     refreshInterval: 30000,
   });
 
@@ -55,37 +56,6 @@ export default function FinancialHubPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#030712] via-[#0a0f1a] to-[#030712]">
         <Loader2 className="size-8 animate-spin text-amber-400" />
-      </div>
-    );
-  }
-
-  // Handle unauthorized or forbidden error
-  if (error || dashboardData?.code === 'UNAUTHORIZED' || dashboardData?.code === 'FORBIDDEN' || dashboardData?.error === 'Unauthorized') {
-    const isForbidden = dashboardData?.code === 'FORBIDDEN';
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#030712] via-[#0a0f1a] to-[#030712]">
-        <Card className="bg-red-900/20 border-red-500/30 p-8 max-w-md">
-          <div className="text-center">
-            <Crown className="size-12 mx-auto text-red-400 mb-4" />
-            <h2 className="text-xl font-bold text-red-400 mb-2">Access Denied</h2>
-            <p className="text-slate-400 mb-4">
-              หน้านี้สำหรับ Super Admin เท่านั้น
-              <br />
-              {isForbidden ? (
-                <>Role ของคุณ: {dashboardData?.your_role || 'unknown'}</>
-              ) : (
-                <>กรุณาเข้าสู่ระบบด้วยบัญชี Super Admin</>
-              )}
-            </p>
-            <Button 
-              variant="outline" 
-              className="border-red-500/30 text-red-400"
-              onClick={() => window.location.href = '/login'}
-            >
-              เข้าสู่ระบบใหม่
-            </Button>
-          </div>
-        </Card>
       </div>
     );
   }

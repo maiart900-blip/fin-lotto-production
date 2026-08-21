@@ -30,8 +30,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { PromoPopup } from '@/components/customer/promo-popup';
-import { InstallAppButton } from '@/components/customer/install-app-button';
 
 interface CustomerUser {
   id: string;
@@ -138,8 +136,6 @@ export default function CustomerLayout({
     return (
       <div className="min-h-screen bg-[#0A0F1C]">
         {children}
-        {/* PromoPopup with session storage - shows once per session */}
-        <PromoPopup />
       </div>
     );
   }
@@ -342,14 +338,6 @@ export default function CustomerLayout({
               })}
             </div>
 
-            {/* Install App Button - Premium Gold Design */}
-            <div className="p-3 border-t border-white/5">
-              <p className="px-3 py-2 text-xs font-medium text-[#64748B] uppercase tracking-wider">
-                ดาวน์โหลด
-              </p>
-              <InstallAppButton variant="menu" />
-            </div>
-
             {/* Support Section */}
             <div className="p-3 border-t border-white/5">
               <p className="px-3 py-2 text-xs font-medium text-[#64748B] uppercase tracking-wider">
@@ -398,7 +386,7 @@ export default function CustomerLayout({
                   <LogOut className="size-5 text-red-400" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-medium">ออกจากระบบ</p>
+                  <p className="font-medium">��อกจากระบบ</p>
                   <p className="text-xs text-red-400/60">กลับสู่หน้า Login</p>
                 </div>
               </button>
@@ -409,9 +397,6 @@ export default function CustomerLayout({
 
       {/* Main Content */}
       <main className="flex-1 pb-20">{children}</main>
-
-      {/* PromoPopup with session storage - shows once per session */}
-      <PromoPopup />
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0D1321]/95 backdrop-blur-md border-t border-amber-500/10 safe-area-bottom">

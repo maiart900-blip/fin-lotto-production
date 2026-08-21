@@ -1,16 +1,12 @@
 {
-  "name": "fin-lotto-production",
-  "version": "1.0.0",
-  "description": "FIN LOTTO R+ - Enterprise online lottery management system with hybrid wallet, agent network, and automated settlement engine.",
-  "author": "FIN LOTTO Development Team",
+  "name": "my-project",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "test:auto-recovery": "tsx scripts/tests/auto-recovery.test.ts",
-    "test:cron-dispatcher": "tsx scripts/tests/cron-dispatcher.test.ts"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -45,11 +41,9 @@
     "@supabase/supabase-js": "^2.105.4",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/qrcode": "^1.5.6",
-    "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "1.6.1",
     "@vercel/blob": "^2.3.3",
-    "ai": "^6.0.191",
     "autoprefixer": "^10.4.20",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.76.8",
@@ -63,7 +57,6 @@
     "input-otp": "1.4.2",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
-    "k6": "^0.0.0",
     "lucide-react": "^0.564.0",
     "nanoid": "^5.1.11",
     "next": "16.2.4",
@@ -95,7 +88,6 @@
     "@types/react-dom": "^19",
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
-    "tsx": "^4.22.3",
     "tw-animate-css": "1.3.3",
     "typescript": "5.7.3"
   }

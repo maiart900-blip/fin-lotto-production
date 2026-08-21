@@ -23,54 +23,32 @@ import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+// Mock data for demo
+const MOCK_AGENT_DATA = {
+  agentId: 'AGT-001',
+  agentName: 'เอเย่นต์ทดสอบ',
+  creditLimit: 100000,
+  creditUsed: 35000,
+  creditAvailable: 65000,
+  outstandingBalance: 12500,
+  commissionRate: 20,
+  todayBets: 45000,
+  todayCommission: 9000,
+  todayNet: 36000,
+  weeklyBets: 280000,
+  weeklyCommission: 56000,
+  status: 'active' as const,
+  lastActivity: new Date().toISOString(),
+};
+
 export default function AgentTerminalPage() {
-  const [agentId, setAgentId] = useState<string | null>(null);
+  const [agentData, setAgentData] = useState(MOCK_AGENT_DATA);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // ดึง agent ID จาก localStorage
-  useEffect(() => {
-    let userStr = localStorage.getItem('lottery_session');
-    if (!userStr) userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setAgentId(user.id);
-      } catch { /* ignore */ }
-    }
-  }, []);
-
-  // ดึงข้อมูลจาก API
-  const { data: teamData, mutate: mutateTeam } = useSWR(
-    agentId ? `/api/agent/team?agent_id=${agentId}` : null,
-    fetcher
-  );
-  
-  const { data: profitData, mutate: mutateProfit } = useSWR(
-    agentId ? `/api/agent/profit?agent_id=${agentId}` : null,
-    fetcher
-  );
-
-  // Map data จาก API - ถ้าไม่มีข้อมูลจะแสดง 0
-  const agentData = {
-    agentId: agentId || '-',
-    agentName: teamData?.agent?.name || 'Agent',
-    creditLimit: teamData?.agent?.credit_limit || 0,
-    creditUsed: teamData?.stats?.total_used || 0,
-    creditAvailable: (teamData?.agent?.credit_limit || 0) - (teamData?.stats?.total_used || 0),
-    outstandingBalance: teamData?.stats?.outstanding || 0,
-    commissionRate: teamData?.agent?.commission_rate || 0,
-    todayBets: profitData?.summary?.total_amount || 0,
-    todayCommission: profitData?.summary?.agent_share || 0,
-    todayNet: profitData?.summary?.profit || 0,
-    weeklyBets: 0,
-    weeklyCommission: 0,
-    status: teamData?.agent?.is_active ? 'active' : 'inactive' as const,
-    lastActivity: new Date().toISOString(),
-  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([mutateTeam(), mutateProfit()]);
+    // Simulate refresh
+    await new Promise(resolve => setTimeout(resolve, 1000));
     setIsRefreshing(false);
   };
 

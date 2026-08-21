@@ -1,8 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import crypto from 'crypto';
-import { sendAdminNotificationAsync } from '@/lib/notifications/admin-notify';
 
 export async function GET() {
   try {
@@ -23,13 +21,13 @@ export async function GET() {
       .limit(20);
     
     if (error) {
-      console.error('Customer topup GET error:', error.message);
+      console.error('[v0] Customer topup GET error:', error.message);
       return NextResponse.json([]);
     }
     
     return NextResponse.json(data || []);
   } catch (err) {
-    console.error('Customer topup GET exception:', err);
+    console.error('[v0] Customer topup GET exception:', err);
     return NextResponse.json([]);
   }
 }
@@ -77,38 +75,6 @@ export async function POST(request: Request) {
     
     const supabase = await createClient();
     
-    // Generate slip hash for duplicate detection
-    let slipHash: string | null = null;
-    try {
-      // Generate hash from slip URL
-      const hash = crypto.createHash('sha256').update(slip_url).digest('hex').slice(0, 32);
-      slipHash = `slip_${hash}`;
-      
-      // Check for duplicate slip in slip_hashes table
-      const { data: existingSlip } = await supabase
-        .from('slip_hashes')
-        .select('id, topup_request_id')
-        .eq('hash', slipHash)
-        .maybeSingle();
-      
-      if (existingSlip) {
-        // Send risk alert for duplicate slip
-        sendAdminNotificationAsync('risk_alert', {
-          userId: customerId.slice(0, 8) + '...',
-          reason: 'สลิปซ้ำ',
-          details: `พบการใช้สลิปซ้ำจากรายการ #${existingSlip.topup_request_id}`,
-        });
-        
-        return NextResponse.json(
-          { error: 'สลิปนี้เคยใช้แจ้งเติมเงินแล้ว กรุณาใช้สลิปใหม่' },
-          { status: 400 }
-        );
-      }
-    } catch (hashErr) {
-      console.error('Slip hash generation error:', hashErr);
-      // Continue without hash - don't block the transaction
-    }
-    
     // Get customer info
     const { data: customer } = await supabase
       .from('customers')
@@ -139,50 +105,23 @@ export async function POST(request: Request) {
         amount,
         bank_name: bank_name || 'unknown',
         payment_account_id,
-        slip_image_url: slip_url,
-        slip_hash: slipHash,
+        slip_image_url: slip_url, // Database column is slip_image_url
         status: 'pending',
       })
       .select()
       .single();
     
-    // Store slip hash for future duplicate detection
-    if (slipHash && data?.id) {
-      await supabase
-        .from('slip_hashes')
-        .insert({
-          hash: slipHash,
-          topup_request_id: data.id,
-          image_url: slip_url,
-        })
-        .select()
-        .single();
-    }
-    
     if (error) {
-      console.error('Customer topup POST error:', error.message);
+      console.error('[v0] Customer topup POST error:', error.message);
       return NextResponse.json(
         { error: 'ไม่สามารถสร้างคำขอเติมเงินได้' },
         { status: 500 }
       );
     }
     
-    // Fire-and-forget: Send admin notification (async, doesn't block response)
-    sendAdminNotificationAsync('deposit', {
-      amount: Number(amount),
-      customerName: customer?.name || 'ไม่ทราบชื่อ',
-      bankName: bank_name || 'ไม่ระบุ',
-      time: new Date().toLocaleString('th-TH', { 
-        timeZone: 'Asia/Bangkok',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      requestId: data?.id,
-    });
-    
     return NextResponse.json(data);
   } catch (err) {
-    console.error('Customer topup POST exception:', err);
+    console.error('[v0] Customer topup POST exception:', err);
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาด' },
       { status: 500 }

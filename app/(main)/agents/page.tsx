@@ -68,7 +68,6 @@ interface Agent {
   agent_level: string;
   upline_id: string | null;
   commission_rate: number;
-  share_percent: number;
   is_partner: boolean;
   is_active: boolean;
   total_commission: number;
@@ -93,7 +92,6 @@ export default function AgentsPage() {
   const [newAgentLevel, setNewAgentLevel] = useState('agent');
   const [newUplineId, setNewUplineId] = useState('');
   const [newCommissionRate, setNewCommissionRate] = useState('5');
-  const [newSharePercent, setNewSharePercent] = useState('70');
   const [newEnableAuto, setNewEnableAuto] = useState(false);
   const [newEnableManualKey, setNewEnableManualKey] = useState(true);
   const [editEnableAuto, setEditEnableAuto] = useState(false);
@@ -130,12 +128,6 @@ export default function AgentsPage() {
     return upline?.name || uplineId.slice(0, 8);
   };
   
-  // แปลงค่า % แบบปลอดภัย — 0 ถือว่าถูกต้อง (spec: 0% valid), ใช้ default เฉพาะเมื่อว่าง/ไม่ใช่ตัวเลข
-  const parseRate = (value: string, fallback: number) => {
-    const n = parseFloat(value);
-    return Number.isFinite(n) ? n : fallback;
-  };
-
   // ตั้งค่าสายงาน
   const handleSetAgent = async () => {
     if (!selectedCustomerId || !newAgentLevel) {
@@ -152,8 +144,7 @@ export default function AgentsPage() {
           customer_id: selectedCustomerId,
           agent_level: newAgentLevel,
           upline_id: newUplineId || null,
-          commission_rate: parseRate(newCommissionRate, 5),
-          share_percent: parseRate(newSharePercent, 70),
+          commission_rate: parseFloat(newCommissionRate) || 5,
           enable_auto: newEnableAuto,
           enable_manual_key: newEnableManualKey,
         }),
@@ -167,7 +158,6 @@ export default function AgentsPage() {
         setNewAgentLevel('agent');
         setNewUplineId('');
         setNewCommissionRate('5');
-        setNewSharePercent('70');
         setNewEnableAuto(false);
         setNewEnableManualKey(true);
         mutate();
@@ -229,8 +219,7 @@ export default function AgentsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customer_id: selectedAgent.id,
-          commission_rate: parseRate(newCommissionRate, 0),
-          share_percent: parseRate(newSharePercent, 70),
+          commission_rate: parseFloat(newCommissionRate) || 0,
           enable_auto: editEnableAuto,
           enable_manual_key: editEnableManualKey,
         }),
@@ -519,8 +508,7 @@ export default function AgentsPage() {
                               size="sm"
                               onClick={() => {
                                 setSelectedAgent(agent);
-                                setNewCommissionRate(String(agent.commission_rate ?? 0));
-                                setNewSharePercent(String(agent.share_percent ?? 70));
+                                setNewCommissionRate(String(agent.commission_rate || 0));
                                 setEditEnableAuto(agent.enable_auto ?? false);
                                 setEditEnableManualKey(agent.enable_manual_key ?? true);
                                 setShowEditDialog(true);
@@ -626,17 +614,6 @@ export default function AgentsPage() {
                 onChange={(e) => setNewCommissionRate(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label>ถือสู้ / สัดส่วน PT (%)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={newSharePercent}
-                onChange={(e) => setNewSharePercent(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">กำหนดสัดส่วนที่เอเย่นต์ถือสู้เอง (0% = ส่งขึ้นสายบนทั้งหมด)</p>
-            </div>
             
             {/* ระบบที่เปิดใช้งาน */}
             <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
@@ -699,17 +676,6 @@ export default function AgentsPage() {
                 value={newCommissionRate}
                 onChange={(e) => setNewCommissionRate(e.target.value)}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>ถือสู้ / สัดส่วน PT (%)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={newSharePercent}
-                onChange={(e) => setNewSharePercent(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">กำหนดสัดส่วนที่เอเย่นต์ถือสู้เอง (0% = ส่งขึ้นสายบนทั้งหมด)</p>
             </div>
             
             {/* ระบบที่เปิดใช้งาน */}

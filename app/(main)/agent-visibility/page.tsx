@@ -44,60 +44,19 @@ import {
   type MenuSection,
   type MenuItem,
 } from '@/lib/menu-config';
-import { fetcher } from '@/lib/fetcher';
-import { 
-  AGENT_TIER_CONFIG, 
-  getTierConfig,
-  type AgentTier 
-} from '@/lib/agent-permissions.client';
 
-// Helper to get tier from level
-function getTierFromLevel(level: number): AgentTier {
-  if (level === 0) return 'mother_web';
-  if (level === 1) return 'master';
-  if (level === 2) return 'agent';
-  return 'sub_agent';
-}
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 interface Agent {
   id: string;
-  code: string;
-  name: string;
-  username?: string;
-  display_name?: string;
+  username: string;
+  display_name: string;
   system_type: string;
   level: number;
   status: string;
-  visible_menus: string[] | string;
+  visible_menus: string[];
   can_create_sub_agent: boolean;
   can_view_reports: boolean;
-  enable_auto?: boolean;
-  enable_manual_key?: boolean;
-  // Tier-based fields
-  agent_tier?: AgentTier;
-  role?: string;
-}
-
-// Helper to parse visible_menus (can be string or array, may have corrupted data)
-function parseVisibleMenus(menus: string[] | string | undefined): string[] {
-  if (!menus) return [];
-  
-  if (typeof menus === 'string') {
-    try {
-      const parsed = JSON.parse(menus);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-  
-  if (Array.isArray(menus)) {
-    // Filter out single-character entries (corrupted JSON chars like [, ", etc.)
-    // Valid menu IDs are always longer than 1 character
-    return menus.filter(m => typeof m === 'string' && m.length > 1);
-  }
-  
-  return [];
 }
 
 export default function AgentVisibilityPage() {
@@ -110,17 +69,12 @@ export default function AgentVisibilityPage() {
   const [canViewReports, setCanViewReports] = useState(true);
   const [saving, setSaving] = useState(false);
   const [filterSystem, setFilterSystem] = useState<string>('all');
-  const [filterTier, setFilterTier] = useState<string>('all');
   const [searchMenu, setSearchMenu] = useState('');
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
-  // Filter agents by system type AND tier
-  const filteredAgents = agents.filter(a => {
-    const systemMatch = filterSystem === 'all' || a.system_type === filterSystem;
-    const agentTier = a.agent_tier || getTierFromLevel(a.level || 2);
-    const tierMatch = filterTier === 'all' || agentTier === filterTier;
-    return systemMatch && tierMatch;
-  });
+  const filteredAgents = agents.filter(a => 
+    filterSystem === 'all' || a.system_type === filterSystem
+  );
 
   // Get agent-relevant sections (exclude agent-only sections since we're configuring for agents)
   const agentMenuSections = useMemo(() => {
@@ -158,31 +112,26 @@ export default function AgentVisibilityPage() {
   // Load permissions when agent is selected
   const handleSelectAgent = async (agentId: string) => {
     const agent = agents.find(a => a.id === agentId);
-    
     if (agent) {
       setSelectedAgent(agentId);
       
       // Load permissions from API
       try {
-        const res = await fetch(`/api/menu-permissions?target_id=${agentId}&target_type=agent`, {
-          credentials: 'include',
-        });
+        const res = await fetch(`/api/menu-permissions?target_id=${agentId}&target_type=agent`);
         const data = await res.json();
         
         if (data.permissions && data.permissions.length > 0) {
           setVisibleMenus(data.permissions);
         } else {
           // Use agent's existing visible_menus or default
-          const parsedMenus = parseVisibleMenus(agent.visible_menus);
-          setVisibleMenus(parsedMenus.length > 0 ? parsedMenus : getDefaultPermissions('agent'));
+          setVisibleMenus(agent.visible_menus || getDefaultPermissions('agent'));
         }
         
         setCanCreateSubAgent(data.canCreateSubAgent || agent.can_create_sub_agent || false);
         setCanViewReports(data.canViewReports ?? agent.can_view_reports ?? true);
       } catch {
         // Fallback to agent data
-        const parsedMenus = parseVisibleMenus(agent.visible_menus);
-        setVisibleMenus(parsedMenus.length > 0 ? parsedMenus : getDefaultPermissions('agent'));
+        setVisibleMenus(agent.visible_menus || getDefaultPermissions('agent'));
         setCanCreateSubAgent(agent.can_create_sub_agent || false);
         setCanViewReports(agent.can_view_reports !== false);
       }
@@ -268,7 +217,6 @@ export default function AgentVisibilityPage() {
       const res = await fetch('/api/menu-permissions', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           target_id: selectedAgent,
           target_type: 'agent',
@@ -323,29 +271,26 @@ export default function AgentVisibilityPage() {
         </CardContent>
       </Card>
 
-      {/* ลำดับชั้นระบบ - 4-TIER HIERARCHY */}
+      {/* ลำดับชั้นระบบ */}
       <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Shield className="h-5 w-5 text-amber-600" />
-            ลำดับชั้นระบบ (4-Tier Agent Hierarchy)
+            ลำดับชั้นระบบ
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 text-sm flex-wrap">
-            <Badge variant="default" className="bg-red-600">Mother Web (เว็บแม่)</Badge>
+            <Badge variant="default" className="bg-purple-600">เว็บแม่ (Master)</Badge>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <Badge variant="default" className="bg-purple-600">Master</Badge>
+            <Badge variant="default" className="bg-blue-600">เอเย่น Lv.1</Badge>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <Badge variant="default" className="bg-blue-600">Agent</Badge>
+            <Badge variant="default" className="bg-green-600">เอเย่น Lv.2</Badge>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <Badge variant="default" className="bg-green-600">Sub-Agent</Badge>
+            <Badge variant="outline">แมมเบอร์ (ลูกค้า)</Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            <strong>Mother Web</strong> มี 100% authority สามารถควบคุมการมองเห็นเมนูของทุกระดับ
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            <strong>Data Isolation:</strong> Downlines รับโครงสร้างระบบและเครื่องมือเท่านั้น ไม่มีสิทธิ์เข้าถึงข้อมูลเว็บแม่
+            หวยจากแมมเบอร์ → ส่งผ่านเอเย่น (หัก % กำไร) → ส่งเว็บแม่
           </p>
         </CardContent>
       </Card>
@@ -358,34 +303,6 @@ export default function AgentVisibilityPage() {
               <Users className="h-5 w-5" />
               เลือกเอเย่น
             </CardTitle>
-            {/* Tier Filter */}
-            <Select value={filterTier} onValueChange={setFilterTier}>
-              <SelectTrigger className="mb-2">
-                <SelectValue placeholder="ทุกระดับ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกระดับ</SelectItem>
-                <SelectItem value="master">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-600" />
-                    Master
-                  </span>
-                </SelectItem>
-                <SelectItem value="agent">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-600" />
-                    Agent
-                  </span>
-                </SelectItem>
-                <SelectItem value="sub_agent">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-600" />
-                    Sub-Agent
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            {/* System Type Filter */}
             <Select value={filterSystem} onValueChange={setFilterSystem}>
               <SelectTrigger>
                 <SelectValue placeholder="ระบบทั้งหมด" />
@@ -403,10 +320,7 @@ export default function AgentVisibilityPage() {
                 {filteredAgents.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">ไม่มีเอเย่น</p>
                 ) : (
-                  filteredAgents.map(agent => {
-                    const agentTier = agent.agent_tier || getTierFromLevel(agent.level || 2);
-                    const tierConfig = AGENT_TIER_CONFIG[agentTier];
-                    return (
+                  filteredAgents.map(agent => (
                     <div
                       key={agent.id}
                       onClick={() => handleSelectAgent(agent.id)}
@@ -416,28 +330,14 @@ export default function AgentVisibilityPage() {
                           : 'hover:bg-muted/50'
                       }`}
                     >
-                      <div className="font-medium flex items-center gap-2">
-                        {agent.name || agent.code}
-                        {agent.name && agent.code && agent.name !== agent.code && (
-                          <span className="text-xs text-muted-foreground">({agent.code})</span>
-                        )}
-                      </div>
+                      <div className="font-medium">{agent.display_name || agent.username}</div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        {/* Tier Badge - Always show first */}
-                        <Badge className={`text-xs text-white ${tierConfig.bgColor}`}>
-                          {tierConfig.label}
+                        <Badge variant="outline" className="text-xs">
+                          {agent.system_type === 'auto' ? 'ออโต้' : 'คีย์หวย'}
                         </Badge>
-                        {/* System Type Badges */}
-                        {agent.enable_manual_key && (
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                            คีย์
-                          </Badge>
-                        )}
-                        {agent.enable_auto && (
-                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                            ออโต้
-                          </Badge>
-                        )}
+                        <Badge variant="secondary" className="text-xs">
+                          Lv.{agent.level || 1}
+                        </Badge>
                         <Badge 
                           variant={agent.status === 'active' ? 'default' : 'destructive'}
                           className="text-xs"
@@ -446,7 +346,7 @@ export default function AgentVisibilityPage() {
                         </Badge>
                       </div>
                     </div>
-                  );})
+                  ))
                 )}
               </div>
             </ScrollArea>
@@ -469,7 +369,7 @@ export default function AgentVisibilityPage() {
             </CardTitle>
             <CardDescription>
               {selectedAgent 
-                ? `กำหนดสิทธิ์สำหรับ: ${agents.find(a => a.id === selectedAgent)?.name || agents.find(a => a.id === selectedAgent)?.code || 'เอเย่น'}`
+                ? `กำหนดสิทธิ์สำหรับ: ${agents.find(a => a.id === selectedAgent)?.display_name || 'เอเย่น'}`
                 : 'เลือกเอเย่นเพื่อตั้งค่า'
               }
             </CardDescription>

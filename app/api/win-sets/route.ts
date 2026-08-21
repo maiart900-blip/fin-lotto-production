@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
   
   if (error) {
-    console.error('Win-sets GET error:', error.message);
+    console.error('[v0] Win-sets GET error:', error.message);
     return NextResponse.json([]);
   }
   

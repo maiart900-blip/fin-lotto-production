@@ -101,24 +101,11 @@ export async function POST(request: Request) {
           commissionLogs.push(log);
           totalCommissionPaid += commissionAmount;
 
-          // Update agent's credit balance (direct UPDATE - atomic increment)
-          // Note: increment_credit RPC does not exist, using direct SQL increment
-          await supabase
-            .from('users')
-            .update({
-              credit_balance: supabase.sql`credit_balance + ${commissionAmount}`,
-            })
-            .eq('id', upline.id)
-            .catch(() => {
-              // Fallback: use raw update if sql template fails
-              return supabase.rpc('increment_customer_balance', {
-                customer_id: upline.id,
-                amount: commissionAmount,
-              }).catch(() => {
-                // Silent fail - commission log is created, credit update failed
-                console.error(`[commission/calculate] Failed to update credit for user ${upline.id}`);
-              });
-            });
+          // Update agent's credit balance
+          await supabase.rpc('increment_credit', {
+            user_id: upline.id,
+            amount: commissionAmount,
+          });
         }
       }
     }

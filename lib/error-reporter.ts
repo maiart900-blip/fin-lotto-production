@@ -33,7 +33,7 @@ export async function reportError(error: Error | ErrorReport): Promise<void> {
       }),
     });
   } catch (e) {
-    console.error('Failed to report error:', e);
+    console.error('[v0] Failed to report error:', e);
   }
 }
 

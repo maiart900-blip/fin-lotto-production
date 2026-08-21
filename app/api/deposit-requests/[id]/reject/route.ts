@@ -41,7 +41,7 @@ export async function POST(
       .single();
 
     if (updateError) {
-      console.error('Update deposit request error:', updateError);
+      console.error('[v0] Update deposit request error:', updateError);
       return NextResponse.json({ error: 'Failed to update deposit request' }, { status: 500 });
     }
 
@@ -50,7 +50,7 @@ export async function POST(
       data: updatedRequest,
     });
   } catch (error) {
-    console.error('Error rejecting deposit:', error);
+    console.error('[v0] Error rejecting deposit:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

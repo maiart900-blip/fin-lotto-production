@@ -21,36 +21,33 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  ClipboardList,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+// Mock agent ID - ในระบบจริงจะมาจาก session/auth
+const MOCK_AGENT_ID = '7cf23d72-858d-4395-9b94-67e7a7ca821f';
+
 export default function AgentDashboard() {
-  const { user, logout } = useAuth();
   const today = new Date().toISOString().split('T')[0];
   
-  // Agent ID comes from session - stored in user.source as "agent_UUID"
-  const agentId = user?.source?.replace('agent_', '') || user?.agent_id || null;
-  
-  // ดึงข้อมูล entries ของเอเย่น (only if agentId exists)
+  // ดึงข้อมูล entries ของเอเย่น
   const { data: entriesData } = useSWR(
-    agentId ? `/api/agent/entries?agent_id=${agentId}&date=${today}` : null,
+    `/api/agent/entries?agent_id=${MOCK_AGENT_ID}&date=${today}`,
     fetcher,
     { refreshInterval: 30000 }
   );
 
   // ดึงข้อมูลกำไร
   const { data: profitData } = useSWR(
-    agentId ? `/api/agent/profit?agent_id=${agentId}&start_date=${today}&end_date=${today}` : null,
+    `/api/agent/profit?agent_id=${MOCK_AGENT_ID}&start_date=${today}&end_date=${today}`,
     fetcher,
     { refreshInterval: 60000 }
   );
 
   // ดึงข้อมูลยอดส่ง
   const { data: settlementData } = useSWR(
-    agentId ? `/api/agent/settlement?agent_id=${agentId}&period=daily` : null,
+    `/api/agent/settlement?agent_id=${MOCK_AGENT_ID}&period=daily`,
     fetcher,
     { refreshInterval: 60000 }
   );
@@ -58,17 +55,15 @@ export default function AgentDashboard() {
   const stats = entriesData?.stats || {};
   const summary = profitData?.summary || {};
   const settlement = settlementData?.summary || {};
-  const agentInfo = settlementData?.agent || {};
+  const agent = settlementData?.agent || {};
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'แดชบอร์ด', href: '/agent/dashboard', active: true },
-    { icon: Ticket, label: 'รายการโพย', href: '/agent/entries' },
-    { icon: Calculator, label: 'กำไร/ขาดทุน', href: '/agent/profit' },
-    { icon: ArrowUpRight, label: 'ส่งยอด', href: '/agent/settlement' },
-    { icon: Users, label: 'จัดการพนักงาน', href: '/agent/staff' },
-    { icon: ClipboardList, label: 'รายงานเข้างาน', href: '/agent/attendance' },
-    { icon: DollarSign, label: 'สรุปเงินเดือน', href: '/agent/salary' },
-    { icon: Settings, label: 'ตั้งค่า', href: '/agent/settings' },
+    { icon: LayoutDashboard, label: 'แดชบอร์ด', href: '/dashboard', active: true },
+    { icon: Ticket, label: 'รายการโพย', href: '/entries' },
+    { icon: Calculator, label: 'กำไร/ขาดทุน', href: '/profit' },
+    { icon: ArrowUpRight, label: 'ส่งยอด', href: '/settlement' },
+    { icon: Users, label: 'พนักงาน', href: '/staff' },
+    { icon: Settings, label: 'ตั้งค่า', href: '/settings' },
   ];
 
   return (
@@ -77,9 +72,9 @@ export default function AgentDashboard() {
       <aside className="w-64 bg-[#0D1321] border-r border-white/10 p-4 flex flex-col">
         <div className="mb-8">
           <h1 className="text-xl font-bold text-amber-400">ร้านหวย</h1>
-          <p className="text-sm text-white/60">{user?.name || agentInfo.name || 'เอเย่น'}</p>
+          <p className="text-sm text-white/60">{agent.name || 'เอเย่น'}</p>
           <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30">
-            กำไร {agentInfo.share_percent || 90}%
+            กำไร {agent.share_percent || 90}%
           </Badge>
         </div>
 
@@ -155,7 +150,7 @@ export default function AgentDashboard() {
                   <p className="text-2xl font-bold text-orange-400">
                     {(settlement.master_share || 0).toLocaleString()}
                   </p>
-                  <p className="text-white/40 text-xs">{agentInfo.master_share_percent || 10}% ของกำไร</p>
+                  <p className="text-white/40 text-xs">{agent.master_share_percent || 10}% ของกำไร</p>
                 </div>
                 <ArrowUpRight className="size-10 text-orange-400/50" />
               </div>
@@ -201,19 +196,19 @@ export default function AgentDashboard() {
                   คีย์หวย
                 </Button>
               </Link>
-              <Link href="/agent/entries">
+              <Link href="/entries">
                 <Button variant="outline" className="w-full">
                   <FileText className="size-4 mr-2" />
                   ดูรายการ
                 </Button>
               </Link>
-              <Link href="/agent/profit">
+              <Link href="/profit">
                 <Button variant="outline" className="w-full">
                   <Calculator className="size-4 mr-2" />
                   สรุปกำไร
                 </Button>
               </Link>
-              <Link href="/agent/settlement">
+              <Link href="/settlement">
                 <Button variant="outline" className="w-full">
                   <ArrowUpRight className="size-4 mr-2" />
                   ส่งยอด
@@ -244,11 +239,11 @@ export default function AgentDashboard() {
                 </div>
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between items-center">
-                    <span>ส่วนของคุณ ({agentInfo.share_percent || 90}%)</span>
+                    <span>ส่วนของคุณ ({agent.share_percent || 90}%)</span>
                     <span className="font-bold text-green-500">{(summary.agent_total_share || 0).toLocaleString()} บ.</span>
                   </div>
                   <div className="flex justify-between items-center mt-2">
-                    <span>ส่งเว็บกลาง ({agentInfo.master_share_percent || 10}%)</span>
+                    <span>ส่งเว็บกลาง ({agent.master_share_percent || 10}%)</span>
                     <span className="font-bold text-orange-500">{(summary.master_total_share || 0).toLocaleString()} บ.</span>
                   </div>
                 </div>

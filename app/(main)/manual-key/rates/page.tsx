@@ -84,7 +84,7 @@ export default function ManualKeyRatesPage() {
         }
         setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching lotteries:', error);
+        console.error('[v0] Error fetching lotteries:', error);
         setLotteries([]);
         setIsLoading(false);
       }

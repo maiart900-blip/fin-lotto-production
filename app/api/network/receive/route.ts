@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
           .select();
         
         if (error) {
-          console.error('Failed to save network entries:', error);
+          console.error('[v0] Failed to save network entries:', error);
           // ลองบันทึกลง entries table ปกติแทน
           await supabase.from('entries').insert(entries.map((e: any) => ({
             number: e.number,
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Unknown sync type: ${type}` }, { status: 400 });
     }
   } catch (error: any) {
-    console.error('Network receive error:', error);
+    console.error('[v0] Network receive error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

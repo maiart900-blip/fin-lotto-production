@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
 
   if (error) {
-    console.error('Commissions GET error:', error.message);
+    console.error('[v0] Commissions GET error:', error.message);
     return NextResponse.json([]);
   }
 
