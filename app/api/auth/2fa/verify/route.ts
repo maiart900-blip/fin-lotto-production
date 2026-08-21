@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
     // Determine redirect URL based on role
     let redirectTo = '/dashboard';
     if (user.role === 'super_admin' || user.role === 'admin') {
-      redirectTo = '/admin/dashboard';
+      redirectTo = '/dashboard';
     } else if (user.role === 'agent') {
       redirectTo = '/agent/dashboard';
     } else if (user.role === 'tenant_admin') {
@@ -301,3 +301,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

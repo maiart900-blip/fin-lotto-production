@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         success: true,
         action: 'bypass',
         message: 'Emergency login successful',
-        redirectTo: '/admin/dashboard',
+        redirectTo: '/dashboard',
         user: {
           id: user.id,
           username: user.username,
@@ -152,3 +152,4 @@ export async function POST(request: Request) {
     }, { status: 500 });
   }
 }
+
