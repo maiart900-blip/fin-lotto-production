@@ -15,7 +15,7 @@ import { getReconciliationEngine } from '@/lib/reconciliation-engine'
 import { getWorkerProcessor } from '@/lib/worker-processor'
 
 export const runtime = 'nodejs'
-export const maxDuration = 600 // 10 minutes max
+export const maxDuration = 300 // 10 minutes max
 
 export async function GET(request: NextRequest) {
   // Verify cron secret for security
