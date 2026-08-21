@@ -64,6 +64,21 @@ export interface AnomalyCheckResult {
   };
 }
 
+type CustomerRelation = {
+  phone: string | null;
+  name: string | null;
+  agent_id: string | null;
+};
+
+function getRelatedCustomer(
+  relation: CustomerRelation | CustomerRelation[] | null | undefined
+): CustomerRelation | null {
+  if (Array.isArray(relation)) {
+    return relation[0] ?? null;
+  }
+  return relation ?? null;
+}
+
 // =============================================
 // ANOMALY DETECTION CLASS
 // =============================================
@@ -228,14 +243,16 @@ export class BalanceAnomalyDetector {
         .single();
 
       if (txnError || !txn) {
-        const customer = deposit.customers as { phone: string; name: string; agent_id: string };
+        const customer = getRelatedCustomer(deposit.customers);
+        if (!customer) continue;
+
         anomalies.push({
           type: 'deposit_not_credited',
           severity: 'critical',
           customer_id: deposit.customer_id,
-          customer_phone: customer.phone,
-          customer_name: customer.name,
-          agent_id: customer.agent_id,
+          customer_phone: customer.phone ?? undefined,
+          customer_name: customer.name ?? undefined,
+          agent_id: customer.agent_id ?? undefined,
           reference_id: deposit.id,
           reference_type: 'topup_request',
           expected_amount: deposit.amount,
@@ -281,14 +298,16 @@ export class BalanceAnomalyDetector {
         .single();
 
       if (txnError || !txn) {
-        const customer = withdrawal.customers as { phone: string; name: string; agent_id: string };
+        const customer = getRelatedCustomer(withdrawal.customers);
+        if (!customer) continue;
+
         anomalies.push({
           type: 'withdraw_not_deducted',
           severity: 'critical',
           customer_id: withdrawal.customer_id,
-          customer_phone: customer.phone,
-          customer_name: customer.name,
-          agent_id: customer.agent_id,
+          customer_phone: customer.phone ?? undefined,
+          customer_name: customer.name ?? undefined,
+          agent_id: customer.agent_id ?? undefined,
           reference_id: withdrawal.id,
           reference_type: 'withdraw_request',
           expected_amount: -withdrawal.amount,
@@ -334,14 +353,16 @@ export class BalanceAnomalyDetector {
 
       const diff = Math.abs(bet.total_amount - calculatedTotal);
       if (diff > 0.01) {
-        const customer = bet.customers as { phone: string; name: string; agent_id: string };
+        const customer = getRelatedCustomer(bet.customers);
+        if (!customer) continue;
+
         anomalies.push({
           type: 'bet_calculation_error',
           severity: diff > 100 ? 'high' : 'medium',
           customer_id: bet.customer_id,
-          customer_phone: customer.phone,
-          customer_name: customer.name,
-          agent_id: customer.agent_id,
+          customer_phone: customer.phone ?? undefined,
+          customer_name: customer.name ?? undefined,
+          agent_id: customer.agent_id ?? undefined,
           reference_id: bet.id,
           reference_type: 'bet',
           expected_amount: calculatedTotal,
@@ -385,9 +406,10 @@ export class BalanceAnomalyDetector {
 
       if (!error) {
         await auditLogger.log({
+          userId: 'system',
           action: 'ANOMALY_DETECTED',
-          resource: 'balance_anomaly',
-          resourceId: anomaly.reference_id || 'system',
+          tableName: 'balance_anomalies',
+          recordId: anomaly.reference_id || anomaly.id || 'system',
           metadata: {
             type: anomaly.type,
             severity: anomaly.severity,
@@ -472,10 +494,10 @@ export class BalanceAnomalyDetector {
 
     if (!error) {
       await auditLogger.log({
-        action: 'ANOMALY_RESOLVED',
-        resource: 'balance_anomaly',
-        resourceId: anomalyId,
         userId: resolvedBy,
+        action: 'ANOMALY_RESOLVED',
+        tableName: 'balance_anomalies',
+        recordId: anomalyId,
         metadata: { notes },
       });
     }

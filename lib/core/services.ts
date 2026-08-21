@@ -356,7 +356,6 @@ interface Customer {
   phone?: string;
   credit_balance: number;
   created_at: string;
-  [key: string]: unknown;
 }
 
 interface TopupRequest {
@@ -367,7 +366,6 @@ interface TopupRequest {
   status: string;
   created_at: string;
   updated_at: string;
-  [key: string]: unknown;
 }
 
 interface WithdrawRequest {
@@ -378,7 +376,6 @@ interface WithdrawRequest {
   status: string;
   created_at: string;
   updated_at: string;
-  [key: string]: unknown;
 }
 
 interface LotteryEntry {
@@ -388,7 +385,6 @@ interface LotteryEntry {
   amount: number;
   status: string;
   created_at: string;
-  [key: string]: unknown;
 }
 
 // Service factory

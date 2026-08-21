@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   try {
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
-    const session = authResult;
+    const session = authResult.user;
     
     // Get data scope
     const scope = await getDataScope({

@@ -39,10 +39,11 @@ export type AuditSeverity =
   | 'debug'    // Development only
   | 'info'     // Normal operations
   | 'warning'  // Unusual but not critical
+  | 'high'     // Legacy compatibility: high severity
   | 'error'    // Errors that need attention
   | 'critical'; // Immediate attention required
 
-export type AuditAction =
+export type KnownAuditAction =
   // Authentication
   | 'login'
   | 'logout'
@@ -50,7 +51,7 @@ export type AuditAction =
   | 'password_change'
   | 'session_expired'
   | 'token_refresh'
-  
+
   // User Management
   | 'user_create'
   | 'user_update'
@@ -60,7 +61,7 @@ export type AuditAction =
   | 'role_change'
   | 'credit_adjust'
   | 'permission_change'
-  
+
   // Wallet Operations
   | 'wallet_deposit'
   | 'wallet_withdraw'
@@ -68,14 +69,14 @@ export type AuditAction =
   | 'wallet_adjustment'
   | 'wallet_freeze'
   | 'wallet_unfreeze'
-  
+
   // Betting Operations
   | 'bet_place'
   | 'bet_cancel'
   | 'bet_void'
   | 'bet_settle'
   | 'bet_refund'
-  
+
   // Lottery Management
   | 'lottery_create'
   | 'lottery_update'
@@ -84,20 +85,20 @@ export type AuditAction =
   | 'round_close'
   | 'result_input'
   | 'result_confirm'
-  
+
   // Risk & Limits
   | 'limit_create'
   | 'limit_update'
   | 'limit_delete'
   | 'emergency_stop'
   | 'threshold_breach'
-  
+
   // Security
   | 'rate_limited'
   | 'access_denied'
   | 'suspicious_activity'
   | 'ip_blocked'
-  
+
   // System
   | 'config_change'
   | 'maintenance_mode'
@@ -105,14 +106,23 @@ export type AuditAction =
   | 'export_data'
   | 'migration_run';
 
-export type ActorType = 'user' | 'agent' | 'system' | 'api' | 'customer';
+// Keep known values for autocomplete, but allow legacy/new route actions
+// such as admin_withdraw_request, freeze_balance, workflow_approve,
+// bet_hold, bet_unhold, clear_all_data, backup_restore, agent_credit_xxx, etc.
+export type AuditAction = KnownAuditAction | (string & {});
+
+export type ActorType = 'user' | 'agent' | 'system' | 'api' | 'customer' | 'admin' | (string & {});
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
 export interface AuditLogEntry {
   // Core fields
-  userId: string;
+  userId?: string;
   action: AuditAction;
+
+  // Compatibility aliases used by some API routes
+  actor_id?: string;
+  actor_type?: ActorType;
   
   // Context
   actorType?: ActorType;
@@ -122,6 +132,17 @@ export interface AuditLogEntry {
   // Target
   tableName?: string;
   recordId?: string;
+  targetId?: string;
+  target_id?: string;
+  targetType?: string;
+  target_type?: string;
+
+  // Legacy compatibility aliases used by older services/routes
+  resource?: string;
+  resourceId?: string;
+  resourceType?: string;
+  entityType?: string;
+  entityId?: string;
   
   // Change tracking
   oldData?: Record<string, unknown>;
@@ -129,6 +150,7 @@ export interface AuditLogEntry {
   
   // Request context
   ipAddress?: string;
+  ip_address?: string;
   userAgent?: string;
   sessionId?: string;
   requestId?: string;
@@ -147,11 +169,17 @@ export interface AuditLogEntry {
   
   // Additional data
   description?: string;
+  details?: Record<string, unknown>;
+  oldValues?: unknown;
+  newValues?: unknown;
+  performedBy?: string;
+  performerName?: string;
+  performerRole?: string;
   metadata?: Record<string, unknown>;
 }
 
 // Action to category/severity mapping
-const ACTION_CONFIG: Record<AuditAction, { category: AuditCategory; severity: AuditSeverity }> = {
+const ACTION_CONFIG: Record<KnownAuditAction, { category: AuditCategory; severity: AuditSeverity }> = {
   // Auth
   login: { category: 'auth', severity: 'info' },
   logout: { category: 'auth', severity: 'info' },
@@ -275,7 +303,7 @@ class AuditLogger {
    * Main logging method - use for custom entries
    */
   async log(entry: AuditLogEntry): Promise<void> {
-    const enrichedEntry = await this.enrichEntry(entry);
+    const enrichedEntry = await this.enrichEntry({ ...entry, userId: entry.userId || entry.actor_id || entry.performedBy || 'system' });
     const { riskLevel, isSuspicious } = this.calculateRisk(enrichedEntry);
     enrichedEntry.riskLevel = riskLevel;
     enrichedEntry.isSuspicious = isSuspicious;
@@ -430,11 +458,11 @@ class AuditLogger {
       // Headers not available
     }
 
-    const config = ACTION_CONFIG[entry.action] || { category: 'data', severity: 'info' };
+    const config = ACTION_CONFIG[entry.action as KnownAuditAction] || { category: 'data', severity: 'info' };
 
     return {
       ...entry,
-      ipAddress: entry.ipAddress || ipAddress,
+      ipAddress: entry.ipAddress || entry.ip_address || ipAddress,
       userAgent: entry.userAgent || userAgent,
       category: entry.category || config.category,
       severity: entry.severity || config.severity,
@@ -467,7 +495,7 @@ class AuditLogger {
   }
 
   // Flush buffer to database
-  private async flush(): Promise<void> {
+  async flush(): Promise<void> {
     if (this.buffer.length === 0) return;
 
     const entries = [...this.buffer];
@@ -479,27 +507,44 @@ class AuditLogger {
       
       // Map entries to database format
       const dbEntries = entries.map(entry => ({
-        user_id: entry.userId === 'system' ? null : entry.userId,
+        user_id: (entry.userId === 'system' ? null : entry.userId) || entry.actor_id || entry.performedBy || null,
         customer_id: entry.customerId || null,
         action: entry.action,
-        table_name: entry.tableName || null,
-        record_id: entry.recordId || null,
-        old_data: entry.oldData || null,
-        new_data: entry.newData || null,
-        ip_address: entry.ipAddress || null,
+        table_name:
+          entry.tableName ||
+          entry.targetType ||
+          entry.target_type ||
+          entry.resourceType ||
+          entry.resource ||
+          entry.entityType ||
+          null,
+        record_id:
+          entry.recordId ||
+          entry.targetId ||
+          entry.target_id ||
+          entry.resourceId ||
+          entry.entityId ||
+          null,
+        old_data: entry.oldData || (entry.oldValues as Record<string, unknown> | undefined) || null,
+        new_data: entry.newData || (entry.newValues as Record<string, unknown> | undefined) || null,
+        ip_address: entry.ipAddress || entry.ip_address || null,
         user_agent: entry.userAgent || null,
         description: entry.description || null,
         // New enhanced fields
-        actor_type: entry.actorType || 'user',
+        actor_type: entry.actorType || entry.actor_type || 'user',
         session_id: entry.sessionId || null,
         tenant_id: entry.tenantId || null,
         branch_id: entry.branchId || null,
-        severity: entry.severity || 'info',
+        severity: entry.severity === 'high' ? 'warning' : (entry.severity || 'info'),
         category: entry.category || 'general',
         duration_ms: entry.durationMs || null,
         request_id: entry.requestId || null,
         metadata: {
           ...(entry.metadata || {}),
+          ...(entry.details ? { details: entry.details } : {}),
+          ...(entry.performedBy ? { performed_by: entry.performedBy } : {}),
+          ...(entry.performerName ? { performer_name: entry.performerName } : {}),
+          ...(entry.performerRole ? { performer_role: entry.performerRole } : {}),
           risk_level: entry.riskLevel,
           is_suspicious: entry.isSuspicious,
         },
@@ -552,6 +597,31 @@ export async function logAudit(entry: AuditLogEntry): Promise<void> {
 }
 
 /**
+ * Backwards-compatible audit helper used by older modules.
+ * Supports either a full AuditLogEntry object or (action, details).
+ */
+export async function logAuditEvent(
+  entryOrAction: AuditLogEntry | string,
+  details: Record<string, unknown> = {}
+): Promise<void> {
+  if (typeof entryOrAction === 'string') {
+    await auditLogger.log({
+      userId:
+        typeof details.userId === 'string'
+          ? details.userId
+          : typeof details.actor_id === 'string'
+            ? details.actor_id
+            : 'system',
+      action: entryOrAction,
+      metadata: details,
+    });
+    return;
+  }
+
+  await auditLogger.log(entryOrAction);
+}
+
+/**
  * Decorator for auditing class methods
  */
 export function Audited(action: AuditAction) {
@@ -597,7 +667,7 @@ export function Audited(action: AuditAction) {
 export const auditQueries = {
   // Get recent high-risk events
   async getHighRiskEvents(limit = 50) {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     return supabase
       .from('audit_logs')
       .select('*')
@@ -608,7 +678,7 @@ export const auditQueries = {
 
   // Get events by user
   async getByUser(userId: string, limit = 100) {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     return supabase
       .from('audit_logs')
       .select('*')
@@ -619,7 +689,7 @@ export const auditQueries = {
 
   // Get events by category
   async getByCategory(category: AuditCategory, limit = 100) {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     return supabase
       .from('audit_logs')
       .select('*')
@@ -630,7 +700,7 @@ export const auditQueries = {
 
   // Get security events
   async getSecurityEvents(hours = 24) {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
     return supabase
       .from('audit_logs')
@@ -642,7 +712,7 @@ export const auditQueries = {
 
   // Get failed login attempts by IP
   async getFailedLoginsByIP(ip: string, hours = 1) {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
     return supabase
       .from('audit_logs')

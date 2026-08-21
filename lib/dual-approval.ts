@@ -281,8 +281,8 @@ export class DualApprovalService {
     // Log
     await auditLogger.log({
       action: 'APPROVAL_REQUEST_CREATED',
-      resource: 'approval_request',
-      resourceId: saved.id,
+      targetType: 'approval_request',
+      targetId: saved.id,
       userId: data.requestedBy,
       metadata: {
         type,
@@ -370,8 +370,8 @@ export class DualApprovalService {
 
       await auditLogger.log({
         action: 'APPROVAL_FIRST_APPROVED',
-        resource: 'approval_request',
-        resourceId: requestId,
+        targetType: 'approval_request',
+        targetId: requestId,
         userId: approvedBy,
         metadata: { notes },
       });
@@ -448,8 +448,8 @@ export class DualApprovalService {
 
     await auditLogger.log({
       action: 'APPROVAL_COMPLETED',
-      resource: 'approval_request',
-      resourceId: requestId,
+      targetType: 'approval_request',
+      targetId: requestId,
       userId: approvedBy,
       metadata: {
         type: request.type,
@@ -500,8 +500,8 @@ export class DualApprovalService {
     if (!error) {
       await auditLogger.log({
         action: 'APPROVAL_REJECTED',
-        resource: 'approval_request',
-        resourceId: requestId,
+        targetType: 'approval_request',
+        targetId: requestId,
         userId: rejectedBy,
         metadata: { reason },
       });
@@ -525,8 +525,8 @@ export class DualApprovalService {
 
     await auditLogger.log({
       action: 'APPROVAL_EXPIRED',
-      resource: 'approval_request',
-      resourceId: requestId,
+      targetType: 'approval_request',
+      targetId: requestId,
     });
   }
 

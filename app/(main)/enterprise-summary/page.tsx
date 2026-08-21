@@ -17,6 +17,18 @@ import { cn } from '@/lib/utils';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+
+interface TopSite {
+  id: number;
+  name: string;
+  domain: string;
+  volume: number;
+  profit: number;
+  members: number;
+  status: 'active' | 'inactive';
+}
+
+
 // Enterprise Platform Summary for Super Admin
 export default function EnterpriseSummaryPage() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -51,7 +63,7 @@ export default function EnterpriseSummaryPage() {
   };
 
   // Top sites from API - ถ้าไม่มีข้อมูลจะแสดง empty array
-  const topSites = sites.slice(0, 5).map((s: any, i: number) => ({
+  const topSites: TopSite[] = sites.slice(0, 5).map((s: any, i: number): TopSite => ({
     id: i + 1,
     name: s.name || s.site_name || 'Unknown',
     domain: s.domain || '-',

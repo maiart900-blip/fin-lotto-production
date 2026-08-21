@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Daily Owner Summary Alert System (ข้อ 72)
  * ระบบแจ้งเตือนเจ้าของเว็บแบบสรุปทุกวัน
  * - กำไรวันนี้
@@ -414,7 +414,8 @@ export class DailyOwnerSummaryService {
     const agentStats: Record<string, { sales: number; name: string; rate: number }> = {};
 
     agentSales?.forEach(sale => {
-      const agent = sale.agents as { name: string; commission_rate: number };
+      const agentRelation = sale.agents as unknown as { name: string; commission_rate: number } | { name: string; commission_rate: number }[] | null;
+      const agent = Array.isArray(agentRelation) ? agentRelation[0] : agentRelation;
       if (!agentStats[sale.agent_id]) {
         agentStats[sale.agent_id] = {
           sales: 0,
@@ -629,3 +630,5 @@ export class DailyOwnerSummaryService {
 
 // Export singleton
 export const dailyOwnerSummary = new DailyOwnerSummaryService();
+
+

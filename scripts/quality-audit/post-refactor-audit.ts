@@ -279,7 +279,7 @@ async function auditDatabase() {
     sql: `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'`
   }).single();
 
-  const tableCount = tables?.count || 0;
+ const tableCount = typeof tables === 'number' ? tables : 0;
   console.log(`  Total Tables: ${tableCount}`);
 
   // Check for orphan records

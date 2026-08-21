@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+﻿import { createClient } from '@/lib/supabase/server';
 import { createHash, randomBytes } from 'crypto';
 
 /**
@@ -210,5 +210,11 @@ export async function requireSiteApiKey(request: Request): Promise<{
   }
   
   const apiKey = authHeader.substring(7);
-  return validateApiKey(apiKey);
+  const result = await validateApiKey(apiKey);
+  return {
+    authenticated: result.valid,
+    site: result.site,
+    error: result.error,
+  };
 }
+

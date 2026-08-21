@@ -5,8 +5,10 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import { redis, REDIS_KEYS } from '@/lib/redis';
+import { redis } from '@/lib/redis';
 import { auditLogger } from '@/lib/audit-logger';
+
+const USED_SLIP_CACHE_PREFIX = 'used_slip';
 
 // =============================================
 // TYPES
@@ -117,7 +119,13 @@ export class DuplicateBetDetector {
 
     // Check each recent bet for similarity
     for (const bet of recentBets) {
-      const lottery = bet.lotteries as { name: string };
+      const lotteryRelation = bet.lotteries as unknown as
+        | { name: string }
+        | { name: string }[]
+        | null;
+      const lottery = Array.isArray(lotteryRelation)
+        ? lotteryRelation[0]
+        : lotteryRelation;
       const betItems = bet.bet_items as { number: string; type: string; amount: number }[];
       const matchScore = this.calculateSimilarity(submission.betItems, betItems);
 
@@ -153,7 +161,7 @@ export class DuplicateBetDetector {
     if (matchedBets.length > 0) {
       await auditLogger.log({
         action: 'DUPLICATE_BET_DETECTED',
-        resource: 'bet',
+        targetType: 'bet',
         userId: submission.customerId,
         metadata: {
           lottery_id: submission.lotteryId,
@@ -226,8 +234,8 @@ export class DuplicateBetDetector {
   ): Promise<void> {
     await auditLogger.log({
       action: 'DUPLICATE_BET_CONFIRMED',
-      resource: 'bet',
-      resourceId: betId,
+      targetType: 'bet',
+      targetId: betId,
       userId: customerId,
       metadata: {
         matched_bet_ids: matchedBetIds,
@@ -277,12 +285,18 @@ export class DuplicateSlipDetector {
       .single();
 
     if (existingSlip) {
-      const customer = existingSlip.customers as { phone: string };
+      const customerRelation = existingSlip.customers as unknown as
+        | { phone: string }
+        | { phone: string }[]
+        | null;
+      const customer = Array.isArray(customerRelation)
+        ? customerRelation[0]
+        : customerRelation;
       
       await auditLogger.log({
         action: 'DUPLICATE_SLIP_DETECTED',
-        resource: 'slip',
-        resourceId: slip.reference,
+        targetType: 'slip',
+        targetId: slip.reference,
         metadata: {
           original_transaction_id: existingSlip.id,
           original_customer: existingSlip.customer_id,
@@ -305,9 +319,13 @@ export class DuplicateSlipDetector {
     }
 
     // Also check Redis cache for recent slips
-    const cachedSlip = await redis?.get(`${REDIS_KEYS.USED_SLIP}:${slipHash}`);
+    const cachedSlip = await redis?.get(`${USED_SLIP_CACHE_PREFIX}:${slipHash}`);
     if (cachedSlip) {
-      const parsed = JSON.parse(cachedSlip);
+      const parsed = (
+        typeof cachedSlip === 'string'
+          ? JSON.parse(cachedSlip)
+          : cachedSlip
+      ) as DuplicateSlipCheck['matchedTransaction'];
       return {
         isDuplicate: true,
         slipReference: slip.reference,
@@ -350,7 +368,7 @@ export class DuplicateSlipDetector {
 
     // Cache in Redis for quick lookup (7 days)
     await redis?.set(
-      `${REDIS_KEYS.USED_SLIP}:${slipHash}`,
+      `${USED_SLIP_CACHE_PREFIX}:${slipHash}`,
       JSON.stringify({
         id: topupRequestId,
         customerId,
@@ -362,8 +380,8 @@ export class DuplicateSlipDetector {
 
     await auditLogger.log({
       action: 'SLIP_MARKED_USED',
-      resource: 'slip',
-      resourceId: slip.reference,
+      targetType: 'slip',
+      targetId: slip.reference,
       userId: customerId,
       metadata: {
         topup_request_id: topupRequestId,
@@ -429,7 +447,16 @@ export class DuplicateSlipDetector {
       customer_id: d.customer_id,
       amount: d.amount,
       used_at: d.used_at,
-      customer_phone: (d.customers as { phone: string })?.phone,
+      customer_phone: (() => {
+        const customerRelation = d.customers as unknown as
+          | { phone: string }
+          | { phone: string }[]
+          | null;
+        const customer = Array.isArray(customerRelation)
+          ? customerRelation[0]
+          : customerRelation;
+        return customer?.phone;
+      })(),
     })) || [];
   }
 }

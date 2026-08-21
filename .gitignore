@@ -14,3 +14,25 @@ node_modules
 .next/
 .DS_Store
 .vercel
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Test screenshots
+public/test-screenshots/
+
+# QA and test images
+public/qa/
+public/test-*.png
+
+# Debug screenshots
+public/debug-key-page*.png
+.tsc-final5-backup-*/
+.tsc-final8-backup-*/
+.tsc-fix-backup-*/
+.tsc-newline-backup-*/
+tsc-debug-context.txt
+tsc-errors-full.txt
+fix-tsc-*.ps1
+collect-tsc-context*.ps1
+hooks/collect-tsc-context*.ps1

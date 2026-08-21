@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Today's Payout Summary System (ข้อ 80)
  * ระบบสรุป "วันนี้ต้องจ่ายเท่าไหร่"
  * - ยอดถูกรางวัลรวม
@@ -238,7 +238,8 @@ export class TodayPayoutSummaryService {
     // Group by lottery
     const byLotteryMap: Record<string, { lotteryName: string; total: number; count: number }> = {};
     payouts?.forEach(p => {
-      const lottery = p.lotteries as { name: string } | null;
+      const lotteryRelation = p.lotteries as unknown as { name: string } | { name: string }[] | null;
+      const lottery = Array.isArray(lotteryRelation) ? lotteryRelation[0] : lotteryRelation;
       const lotteryId = p.lottery_id || 'unknown';
       if (!byLotteryMap[lotteryId]) {
         byLotteryMap[lotteryId] = {
@@ -316,7 +317,8 @@ export class TodayPayoutSummaryService {
 
     // Group by agent
     const byAgent = commissions?.map(c => {
-      const agent = c.agents as { name: string } | null;
+      const agentRelation = c.agents as unknown as { name: string } | { name: string }[] | null;
+      const agent = Array.isArray(agentRelation) ? agentRelation[0] : agentRelation;
       return {
         agentId: c.agent_id,
         agentName: agent?.name || 'Unknown',
@@ -519,7 +521,7 @@ export class TodayPayoutSummaryService {
     criticalWarnings: number;
   }> {
     // Try cache first
-    const cached = await redis?.get(`${REDIS_KEYS.DAILY_SUMMARY}:payout:quick`);
+    const cached = await redis?.get<string>(`${REDIS_KEYS.DAILY_SUMMARY}:payout:quick`);
     if (cached) {
       return JSON.parse(cached);
     }
@@ -557,3 +559,7 @@ export class TodayPayoutSummaryService {
 
 // Export singleton
 export const todayPayoutSummary = new TodayPayoutSummaryService();
+
+
+
+

@@ -147,7 +147,7 @@ const ANOMALY_THRESHOLDS = {
 };
 
 async function detectAnomalies(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   data: DailyClosingData,
   previousDays: DailyClosingSummary[]
 ): Promise<AnomalyFlag[]> {
@@ -254,7 +254,7 @@ async function detectAnomalies(
 // =====================================================
 
 // ดึงข้อมูล transactions ของวันที่ระบุ
-async function getTransactionsForDate(supabase: ReturnType<typeof createClient>, date: string) {
+async function getTransactionsForDate(supabase: Awaited<ReturnType<typeof createClient>>, date: string) {
   const startOfDay = `${date}T00:00:00+07:00`;
   const endOfDay = `${date}T23:59:59+07:00`;
 
@@ -327,7 +327,7 @@ async function getTransactionsForDate(supabase: ReturnType<typeof createClient>,
 }
 
 // ดึงข้อมูล bets ของวันที่ระบุ
-async function getBetsForDate(supabase: ReturnType<typeof createClient>, date: string) {
+async function getBetsForDate(supabase: Awaited<ReturnType<typeof createClient>>, date: string) {
   const startOfDay = `${date}T00:00:00+07:00`;
   const endOfDay = `${date}T23:59:59+07:00`;
 
@@ -396,7 +396,7 @@ async function getBetsForDate(supabase: ReturnType<typeof createClient>, date: s
 }
 
 // ดึงข้อมูล agent commission ของวันที่ระบุ
-async function getAgentStatsForDate(supabase: ReturnType<typeof createClient>, date: string) {
+async function getAgentStatsForDate(supabase: Awaited<ReturnType<typeof createClient>>, date: string) {
   const startOfDay = `${date}T00:00:00+07:00`;
   const endOfDay = `${date}T23:59:59+07:00`;
 
@@ -445,7 +445,7 @@ async function getAgentStatsForDate(supabase: ReturnType<typeof createClient>, d
 }
 
 // ดึงข้อมูลลูกค้าของวันที่ระบุ
-async function getCustomerStatsForDate(supabase: ReturnType<typeof createClient>, date: string) {
+async function getCustomerStatsForDate(supabase: Awaited<ReturnType<typeof createClient>>, date: string) {
   const startOfDay = `${date}T00:00:00+07:00`;
   const endOfDay = `${date}T23:59:59+07:00`;
 
@@ -637,8 +637,8 @@ export async function saveDailyClosing(
     await auditLogger.log({
       userId: closedBy,
       action: 'system.config_change',
-      entityType: 'system',
-      entityId: closingId,
+      targetType: 'system',
+      targetId: closingId,
       newValues: { 
         action: 'daily_closing', 
         date: data.closing_date, 
@@ -653,7 +653,7 @@ export async function saveDailyClosing(
 
 // บันทึก anomalies
 async function saveAnomalies(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   closingId: string,
   closingDate: string,
   anomalies: AnomalyFlag[]

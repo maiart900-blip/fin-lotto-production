@@ -38,6 +38,17 @@ import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+interface DailyBreakdownRow {
+  date: string;
+  bets: number;
+  wins: number;
+  profit: number;
+  members: number;
+  total_amount?: number;
+  total_payout?: number;
+}
+
+
 export default function AgentReportsPage() {
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year'>('month');
   const [startDate, setStartDate] = useState('');
@@ -97,7 +108,7 @@ export default function AgentReportsPage() {
     profit: profitData?.summary?.profit || 0,
   };
 
-  const dailyBreakdown = profitData?.daily || [];
+  const dailyBreakdown: DailyBreakdownRow[] = profitData?.daily || [];
   const commissionHistory: any[] = []; // ยังไม่มี API - ใช้ empty array
   const bettingStats: any[] = []; // ยังไม่มี API สำหรับสถิติตามหวย - ใช้ empty array
 

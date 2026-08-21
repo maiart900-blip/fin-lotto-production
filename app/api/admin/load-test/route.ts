@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthenticatedUser } from '@/lib/api-auth'
-import { createClient } from '@/lib/supabase/server'
 
 // Simple in-memory stress test results
 const testResults: Map<string, {
@@ -41,11 +40,9 @@ export async function GET(request: NextRequest) {
 
     switch (action) {
       case 'status': {
-        // Return all test results
-        const results = Array.from(testResults.entries()).map(([id, result]) => ({
-          id,
-          ...result,
-        }))
+        // Return all test results.
+        // `result` already contains its own `id`, so do not add `id` again.
+        const results = Array.from(testResults.values())
         return NextResponse.json({ success: true, data: results })
       }
 
@@ -53,10 +50,13 @@ export async function GET(request: NextRequest) {
         if (!testId) {
           return NextResponse.json({ error: 'test_id required' }, { status: 400 })
         }
+
         const result = testResults.get(testId)
+
         if (!result) {
           return NextResponse.json({ error: 'Test not found' }, { status: 404 })
         }
+
         return NextResponse.json({ success: true, data: result })
       }
 
@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
           { path: '/api/financial/ledger?limit=20', name: 'Ledger', category: 'financial' },
           { path: '/api/jobs/stats', name: 'Job Queue Stats', category: 'monitoring' },
         ]
+
         return NextResponse.json({ success: true, data: endpoints })
       }
 
@@ -105,36 +106,48 @@ export async function POST(request: NextRequest) {
 
         // Limit iterations for safety
         const safeIterations = Math.min(iterations, 100)
-        
+
         const testId = `test_${Date.now()}`
         const test = {
           id: testId,
           status: 'running' as const,
           startedAt: new Date(),
           endpoints,
-          results: [] as { endpoint: string; responseTime: number; status: number; error?: string }[],
+          results: [] as {
+            endpoint: string
+            responseTime: number
+            status: number
+            error?: string
+          }[],
         }
-        
+
         testResults.set(testId, test)
 
         // Run test in background (non-blocking)
-        runStressTest(testId, endpoints, safeIterations, request.headers.get('cookie') || '')
-          .catch(err => {
-            const existingTest = testResults.get(testId)
-            if (existingTest) {
-              existingTest.status = 'failed'
-              existingTest.completedAt = new Date()
-            }
-          })
+        runStressTest(
+          testId,
+          endpoints,
+          safeIterations,
+          request.headers.get('cookie') || ''
+        ).catch((err) => {
+          console.error('Load test background error:', err)
 
-        return NextResponse.json({ 
-          success: true, 
-          data: { 
-            testId, 
+          const existingTest = testResults.get(testId)
+
+          if (existingTest) {
+            existingTest.status = 'failed'
+            existingTest.completedAt = new Date()
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            testId,
             message: 'Test started',
             endpoints: endpoints.length,
             iterations: safeIterations,
-          } 
+          },
         })
       }
 
@@ -151,17 +164,18 @@ export async function POST(request: NextRequest) {
         const results = await Promise.all(
           criticalEndpoints.map(async (endpoint) => {
             const startTime = Date.now()
+
             try {
               const baseUrl = request.headers.get('host') || 'localhost:3000'
               const protocol = request.headers.get('x-forwarded-proto') || 'http'
               const url = `${protocol}://${baseUrl}${endpoint}`
-              
+
               const res = await fetch(url, {
                 headers: {
-                  'Cookie': request.headers.get('cookie') || '',
+                  Cookie: request.headers.get('cookie') || '',
                 },
               })
-              
+
               return {
                 endpoint,
                 responseTime: Date.now() - startTime,
@@ -180,8 +194,10 @@ export async function POST(request: NextRequest) {
           })
         )
 
-        const avgResponseTime = results.reduce((sum, r) => sum + r.responseTime, 0) / results.length
-        const errorCount = results.filter(r => !r.ok).length
+        const avgResponseTime =
+          results.reduce((sum, r) => sum + r.responseTime, 0) / results.length
+
+        const errorCount = results.filter((r) => !r.ok).length
 
         return NextResponse.json({
           success: true,
@@ -191,7 +207,9 @@ export async function POST(request: NextRequest) {
               totalEndpoints: results.length,
               avgResponseTime: Math.round(avgResponseTime),
               errorCount,
-              healthScore: Math.round(((results.length - errorCount) / results.length) * 100),
+              healthScore: Math.round(
+                ((results.length - errorCount) / results.length) * 100
+              ),
             },
           },
         })
@@ -207,26 +225,28 @@ export async function POST(request: NextRequest) {
 }
 
 async function runStressTest(
-  testId: string, 
-  endpoints: string[], 
+  testId: string,
+  endpoints: string[],
   iterations: number,
   cookie: string
 ) {
   const test = testResults.get(testId)
+
   if (!test) return
 
-  const baseUrl = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
     : 'http://localhost:3000'
 
   for (let i = 0; i < iterations; i++) {
     for (const endpoint of endpoints) {
       const startTime = Date.now()
+
       try {
         const res = await fetch(`${baseUrl}${endpoint}`, {
-          headers: { 'Cookie': cookie },
+          headers: { Cookie: cookie },
         })
-        
+
         test.results.push({
           endpoint,
           responseTime: Date.now() - startTime,
@@ -241,21 +261,33 @@ async function runStressTest(
         })
       }
     }
-    
+
     // Small delay between iterations to avoid overwhelming
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
   }
 
   // Calculate summary
-  const responseTimes = test.results.map(r => r.responseTime).sort((a, b) => a - b)
-  const errors = test.results.filter(r => r.status >= 400 || r.status === 0)
+  const responseTimes = test.results
+    .map((r) => r.responseTime)
+    .sort((a, b) => a - b)
+
+  const errors = test.results.filter(
+    (r) => r.status >= 400 || r.status === 0
+  )
 
   test.status = 'completed'
   test.completedAt = new Date()
   test.summary = {
     totalRequests: test.results.length,
-    avgResponseTime: Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length),
-    p95ResponseTime: responseTimes[Math.floor(responseTimes.length * 0.95)] || 0,
-    errorRate: errors.length / test.results.length,
+    avgResponseTime:
+      responseTimes.length > 0
+        ? Math.round(
+            responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+          )
+        : 0,
+    p95ResponseTime:
+      responseTimes[Math.floor(responseTimes.length * 0.95)] || 0,
+    errorRate:
+      test.results.length > 0 ? errors.length / test.results.length : 0,
   }
 }

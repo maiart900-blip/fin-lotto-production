@@ -159,6 +159,8 @@ interface LotteryDisplay {
     background_image?: string;
     font_family?: string;
     text_color?: string;
+    stream_url?: string;
+stream_type?: string;
   };
 }
 

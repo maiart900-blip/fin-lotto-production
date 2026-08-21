@@ -66,7 +66,15 @@ export default function KPIDashboardPage() {
       avgTransactionValue: betSummary?.totalAmount && betSummary?.totalCount ? Math.round(betSummary.totalAmount / betSummary.totalCount) : 0,
       conversionRate: 0,
     },
-    topAgents: [],
+    topAgents: [] as Array<{
+  id: string;
+  rank: number;
+  name: string;
+  sales: number;
+  commission: number;
+  members: number;
+  growth: number;
+}>,
     topMembers: customers.slice(0, 5).map((c: any, i: number) => ({
       rank: i + 1,
       id: c.id,
@@ -76,7 +84,15 @@ export default function KPIDashboardPage() {
       profit: 0,
       agent: '-',
     })),
-    topLotteries: [],
+    topLotteries: [] as Array<{
+  id: string;
+  rank: number;
+  name: string;
+  sales: number;
+  profit: number;
+  profitRate: number;
+  players: number;
+}>,
     riskySummary: {
       highRiskNumbers: 0,
       totalExposure: 0,
@@ -166,9 +182,13 @@ export default function KPIDashboardPage() {
             <Download className="size-4" />
             Export
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setIsLoading(true)}>
-            <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
+          <Button
+  variant="outline"
+  size="icon"
+  onClick={() => window.location.reload()}
+>
+  <RefreshCw className="size-4" />
+</Button>
         </div>
       </div>
 

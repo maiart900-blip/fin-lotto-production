@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 
-export type AuditAction = 
+export type KnownAuditAction =
   | 'login' | 'logout' | 'register'
   | 'topup_request' | 'topup_approve' | 'topup_reject'
   | 'withdraw_request' | 'withdraw_approve' | 'withdraw_reject'
@@ -12,6 +12,10 @@ export type AuditAction =
   | 'promotion_create' | 'promotion_update' | 'promotion_claim'
   | 'settings_update' | 'admin_create' | 'admin_update' | 'permission_change'
   | 'security_event' | '2fa_enable' | '2fa_disable' | 'ip_block' | 'account_lock';
+
+// Keep autocomplete for known actions, while allowing newer/legacy audit actions
+// used by other routes in the system.
+export type AuditAction = KnownAuditAction | (string & {});
 
 interface AuditLogParams {
   action: AuditAction;
@@ -29,7 +33,7 @@ interface AuditLogParams {
 export async function createAuditLog(params: AuditLogParams): Promise<void> {
   try {
     const supabase = await createClient();
-    
+
     await supabase.from('audit_logs').insert({
       user_id: params.userId,
       customer_id: params.customerId,

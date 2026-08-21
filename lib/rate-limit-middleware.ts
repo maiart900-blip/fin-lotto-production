@@ -1,4 +1,4 @@
-/**
+﻿/**
  * API Rate Limit Middleware
  * =========================
  * Reusable rate limiting middleware for API routes.
@@ -14,7 +14,21 @@ import {
   type RateLimitType,
   type RateLimitResult,
 } from './rate-limit';
-import { getCurrentUser, type AuthenticatedUser } from './api-auth';
+import { getAuthenticatedUser, type AuthenticatedUser } from './api-auth';
+/**
+ * Compatibility helper for this middleware.
+ * api-auth.getAuthenticatedUser() returns AuthResult, while this module
+ * needs the actual AuthenticatedUser object.
+ */
+async function getCurrentUser(): Promise<AuthenticatedUser | null> {
+  const result = await getAuthenticatedUser();
+
+  if (!result.authenticated || !result.user) {
+    return null;
+  }
+
+  return result.user;
+}
 
 // =====================================================
 // TYPES
@@ -193,3 +207,5 @@ export function withFinancialRateLimit<T extends Request>(
 ): (request: T) => Promise<NextResponse> {
   return withRateLimit('financial', handler);
 }
+
+

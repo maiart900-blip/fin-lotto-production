@@ -3,7 +3,15 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET || 'finlotto-master-secret-key';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
+
+  if (!secret) {
+    throw new Error('JWT secret is not configured');
+  }
+
+  return secret;
+}
 
 interface MasterTokenPayload {
   userId: string;
@@ -63,8 +71,7 @@ export async function POST(request: Request) {
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
     };
     
-    const token = jwt.sign(payload, JWT_SECRET, { algorithm: 'HS256' });
-    
+    const token = jwt.sign(payload, getJwtSecret(), { algorithm: 'HS256' });
     // Set cookie
     const cookieStore = await cookies();
     cookieStore.set('master_token', token, {
@@ -110,7 +117,7 @@ export async function GET(request: Request) {
     }
     
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as MasterTokenPayload;
+      const decoded = jwt.verify(token, getJwtSecret()) as unknown as MasterTokenPayload;
       
       return NextResponse.json({
         valid: true,

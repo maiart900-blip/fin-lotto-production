@@ -54,7 +54,7 @@ export function usePaginatedApi<T>(
 ) {
   const [page, setPage] = useState(initialPage);
   const url = `${baseUrl}?page=${page}&limit=${limit}`;
-  
+
   const { data, error, isLoading, mutate } = useApi<{
     data: T[];
     meta: { total: number; hasMore: boolean };
@@ -129,7 +129,7 @@ export function useToggle(initialValue: boolean = false): [boolean, () => void, 
 
 // Previous value hook
 export function usePrevious<T>(value: T): T | undefined {
-  const ref = useRef<T>();
+  const ref = useRef<T | undefined>(undefined);
   useEffect(() => {
     ref.current = value;
   }, [value]);

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FIN Platform - Enterprise Production Chaos Testing & Stress Validation
  * 
  * This suite validates production readiness through:
@@ -24,7 +24,7 @@ interface TestResult {
   status: 'pass' | 'fail' | 'warning' | 'skip';
   duration: number;
   details: string;
-  metrics?: Record<string, number>;
+  metrics?: Record<string, number | boolean>;
 }
 
 interface CategoryResult {
@@ -268,7 +268,7 @@ async function runChaosTests() {
     addResult({
       category: 'Chaos',
       test: 'Transaction Rollback Safety',
-      status: rollbackSuccess ? 'pass' : 'warn',
+      status: rollbackSuccess ? 'pass' : 'warning',
       duration,
       details: rollbackSuccess 
         ? 'Insert-delete cycle verified (rollback simulation)' 
@@ -712,7 +712,13 @@ async function runSecurityStressTests() {
       status: allPolicies ? 'pass' : 'warning',
       duration,
       details: `${result.policyCount} policies loaded, core policies: ${allPolicies ? 'complete' : 'incomplete'}`,
-      metrics: result
+      metrics: {
+        policyCount: result.policyCount,
+        hasPassword: Boolean(result.hasPassword),
+        hasSession: Boolean(result.hasSession),
+        has2FA: Boolean(result.has2FA),
+        hasLogin: Boolean(result.hasLogin),
+      }
     });
   };
   
@@ -1175,3 +1181,7 @@ async function main() {
 }
 
 main();
+
+
+
+

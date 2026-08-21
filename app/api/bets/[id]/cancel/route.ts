@@ -13,7 +13,7 @@ export async function POST(
   const customerId = cookieStore.get('customer_id')?.value;
   const adminId = cookieStore.get('admin_id')?.value;
   const { id: betId } = await params;
-  
+
   if (!customerId && !adminId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -38,7 +38,7 @@ export async function POST(
     const isOwner = bet.customer_id === customerId;
     const isCreator = bet.created_by === adminId;
     const isAdmin = !!adminId;
-    
+
     if (!isOwner && !isCreator && !isAdmin) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
@@ -55,39 +55,48 @@ export async function POST(
     // ตรวจสอบเวลายกเลิก (5 นาที)
     const now = new Date();
     const cancelDeadline = new Date(bet.cancel_deadline);
-    
+
     if (now > cancelDeadline) {
-      const minutesPassed = Math.floor((now.getTime() - new Date(bet.created_at).getTime()) / 60000);
-      return NextResponse.json({ 
-        error: `ไม่สามารถยกเลิกโพยได้ เกิน 5 นาทีแล้ว (ผ่านมา ${minutesPassed} นาที)`,
-        can_cancel: false,
-        minutes_passed: minutesPassed,
-      }, { status: 400 });
+      const minutesPassed = Math.floor(
+        (now.getTime() - new Date(bet.created_at).getTime()) / 60000
+      );
+
+      return NextResponse.json(
+        {
+          error: `ไม่สามารถยกเลิกโพยได้ เกิน 5 นาทีแล้ว (ผ่านมา ${minutesPassed} นาที)`,
+          can_cancel: false,
+          minutes_passed: minutesPassed,
+        },
+        { status: 400 }
+      );
     }
 
     // คำนวณเวลาที่เหลือ
-    const timeRemaining = Math.ceil((cancelDeadline.getTime() - now.getTime()) / 1000);
+    const timeRemaining = Math.ceil(
+      (cancelDeadline.getTime() - now.getTime()) / 1000
+    );
 
     // ATOMIC STATUS UPDATE: อัปเดตสถานะโพยเป็น cancelled
-    // ใช้ .in() เพื่อกัน double cancel - update จะสำเร็จก็ต่อเมื่อ status ยังเป็น confirmed หรือ pending
     const { data: updatedBet, error: updateError } = await supabase
       .from('bets')
-      .update({ 
+      .update({
         status: 'cancelled',
         cancelled_at: now.toISOString(),
         cancelled_by: adminId || customerId,
       })
       .eq('id', betId)
-      .in('status', ['confirmed', 'pending']) // IDEMPOTENCY: Only update if still cancellable
+      .in('status', ['confirmed', 'pending'])
       .select('id, status')
       .single();
 
     if (updateError || !updatedBet) {
-      // ถ้า update ไม่สำเร็จ แปลว่ามีคนยกเลิกไปแล้ว (race condition)
-      return NextResponse.json({ 
-        error: 'Bet already cancelled or modified by another request',
-        code: 'BET_ALREADY_MODIFIED'
-      }, { status: 409 });
+      return NextResponse.json(
+        {
+          error: 'Bet already cancelled or modified by another request',
+          code: 'BET_ALREADY_MODIFIED',
+        },
+        { status: 409 }
+      );
     }
 
     // อัปเดต bet_items เป็น cancelled
@@ -96,16 +105,14 @@ export async function POST(
       .update({ status: 'cancelled' })
       .eq('bet_id', betId);
 
-    // คืนเงินให้ลูกค้า - ATOMIC CREDIT UPDATE
-    // ใช้ raw SQL increment เพื่อหลีกเลี่ยง read-calculate-write race condition
+    // คืนเงินให้ลูกค้า
     const customer = bet.customer as any;
-    const refundAmount = bet.total_amount;
-    
-    // Atomic increment: credit_balance = credit_balance + refundAmount
+    const refundAmount = Number(bet.total_amount) || 0;
+
     const { data: updatedCustomer, error: creditError } = await supabase
       .from('customers')
-      .update({ 
-        credit_balance: (customer?.credit_balance || 0) + refundAmount,
+      .update({
+        credit_balance: (Number(customer?.credit_balance) || 0) + refundAmount,
         updated_at: now.toISOString(),
       })
       .eq('id', bet.customer_id)
@@ -116,9 +123,17 @@ export async function POST(
       // Rollback bet status if credit update fails
       await supabase
         .from('bets')
-        .update({ status: 'confirmed', cancelled_at: null, cancelled_by: null })
+        .update({
+          status: 'confirmed',
+          cancelled_at: null,
+          cancelled_by: null,
+        })
         .eq('id', betId);
-      return NextResponse.json({ error: 'Failed to refund credit' }, { status: 500 });
+
+      return NextResponse.json(
+        { error: 'Failed to refund credit' },
+        { status: 500 }
+      );
     }
 
     const newBalance = updatedCustomer.credit_balance;
@@ -144,15 +159,27 @@ export async function POST(
 
     if (betItems) {
       for (const item of betItems) {
-        const totalAmount = (item.amount_top || 0) + (item.amount_bottom || 0) + (item.amount_tod || 0);
-        await supabase.rpc('decrease_number_risk', {
+        const totalAmount =
+          (Number(item.amount_top) || 0) +
+          (Number(item.amount_bottom) || 0) +
+          (Number(item.amount_tod) || 0);
+
+        // Supabase query builder ไม่รองรับ .catch() ต่อท้าย
+        // ใช้ await แล้วตรวจ error จากผลลัพธ์แทน
+        const { error: riskError } = await supabase.rpc('decrease_number_risk', {
           p_lottery_id: bet.lottery_id,
           p_number: item.number,
           p_bet_type: item.bet_type,
           p_amount: totalAmount,
-        }).catch(() => {
-          // ถ้าไม่มี function ก็ข้ามไป
         });
+
+        // ถ้า RPC ไม่มีหรือทำงานไม่ได้ ให้ข้ามโดยไม่ทำให้การยกเลิกโพยล้ม
+        if (riskError) {
+          console.warn(
+            '[Bet Cancel] decrease_number_risk skipped:',
+            riskError.message
+          );
+        }
       }
     }
 
@@ -165,7 +192,7 @@ export async function POST(
       details: {
         lottery_name: (bet.lottery as any)?.name,
         total_amount: bet.total_amount,
-        refund_amount: bet.total_amount,
+        refund_amount: refundAmount,
         new_balance: newBalance,
         cancelled_by: adminId || customerId,
         time_remaining_seconds: timeRemaining,
@@ -181,10 +208,12 @@ export async function POST(
       refund_amount: refundAmount,
       new_balance: newBalance,
     });
-
   } catch (error) {
     console.error('Error cancelling bet:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -208,8 +237,14 @@ export async function GET(
 
   const now = new Date();
   const cancelDeadline = new Date(bet.cancel_deadline);
-  const canCancel = now <= cancelDeadline && (bet.status === 'confirmed' || bet.status === 'pending');
-  const timeRemaining = Math.max(0, Math.ceil((cancelDeadline.getTime() - now.getTime()) / 1000));
+  const canCancel =
+    now <= cancelDeadline &&
+    (bet.status === 'confirmed' || bet.status === 'pending');
+
+  const timeRemaining = Math.max(
+    0,
+    Math.ceil((cancelDeadline.getTime() - now.getTime()) / 1000)
+  );
 
   return NextResponse.json({
     bet_id: betId,
@@ -218,10 +253,12 @@ export async function GET(
     cancel_deadline: bet.cancel_deadline,
     time_remaining_seconds: timeRemaining,
     total_amount: bet.total_amount,
-    reason: !canCancel 
-      ? (bet.status === 'cancelled' ? 'โพยถูกยกเลิกแล้ว' : 
-         now > cancelDeadline ? 'เกินเวลายกเลิก 5 นาที' : 
-         'ไม่สามารถยกเลิกสถานะนี้ได้')
+    reason: !canCancel
+      ? bet.status === 'cancelled'
+        ? 'โพยถูกยกเลิกแล้ว'
+        : now > cancelDeadline
+          ? 'เกินเวลายกเลิก 5 นาที'
+          : 'ไม่สามารถยกเลิกสถานะนี้ได้'
       : null,
   });
 }

@@ -96,8 +96,15 @@ export default function MasterRatesPage() {
   
   // ดึง sites จาก API
   const { data: sitesData } = useSWR('/api/sites', fetcher);
-  const sites = (sitesData?.sites || sitesData || []).map((s: any) => ({
-    id: s.id,
+  interface SiteItem {
+    id: string;
+    name: string;
+    useGlobalRates: boolean;
+    useGlobalLimits: boolean;
+  }
+
+  const sites: SiteItem[] = (sitesData?.sites || sitesData || []).map((s: any) => ({
+    id: String(s.id),
     name: s.name || s.site_name || 'Unknown',
     useGlobalRates: s.use_global_rates ?? true,
     useGlobalLimits: s.use_global_limits ?? true,

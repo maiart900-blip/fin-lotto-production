@@ -5,10 +5,10 @@
 
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/api-auth';
-import { 
-  getJobs, 
-  getJob, 
-  getQueueStats, 
+import {
+  getJobs,
+  getJob,
+  getQueueStats,
   getRecentErrors,
   enqueueJob,
   JOB_TYPES,
@@ -21,23 +21,28 @@ export async function GET(request: Request) {
   // Require admin access
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
-  
+
   try {
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') as 'list' | 'stats' | 'errors' | 'detail' | null;
-    
+    const type = searchParams.get('type') as
+      | 'list'
+      | 'stats'
+      | 'errors'
+      | 'detail'
+      | null;
+
     switch (type) {
       case 'stats': {
         const stats = await getQueueStats();
         return NextResponse.json({ success: true, data: stats });
       }
-      
+
       case 'errors': {
         const limit = parseInt(searchParams.get('limit') || '10', 10);
         const errors = await getRecentErrors(limit);
         return NextResponse.json({ success: true, data: errors });
       }
-      
+
       case 'detail': {
         const jobId = searchParams.get('id');
         if (!jobId) {
@@ -46,7 +51,7 @@ export async function GET(request: Request) {
             { status: 400 }
           );
         }
-        
+
         const job = await getJob(jobId);
         if (!job) {
           return NextResponse.json(
@@ -54,24 +59,24 @@ export async function GET(request: Request) {
             { status: 404 }
           );
         }
-        
+
         return NextResponse.json({ success: true, data: job });
       }
-      
+
       case 'list':
       default: {
         const jobType = searchParams.get('jobType') as JobType | null;
         const status = searchParams.get('status') as JobStatus | null;
         const limit = parseInt(searchParams.get('limit') || '50', 10);
         const offset = parseInt(searchParams.get('offset') || '0', 10);
-        
+
         const { jobs, total } = await getJobs({
           type: jobType || undefined,
           status: status || undefined,
           limit,
           offset,
         });
-        
+
         return NextResponse.json({
           success: true,
           data: jobs,
@@ -98,19 +103,22 @@ export async function POST(request: Request) {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   const { user } = authResult;
-  
+
   try {
     const body = await request.json();
     const { type, payload, name, priority, maxAttempts, scheduledAt } = body;
-    
+
     // Validate job type
     if (!type || !Object.values(JOB_TYPES).includes(type)) {
       return NextResponse.json(
-        { success: false, error: `Invalid job type. Valid types: ${Object.values(JOB_TYPES).join(', ')}` },
+        {
+          success: false,
+          error: `Invalid job type. Valid types: ${Object.values(JOB_TYPES).join(', ')}`,
+        },
         { status: 400 }
       );
     }
-    
+
     // Enqueue the job
     const jobId = await enqueueJob(type, payload || {}, {
       name,
@@ -119,14 +127,21 @@ export async function POST(request: Request) {
       scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
       createdBy: user?.id,
     });
-    
+
     // Audit log
-    await auditLogger.logAdmin(user?.id || 'system', 'create', 'job', jobId, {
-      jobType: type,
-      jobName: name,
-      priority,
-    });
-    
+    await auditLogger.logAdmin(
+      user?.id || 'system',
+      'create',
+      'job',
+      jobId,
+      'Create background job',
+      {
+        jobType: type,
+        jobName: name,
+        priority,
+      }
+    );
+
     return NextResponse.json({
       success: true,
       data: { jobId },

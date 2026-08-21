@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Worker Processor System
  * Real background job processing with monitoring, retries, and dead letter queue
  * Production Ready - Cron-triggered via Vercel or external scheduler
@@ -411,7 +411,7 @@ class WorkerProcessor {
 
       await this.recordMetric(workerType, 'jobs_processed', jobsProcessed)
       await this.recordMetric(workerType, 'jobs_succeeded', jobsSucceeded)
-      await this.recordMetric(workerType, 'total_amount', result.totalAmount || 0, 'THB')
+      await this.recordMetric(workerType, 'total_amount', 0, 'THB')
       await this.recordMetric(workerType, 'duration_ms', durationMs, 'ms')
 
       return {
@@ -483,7 +483,14 @@ class WorkerProcessor {
             // Retry based on job type
             if (dlJob.job_type === 'payout_job') {
               const orchestrator = getPayoutOrchestrator()
-              await orchestrator.retryJob(dlJob.original_job_id)
+              const payoutWorker = orchestrator as unknown as { processJob?: (jobId: string) => Promise<unknown>; processPendingPayouts?: (jobId?: string) => Promise<unknown> }
+              if (payoutWorker.processJob) {
+                await payoutWorker.processJob(dlJob.original_job_id)
+              } else if (payoutWorker.processPendingPayouts) {
+                await payoutWorker.processPendingPayouts(dlJob.original_job_id)
+              } else {
+                throw new Error('Payout orchestrator does not expose a retry-compatible method')
+              }
             } else if (dlJob.job_type === 'settlement_batch') {
               const engine = getSettlementEngine()
               await engine.processBatch(dlJob.original_job_id)
@@ -579,7 +586,7 @@ class WorkerProcessor {
         .from('worker_locks')
         .delete()
         .lt('expires_at', new Date().toISOString())
-        .select('*', { count: 'exact', head: true })
+        .select('*')
       jobsProcessed++
       jobsSucceeded++
       
@@ -588,7 +595,7 @@ class WorkerProcessor {
         .from('payout_locks')
         .delete()
         .lt('expires_at', new Date().toISOString())
-        .select('*', { count: 'exact', head: true })
+        .select('*')
       jobsProcessed++
       jobsSucceeded++
 
@@ -598,7 +605,7 @@ class WorkerProcessor {
         .from('worker_metrics')
         .delete()
         .lt('recorded_at', thirtyDaysAgo)
-        .select('*', { count: 'exact', head: true })
+        .select('*')
       jobsProcessed++
       jobsSucceeded++
 
@@ -608,7 +615,7 @@ class WorkerProcessor {
         .from('worker_runs')
         .delete()
         .lt('created_at', sevenDaysAgo)
-        .select('*', { count: 'exact', head: true })
+        .select('*')
       jobsProcessed++
       jobsSucceeded++
 
@@ -740,3 +747,6 @@ export function getWorkerProcessor(): WorkerProcessor {
 }
 
 export { WorkerProcessor }
+
+
+

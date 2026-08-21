@@ -64,7 +64,7 @@ export default function AgentSettlementPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          agent_id: MOCK_AGENT_ID,
+         agent_id: agentId,
           amount: summary.master_share,
           period_start: periodInfo.start_date,
           period_end: periodInfo.end_date,
@@ -77,7 +77,7 @@ export default function AgentSettlementPage() {
         toast.success('บันทึกการส่งยอดสำเร็จ');
         setIsDialogOpen(false);
         setNote('');
-        mutate(`/api/agent/settlement?agent_id=${MOCK_AGENT_ID}&period=${period}`);
+        mutate(`/api/agent/settlement?agent_id=${agentId}&period=${period}`);
       } else {
         toast.error(data.error || 'เกิดข้อผิดพลาด');
       }

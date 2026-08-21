@@ -213,7 +213,7 @@ ${context.lotteryResults ? `ผลหวยล่าสุด:\n${context.lotter
         })),
         { role: 'user' as const, content: message },
       ],
-      maxTokens: 500,
+      maxOutputTokens: 500,
       temperature: 0.7,
     });
     
@@ -248,7 +248,7 @@ export async function streamAIResponse(
       })),
       { role: 'user' as const, content: message },
     ],
-    maxTokens: 500,
+    maxOutputTokens: 500,
   });
 }
 

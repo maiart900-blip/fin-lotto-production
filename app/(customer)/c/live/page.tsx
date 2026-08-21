@@ -8,7 +8,15 @@ import { ArrowLeft, Radio, Trophy, Clock, Loader2, RefreshCw, Sparkles, Crown, T
 import useSWR from 'swr';
 import Link from 'next/link';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json()).then(data => Array.isArray(data) ? data : []);
+const fetcher = async <T,>(url: string): Promise<T> => {
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status}`);
+  }
+
+  return res.json() as Promise<T>;
+};
 
 interface LiveSession {
   id: string;

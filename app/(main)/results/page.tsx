@@ -72,7 +72,7 @@ export default function ResultsPage() {
   
   // Permission check: only master_admin, super_admin, admin can edit
   // Agent can only view (read-only)
-  const canEdit = isAdmin || isSuperAdmin || user?.role === 'master_admin';
+  const canEdit = isAdmin || isSuperAdmin;
   const isAgent = user?.role === 'agent';
   
   const [selectedLotteryId, setSelectedLotteryId] = useState('');

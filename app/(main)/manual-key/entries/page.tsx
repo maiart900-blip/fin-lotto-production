@@ -77,12 +77,25 @@ export default function ManualKeyEntriesPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   // Determine user role for visibility
-  const getUserRole = () => {
+  const getUserRole = (): 'guest' | 'super_admin' | 'agent_key' | 'key_staff' => {
     if (!user) return 'guest';
-    const role = user.role || '';
-    if (role === 'super_admin' || role === 'admin' || role === 'master') return 'super_admin';
-    if (role === 'agent_key') return 'agent_key';
-    if (role === 'key_staff') return 'key_staff';
+
+    // Convert to string first so this page can safely handle legacy/custom roles
+    // without conflicting with the narrower UserType union from useAuth().
+    const role = String(user.role ?? '');
+
+    if (role === 'super_admin' || role === 'admin' || role === 'master') {
+      return 'super_admin';
+    }
+
+    if (role === 'agent_key') {
+      return 'agent_key';
+    }
+
+    if (role === 'key_staff') {
+      return 'key_staff';
+    }
+
     return 'key_staff'; // default to most restrictive
   };
 

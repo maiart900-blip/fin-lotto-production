@@ -42,6 +42,12 @@ interface TenantEditDialogProps {
   onSaved?: () => void;
 }
 
+interface ThemeConfig {
+  primaryColor: string;
+  theme: string;
+  [key: string]: string;
+}
+
 interface TenantData {
   id: string;
   name: string;
@@ -55,7 +61,7 @@ interface TenantData {
   sync_payout_rates: boolean;
   sync_blocked_numbers: boolean;
   sync_lottery_status: boolean;
-  theme_config: Record<string, string> | null;
+  theme_config: ThemeConfig | null;
   deposit_fee_percent: number;
   withdraw_fee_percent: number;
   wallet_frozen: boolean;

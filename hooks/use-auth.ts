@@ -18,6 +18,7 @@ export interface BranchInfo {
 export interface SessionUser {
   id: string;
   username: string;
+  phone?: string;
   displayName: string;
   role: UserRole;
   // Identity model fields
@@ -49,6 +50,11 @@ export interface SessionUser {
   // Agent hierarchy
   parent_agent_id?: string | null;
   agent_level?: number;
+  name?: string;
+share_percent?: number;
+commission_rate?: number;
+source?: string;
+agent_id?: string;
 }
 
 const SESSION_KEY = 'lottery_session';

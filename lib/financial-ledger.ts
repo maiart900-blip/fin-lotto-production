@@ -309,6 +309,154 @@ export class FinancialLedger {
     }
   }
   
+
+  /**
+   * Backward-compatible transaction entry point.
+   *
+   * Older payout/settlement modules call `recordTransaction`, while the
+   * current ledger core uses `createTransaction`.  Keep both APIs so the
+   * older modules continue to compile without weakening double-entry rules.
+   *
+   * Supported forms:
+   *   recordTransaction(input, entries)
+   *   recordTransaction({ ...input, entries })
+   *   recordTransaction({ ...input, journalEntries })
+   *
+   * Legacy snake_case fields are normalized automatically.
+   */
+  async recordTransaction(...args: unknown[]): Promise<LedgerTransaction> {
+    const first = args[0];
+
+    if (!first || (typeof first !== 'object' && typeof first !== 'string')) {
+      throw new Error('recordTransaction requires a transaction input');
+    }
+
+    let raw: Record<string, unknown>;
+    let rawEntries: unknown;
+
+    if (typeof first === 'string') {
+      const maybeOptions =
+        args[2] && typeof args[2] === 'object' && !Array.isArray(args[2])
+          ? (args[2] as Record<string, unknown>)
+          : {};
+
+      raw = {
+        ...maybeOptions,
+        type: first,
+        amount: args[1],
+      };
+
+      rawEntries = Array.isArray(args[2])
+        ? args[2]
+        : Array.isArray(args[3])
+          ? args[3]
+          : maybeOptions.entries ?? maybeOptions.journalEntries;
+    } else {
+      raw = first as Record<string, unknown>;
+      rawEntries =
+        (Array.isArray(args[1]) ? args[1] : undefined) ??
+        raw.entries ??
+        raw.journalEntries ??
+        raw.journal_entries;
+    }
+
+    const type = String(
+      raw.type ??
+      raw.transactionType ??
+      raw.transaction_type ??
+      ''
+    ) as TransactionType;
+
+    const amount = Number(
+      raw.amount ??
+      raw.netAmount ??
+      raw.net_amount ??
+      raw.grossAmount ??
+      raw.gross_amount ??
+      raw.payoutAmount ??
+      raw.payout_amount ??
+      0
+    );
+
+    if (!type) {
+      throw new Error('recordTransaction requires a transaction type');
+    }
+
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new Error(`Invalid transaction amount: ${String(amount)}`);
+    }
+
+    const input: TransactionInput = {
+      type,
+      amount,
+      feeAmount: Number(raw.feeAmount ?? raw.fee_amount ?? 0) || 0,
+      currency: String(raw.currency ?? 'THB'),
+      referenceType:
+        (raw.referenceType ?? raw.reference_type) as string | undefined,
+      referenceId:
+        (raw.referenceId ?? raw.reference_id) as string | undefined,
+      idempotencyKey:
+        (raw.idempotencyKey ?? raw.idempotency_key) as string | undefined,
+      entityType:
+        (raw.entityType ?? raw.entity_type) as string | undefined,
+      entityId:
+        (raw.entityId ?? raw.entity_id) as string | undefined,
+      tenantId:
+        (raw.tenantId ?? raw.tenant_id) as string | undefined,
+      description: raw.description as string | undefined,
+      metadata:
+        raw.metadata && typeof raw.metadata === 'object'
+          ? (raw.metadata as Record<string, unknown>)
+          : undefined,
+      createdBy:
+        (raw.createdBy ?? raw.created_by) as string | undefined,
+    };
+
+    if (!Array.isArray(rawEntries) || rawEntries.length === 0) {
+      throw new Error(
+        'recordTransaction requires balanced journal entries. ' +
+        'Pass entries as the second argument or as input.entries/input.journalEntries.'
+      );
+    }
+
+    const entries: JournalEntry[] = rawEntries.map((value, index) => {
+      if (!value || typeof value !== 'object') {
+        throw new Error(`Invalid journal entry at index ${index}`);
+      }
+
+      const entry = value as Record<string, unknown>;
+      const entryType = String(
+        entry.entryType ??
+        entry.entry_type ??
+        ''
+      ) as EntryType;
+
+      if (entryType !== 'debit' && entryType !== 'credit') {
+        throw new Error(`Invalid journal entry type at index ${index}`);
+      }
+
+      const entryAmount = Number(entry.amount ?? 0);
+      if (!Number.isFinite(entryAmount) || entryAmount < 0) {
+        throw new Error(`Invalid journal entry amount at index ${index}`);
+      }
+
+      return {
+        accountCode: String(
+          entry.accountCode ??
+          entry.account_code ??
+          ''
+        ),
+        accountId:
+          (entry.accountId ?? entry.account_id) as string | undefined,
+        entryType,
+        amount: entryAmount,
+        description: entry.description as string | undefined,
+      };
+    });
+
+    return this.createTransaction(input, entries);
+  }
+
   /**
    * Create a single journal entry
    */
@@ -643,6 +791,14 @@ export function getFinancialLedger(): FinancialLedger {
     ledgerInstance = new FinancialLedger();
   }
   return ledgerInstance;
+}
+
+
+/**
+ * Backward-compatible convenience wrapper.
+ */
+export async function recordTransaction(...args: unknown[]): Promise<LedgerTransaction> {
+  return getFinancialLedger().recordTransaction(...args);
 }
 
 // Convenience functions for common transaction patterns

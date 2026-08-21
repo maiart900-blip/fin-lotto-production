@@ -350,7 +350,7 @@ function serializeArray<T extends Record<string, unknown>, R>(
 export function serializePublicLottery(
   lottery: Record<string, unknown>
 ): PublicLotteryResponse {
-  return pickFields(lottery, PUBLIC_LOTTERY_FIELDS) as PublicLotteryResponse;
+  return pickFields(lottery, PUBLIC_LOTTERY_FIELDS) as unknown as PublicLotteryResponse;
 }
 
 /** Serialize multiple lotteries for public access */
@@ -364,7 +364,7 @@ export function serializePublicLotteries(
 export function serializePublicPayoutRate(
   rate: Record<string, unknown>
 ): PublicPayoutRateResponse {
-  return pickFields(rate, PUBLIC_PAYOUT_RATE_FIELDS) as PublicPayoutRateResponse;
+  return pickFields(rate, PUBLIC_PAYOUT_RATE_FIELDS) as unknown as PublicPayoutRateResponse;
 }
 
 /** Serialize multiple payout rates for public access */
@@ -382,14 +382,14 @@ export function serializePublicPayoutRates(
 export function serializePublicCustomer(
   customer: Record<string, unknown>
 ): PublicCustomerResponse {
-  return pickFields(customer, PUBLIC_CUSTOMER_FIELDS) as PublicCustomerResponse;
+  return pickFields(customer, PUBLIC_CUSTOMER_FIELDS) as unknown as PublicCustomerResponse;
 }
 
 /** Serialize customer for agent access */
 export function serializeAgentCustomer(
   customer: Record<string, unknown>
 ): AgentCustomerResponse {
-  return pickFields(customer, AGENT_CUSTOMER_FIELDS) as AgentCustomerResponse;
+  return pickFields(customer, AGENT_CUSTOMER_FIELDS) as unknown as AgentCustomerResponse;
 }
 
 /** Serialize multiple customers for agent access */
@@ -403,7 +403,7 @@ export function serializeAgentCustomers(
 export function serializeAdminCustomer(
   customer: Record<string, unknown>
 ): AdminCustomerResponse {
-  return pickFields(customer, ADMIN_CUSTOMER_FIELDS) as AdminCustomerResponse;
+  return pickFields(customer, ADMIN_CUSTOMER_FIELDS) as unknown as AdminCustomerResponse;
 }
 
 /** Serialize multiple customers for admin access */
@@ -421,7 +421,7 @@ export function serializeAdminCustomers(
 export function serializePublicBet(
   bet: Record<string, unknown>
 ): PublicBetResponse {
-  return pickFields(bet, PUBLIC_BET_FIELDS) as PublicBetResponse;
+  return pickFields(bet, PUBLIC_BET_FIELDS) as unknown as PublicBetResponse;
 }
 
 /** Serialize multiple bets for public access */
@@ -435,7 +435,7 @@ export function serializePublicBets(
 export function serializeAgentBet(
   bet: Record<string, unknown>
 ): AgentBetResponse {
-  return pickFields(bet, AGENT_BET_FIELDS) as AgentBetResponse;
+  return pickFields(bet, AGENT_BET_FIELDS) as unknown as AgentBetResponse;
 }
 
 /** Serialize multiple bets for agent access */
@@ -449,7 +449,7 @@ export function serializeAgentBets(
 export function serializeAdminBet(
   bet: Record<string, unknown>
 ): AdminBetResponse {
-  return pickFields(bet, ADMIN_BET_FIELDS) as AdminBetResponse;
+  return pickFields(bet, ADMIN_BET_FIELDS) as unknown as AdminBetResponse;
 }
 
 /** Serialize multiple bets for admin access */
@@ -467,14 +467,14 @@ export function serializeAdminBets(
 export function serializePublicUser(
   user: Record<string, unknown>
 ): PublicUserResponse {
-  return pickFields(user, PUBLIC_USER_FIELDS) as PublicUserResponse;
+  return pickFields(user, PUBLIC_USER_FIELDS) as unknown as PublicUserResponse;
 }
 
 /** Serialize user for admin access (no password hash) */
 export function serializeAdminUser(
   user: Record<string, unknown>
 ): AdminUserResponse {
-  return pickFields(user, ADMIN_USER_FIELDS) as AdminUserResponse;
+  return pickFields(user, ADMIN_USER_FIELDS) as unknown as AdminUserResponse;
 }
 
 /** Serialize multiple users for admin access */
@@ -520,14 +520,14 @@ export interface AdminTransactionResponse extends PublicTransactionResponse {
 export function serializePublicTransaction(
   transaction: Record<string, unknown>
 ): PublicTransactionResponse {
-  return pickFields(transaction, PUBLIC_TRANSACTION_FIELDS) as PublicTransactionResponse;
+  return pickFields(transaction, PUBLIC_TRANSACTION_FIELDS) as unknown as PublicTransactionResponse;
 }
 
 /** Serialize transaction for admin access */
 export function serializeAdminTransaction(
   transaction: Record<string, unknown>
 ): AdminTransactionResponse {
-  return pickFields(transaction, ADMIN_TRANSACTION_FIELDS) as AdminTransactionResponse;
+  return pickFields(transaction, ADMIN_TRANSACTION_FIELDS) as unknown as AdminTransactionResponse;
 }
 
 // =============================================================================
@@ -571,14 +571,14 @@ export interface AdminAgentResponse extends PublicAgentResponse {
 export function serializePublicAgent(
   agent: Record<string, unknown>
 ): PublicAgentResponse {
-  return pickFields(agent, PUBLIC_AGENT_FIELDS) as PublicAgentResponse;
+  return pickFields(agent, PUBLIC_AGENT_FIELDS) as unknown as PublicAgentResponse;
 }
 
 /** Serialize agent for admin access */
 export function serializeAdminAgent(
   agent: Record<string, unknown>
 ): AdminAgentResponse {
-  return pickFields(agent, ADMIN_AGENT_FIELDS) as AdminAgentResponse;
+  return pickFields(agent, ADMIN_AGENT_FIELDS) as unknown as AdminAgentResponse;
 }
 
 /** Serialize multiple agents for admin access */
@@ -615,7 +615,7 @@ export interface PublicResultResponse {
 export function serializePublicResult(
   result: Record<string, unknown>
 ): PublicResultResponse {
-  return pickFields(result, PUBLIC_RESULT_FIELDS) as PublicResultResponse;
+  return pickFields(result, PUBLIC_RESULT_FIELDS) as unknown as PublicResultResponse;
 }
 
 /** Serialize multiple results for public access */

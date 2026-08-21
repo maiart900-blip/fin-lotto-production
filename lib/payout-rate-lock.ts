@@ -7,7 +7,9 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { auditLogger } from '@/lib/audit-logger';
-import { redis, REDIS_KEYS } from '@/lib/redis';
+import { redis } from '@/lib/redis';
+
+const PAYOUT_RATES_CACHE_PREFIX = 'payout_rates';
 
 // =============================================
 // TYPES
@@ -184,7 +186,7 @@ export class PayoutRateLockService {
     if (!error && saved) {
       // Cache in Redis
       await redis?.set(
-        `${REDIS_KEYS.PAYOUT_RATES}:${lotteryId}:${roundId}`,
+        `${PAYOUT_RATES_CACHE_PREFIX}:${lotteryId}:${roundId}`,
         JSON.stringify(snapshot),
         { ex: 86400 } // 24 hours
       );
@@ -192,8 +194,8 @@ export class PayoutRateLockService {
       // Audit log
       await auditLogger.log({
         action: 'PAYOUT_RATES_LOCKED',
-        resource: 'payout_rate_snapshot',
-        resourceId: `${lotteryId}:${roundId}`,
+        targetType: 'payout_rate_snapshot',
+        targetId: `${lotteryId}:${roundId}`,
         userId: lockedBy,
         metadata: {
           lottery_name: lottery.name,
@@ -256,8 +258,8 @@ export class PayoutRateLockService {
       if (!error && saved) {
         await auditLogger.log({
           action: 'RATE_MODIFICATION_REQUESTED',
-          resource: 'rate_modification_request',
-          resourceId: saved.id,
+          targetType: 'rate_modification_request',
+          targetId: saved.id,
           userId: requestedBy,
           metadata: {
             lottery_id: lotteryId,
@@ -284,8 +286,8 @@ export class PayoutRateLockService {
     if (!error) {
       await auditLogger.log({
         action: 'PAYOUT_RATE_MODIFIED',
-        resource: 'payout_rates',
-        resourceId: `${lotteryId}:${roundId}:${betType}`,
+        targetType: 'payout_rates',
+        targetId: `${lotteryId}:${roundId}:${betType}`,
         userId: requestedBy,
         metadata: { betType, newRate, reason },
       });
@@ -346,8 +348,8 @@ export class PayoutRateLockService {
 
     await auditLogger.log({
       action: 'RATE_MODIFICATION_APPROVED',
-      resource: 'rate_modification_request',
-      resourceId: requestId,
+      targetType: 'rate_modification_request',
+      targetId: requestId,
       userId: approvedBy,
       metadata: {
         lottery_id: request.lottery_id,
@@ -384,8 +386,8 @@ export class PayoutRateLockService {
     if (!error) {
       await auditLogger.log({
         action: 'RATE_MODIFICATION_REJECTED',
-        resource: 'rate_modification_request',
-        resourceId: requestId,
+        targetType: 'rate_modification_request',
+        targetId: requestId,
         userId: rejectedBy,
         metadata: { reason },
       });
@@ -404,9 +406,13 @@ export class PayoutRateLockService {
     roundId: string
   ): Promise<PayoutRateSnapshot | null> {
     // Try cache first
-    const cached = await redis?.get(`${REDIS_KEYS.PAYOUT_RATES}:${lotteryId}:${roundId}`);
+    const cached = await redis?.get(`${PAYOUT_RATES_CACHE_PREFIX}:${lotteryId}:${roundId}`);
     if (cached) {
-      return JSON.parse(cached);
+      return (
+        typeof cached === 'string'
+          ? JSON.parse(cached)
+          : cached
+      ) as PayoutRateSnapshot;
     }
 
     const supabase = await this.getClient();

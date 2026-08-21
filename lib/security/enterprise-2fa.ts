@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Enterprise 2FA (Two-Factor Authentication) System
  * Supports TOTP, SMS, Email, and Backup Codes
  */
@@ -69,11 +69,27 @@ function decrypt(encrypted: string): string {
   return decrypted;
 }
 
+function toBase32(buffer: Buffer): string {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  let output = '';
+
+  for (const byte of buffer) {
+    bits += byte.toString(2).padStart(8, '0');
+  }
+
+  for (let i = 0; i < bits.length; i += 5) {
+    const chunk = bits.slice(i, i + 5).padEnd(5, '0');
+    output += alphabet[parseInt(chunk, 2)];
+  }
+
+  return output;
+}
 /**
  * Generate TOTP secret for user
  */
 export function generateTOTPSecret(): { secret: string; otpauth_url: string } {
-  const secret = crypto.randomBytes(20).toString('base32').substring(0, 32);
+  const secret = toBase32(crypto.randomBytes(20)).substring(0, 32);
   const issuer = encodeURIComponent('FIN Platform');
   const otpauth_url = `otpauth://totp/${issuer}:user?secret=${secret}&issuer=${issuer}&digits=6&period=30`;
   
@@ -579,3 +595,4 @@ export async function isTwoFactorRequired(
       return false;
   }
 }
+

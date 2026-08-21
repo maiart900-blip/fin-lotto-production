@@ -445,7 +445,7 @@ export function AppSidebar() {
   // Determine user's tier for permissions
   const getUserTier = () => {
     if (user?.role === 'agent' || user?.role === 'agent_key' || 
-        user?.role === 'partner' || user?.user_type === 'manual_key_agent') {
+        user?.role === 'partner' || String(user?.user_type || '') === 'manual_key_agent') {
       return 'agent';
     }
     if (user?.role === 'sub_agent') return 'sub_agent';

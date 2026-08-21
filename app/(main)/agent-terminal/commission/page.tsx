@@ -43,6 +43,9 @@ interface DailySummary {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+const COMMISSION_RATE = 20;
+
+
 export default function CommissionSummaryPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
   const [agentId, setAgentId] = useState<string | null>(null);

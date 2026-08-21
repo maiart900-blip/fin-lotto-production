@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Transaction Queue System
  * ระบบคิวจัดการ Transaction ป้องกันยอดเงินชนกัน
  * Production Ready - รองรับ Concurrent Transactions
@@ -223,7 +223,7 @@ export async function queueTransaction(
   
   // Also add to Redis sorted set for fast retrieval (score = priority + timestamp)
   const score = queuedTxn.priority * 1000000000000 + Date.now();
-  await redis.zadd(`queue:transactions:${transaction.userId}`, {
+  if (redis) await redis.zadd(`queue:transactions:${transaction.userId}`, {
     score,
     member: transactionId,
   });
@@ -309,7 +309,7 @@ export async function processTransaction(
       .eq('id', transactionId);
     
     // Remove from Redis queue
-    await redis.zrem(`queue:transactions:${txn.userId}`, transactionId);
+    if (redis) await redis.zrem(`queue:transactions:${txn.userId}`, transactionId);
     
     return result;
     
@@ -638,3 +638,5 @@ export async function getQueueStats(): Promise<{
     avgProcessingTime: Math.round(avgTime),
   };
 }
+
+

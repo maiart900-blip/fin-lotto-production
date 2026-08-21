@@ -18,14 +18,27 @@ const DEFAULT_COMMISSION_RATES: CommissionConfig[] = [
 
 export async function POST(request: Request) {
   try {
-    const { bet_id, bet_amount, member_id, commission_type = 'bet' } = await request.json();
+    const {
+      bet_id,
+      bet_amount,
+      member_id,
+      commission_type = 'bet',
+    } = await request.json();
 
-    if (!bet_amount || bet_amount <= 0) {
-      return NextResponse.json({ error: 'จำนวนเงินไม่ถูกต้อง' }, { status: 400 });
+    const numericBetAmount = Number(bet_amount);
+
+    if (!Number.isFinite(numericBetAmount) || numericBetAmount <= 0) {
+      return NextResponse.json(
+        { error: 'จำนวนเงินไม่ถูกต้อง' },
+        { status: 400 }
+      );
     }
 
     if (!member_id) {
-      return NextResponse.json({ error: 'กรุณาระบุ member_id' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'กรุณาระบุ member_id' },
+        { status: 400 }
+      );
     }
 
     const supabase = await createClient();
@@ -38,28 +51,41 @@ export async function POST(request: Request) {
       .single();
 
     if (memberError || !member) {
-      return NextResponse.json({ error: 'ไม่พบข้อมูลสมาชิก' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'ไม่พบข้อมูลสมาชิก' },
+        { status: 404 }
+      );
     }
 
     // Build upline chain (up to 5 levels)
-    const uplineChain: Array<{ id: string; level: number; commission_percent: number }> = [];
+    const uplineChain: Array<{
+      id: string;
+      level: number;
+      commission_percent: number;
+    }> = [];
+
     let currentUserId = member.referred_by || member.parent_agent_id;
     let currentLevel = 1;
 
     while (currentUserId && currentLevel <= 5) {
       const { data: uplineUser } = await supabase
         .from('users')
-        .select('id, referred_by, parent_agent_id, commission_percent, role')
+        .select(
+          'id, referred_by, parent_agent_id, commission_percent, role'
+        )
         .eq('id', currentUserId)
         .single();
 
       if (!uplineUser) break;
 
-      // Use user's custom commission_percent or default by level
-      const defaultRate = DEFAULT_COMMISSION_RATES.find(r => r.level === currentLevel)?.percent || 0;
-      const commissionPercent = uplineUser.commission_percent > 0 
-        ? uplineUser.commission_percent 
-        : defaultRate;
+      const defaultRate =
+        DEFAULT_COMMISSION_RATES.find(
+          (rate) => rate.level === currentLevel
+        )?.percent || 0;
+
+      const customPercent = Number(uplineUser.commission_percent) || 0;
+      const commissionPercent =
+        customPercent > 0 ? customPercent : defaultRate;
 
       uplineChain.push({
         id: uplineUser.id,
@@ -68,10 +94,14 @@ export async function POST(request: Request) {
       });
 
       // If super_admin, stop here
-      if (uplineUser.role === 'super_admin') break;
+      if (uplineUser.role === 'super_admin') {
+        break;
+      }
 
-      currentUserId = uplineUser.referred_by || uplineUser.parent_agent_id;
-      currentLevel++;
+      currentUserId =
+        uplineUser.referred_by || uplineUser.parent_agent_id;
+
+      currentLevel += 1;
     }
 
     // Calculate and create commission logs
@@ -79,47 +109,73 @@ export async function POST(request: Request) {
     let totalCommissionPaid = 0;
 
     for (const upline of uplineChain) {
-      const commissionAmount = (bet_amount * upline.commission_percent) / 100;
-      
-      if (commissionAmount > 0) {
-        const { data: log, error: logError } = await supabase
-          .from('commission_logs')
-          .insert({
-            agent_id: upline.id,
-            from_member_id: member_id,
-            bet_id: bet_id || null,
-            amount: commissionAmount,
-            commission_type: commission_type,
-            hierarchy_level: upline.level,
-            description: `ค่าคอม ${upline.commission_percent}% จากยอด ${bet_amount.toLocaleString()} บาท (Level ${upline.level})`,
-            status: 'pending',
-          })
-          .select()
+      const commissionAmount =
+        (numericBetAmount * upline.commission_percent) / 100;
+
+      if (commissionAmount <= 0) {
+        continue;
+      }
+
+      const { data: log, error: logError } = await supabase
+        .from('commission_logs')
+        .insert({
+          agent_id: upline.id,
+          from_member_id: member_id,
+          bet_id: bet_id || null,
+          amount: commissionAmount,
+          commission_type,
+          hierarchy_level: upline.level,
+          description: `ค่าคอม ${upline.commission_percent}% จากยอด ${numericBetAmount.toLocaleString()} บาท (Level ${upline.level})`,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (logError || !log) {
+        console.error(
+          `[commission/calculate] Failed to create commission log for user ${upline.id}:`,
+          logError
+        );
+        continue;
+      }
+
+      commissionLogs.push(log);
+      totalCommissionPaid += commissionAmount;
+
+      // Supabase client ตัวนี้ไม่มี supabase.sql และ query builder ต่อ .catch() ไม่ได้
+      // อ่านเครดิตปัจจุบันก่อน แล้ว update เป็นค่าที่คำนวณแล้ว
+      const { data: currentUser, error: currentUserError } =
+        await supabase
+          .from('users')
+          .select('credit_balance')
+          .eq('id', upline.id)
           .single();
 
-        if (!logError && log) {
-          commissionLogs.push(log);
-          totalCommissionPaid += commissionAmount;
+      if (currentUserError || !currentUser) {
+        console.error(
+          `[commission/calculate] Failed to read credit for user ${upline.id}:`,
+          currentUserError
+        );
+        continue;
+      }
 
-          // Update agent's credit balance (direct UPDATE - atomic increment)
-          // Note: increment_credit RPC does not exist, using direct SQL increment
-          await supabase
-            .from('users')
-            .update({
-              credit_balance: supabase.sql`credit_balance + ${commissionAmount}`,
-            })
-            .eq('id', upline.id)
-            .catch(() => {
-              // Fallback: use raw update if sql template fails
-              return supabase.rpc('increment_customer_balance', {
-                customer_id: upline.id,
-                amount: commissionAmount,
-              }).catch(() => {
-                // Silent fail - commission log is created, credit update failed
-                console.error(`[commission/calculate] Failed to update credit for user ${upline.id}`);
-              });
-            });
-        }
+      const currentBalance =
+        Number(currentUser.credit_balance) || 0;
+      const newBalance =
+        currentBalance + commissionAmount;
+
+      const { error: creditUpdateError } = await supabase
+        .from('users')
+        .update({
+          credit_balance: newBalance,
+        })
+        .eq('id', upline.id);
+
+      if (creditUpdateError) {
+        console.error(
+          `[commission/calculate] Failed to update credit for user ${upline.id}:`,
+          creditUpdateError
+        );
       }
     }
 
@@ -127,7 +183,7 @@ export async function POST(request: Request) {
       success: true,
       message: 'คำนวณค่าคอมมิชชั่นสำเร็จ',
       data: {
-        bet_amount,
+        bet_amount: numericBetAmount,
         total_commission_paid: totalCommissionPaid,
         commission_breakdown: commissionLogs,
         upline_chain: uplineChain,
@@ -135,6 +191,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Commission calculation error:', error);
+
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาดในการคำนวณค่าคอมมิชชั่น' },
       { status: 500 }
@@ -147,10 +204,13 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agent_id');
-    const period = searchParams.get('period') || 'all'; // today, week, month, all
+    const period = searchParams.get('period') || 'all';
 
     if (!agentId) {
-      return NextResponse.json({ error: 'กรุณาระบุ agent_id' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'กรุณาระบุ agent_id' },
+        { status: 400 }
+      );
     }
 
     const supabase = await createClient();
@@ -163,44 +223,105 @@ export async function GET(request: Request) {
 
     // Apply date filter
     const now = new Date();
+
     if (period === 'today') {
-      const startOfDay = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-      query = query.gte('created_at', startOfDay);
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      query = query.gte(
+        'created_at',
+        startOfDay.toISOString()
+      );
     } else if (period === 'week') {
-      const startOfWeek = new Date(now.setDate(now.getDate() - 7)).toISOString();
-      query = query.gte('created_at', startOfWeek);
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(startOfWeek.getDate() - 7);
+
+      query = query.gte(
+        'created_at',
+        startOfWeek.toISOString()
+      );
     } else if (period === 'month') {
-      const startOfMonth = new Date(now.setDate(now.getDate() - 30)).toISOString();
-      query = query.gte('created_at', startOfMonth);
+      const startOfMonth = new Date(now);
+      startOfMonth.setDate(startOfMonth.getDate() - 30);
+
+      query = query.gte(
+        'created_at',
+        startOfMonth.toISOString()
+      );
     }
 
     const { data: logs, error } = await query;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
     }
+
+    const safeLogs = logs || [];
 
     // Calculate summary
     const summary = {
-      total_earned: logs?.reduce((sum, log) => sum + Number(log.amount), 0) || 0,
-      pending: logs?.filter(l => l.status === 'pending').reduce((sum, l) => sum + Number(l.amount), 0) || 0,
-      approved: logs?.filter(l => l.status === 'approved').reduce((sum, l) => sum + Number(l.amount), 0) || 0,
-      paid: logs?.filter(l => l.status === 'paid').reduce((sum, l) => sum + Number(l.amount), 0) || 0,
+      total_earned: safeLogs.reduce(
+        (sum, log) => sum + Number(log.amount || 0),
+        0
+      ),
+      pending: safeLogs
+        .filter((log) => log.status === 'pending')
+        .reduce(
+          (sum, log) => sum + Number(log.amount || 0),
+          0
+        ),
+      approved: safeLogs
+        .filter((log) => log.status === 'approved')
+        .reduce(
+          (sum, log) => sum + Number(log.amount || 0),
+          0
+        ),
+      paid: safeLogs
+        .filter((log) => log.status === 'paid')
+        .reduce(
+          (sum, log) => sum + Number(log.amount || 0),
+          0
+        ),
       by_type: {
-        bet: logs?.filter(l => l.commission_type === 'bet').reduce((sum, l) => sum + Number(l.amount), 0) || 0,
-        deposit: logs?.filter(l => l.commission_type === 'deposit').reduce((sum, l) => sum + Number(l.amount), 0) || 0,
-        signup: logs?.filter(l => l.commission_type === 'signup').reduce((sum, l) => sum + Number(l.amount), 0) || 0,
+        bet: safeLogs
+          .filter(
+            (log) => log.commission_type === 'bet'
+          )
+          .reduce(
+            (sum, log) => sum + Number(log.amount || 0),
+            0
+          ),
+        deposit: safeLogs
+          .filter(
+            (log) => log.commission_type === 'deposit'
+          )
+          .reduce(
+            (sum, log) => sum + Number(log.amount || 0),
+            0
+          ),
+        signup: safeLogs
+          .filter(
+            (log) => log.commission_type === 'signup'
+          )
+          .reduce(
+            (sum, log) => sum + Number(log.amount || 0),
+            0
+          ),
       },
-      count: logs?.length || 0,
+      count: safeLogs.length,
     };
 
     return NextResponse.json({
       success: true,
       summary,
-      logs,
+      logs: safeLogs,
     });
   } catch (error) {
     console.error('Commission summary error:', error);
+
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาดในการดึงข้อมูลค่าคอมมิชชั่น' },
       { status: 500 }

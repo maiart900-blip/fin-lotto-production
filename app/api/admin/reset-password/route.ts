@@ -5,7 +5,15 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { requireAdmin } from '@/lib/api-auth';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET || 'finlotto-master-secret-key';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
+
+  if (!secret) {
+    throw new Error('JWT secret is not configured');
+  }
+
+  return secret;
+}
 
 // POST - Reset user password
 export async function POST(request: NextRequest) {
@@ -29,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Verify master token
     let adminPayload;
     try {
-      adminPayload = jwt.verify(masterToken, JWT_SECRET) as { role: string; userId: string };
+      adminPayload = jwt.verify(masterToken, getJwtSecret()) as unknown as { role: string; userId: string };
     } catch {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Enterprise Security Monitor
  * Detects threats, manages incidents, and enforces security policies
  */
@@ -121,7 +121,7 @@ async function checkBruteForce(
   // Create incident if threshold exceeded
   if ((ipFailures || 0) >= maxAttempts || usernameFailures >= maxAttempts) {
     await createSecurityIncident({
-      tenant_id: tenantId,
+      tenant_id: tenantId ?? null,
       incident_type: 'brute_force',
       severity: (ipFailures || 0) >= maxAttempts * 2 ? 'high' : 'medium',
       title: `Brute force attack detected`,
@@ -156,7 +156,7 @@ export async function blacklistIP(
   expiresAt.setMinutes(expiresAt.getMinutes() + durationMinutes);
   
   await supabase.from('ip_access_rules').insert({
-    tenant_id: tenantId,
+    tenant_id: tenantId ?? null,
     rule_type: 'blacklist',
     ip_address: ipAddress,
     description: reason || `Auto-blacklisted due to suspicious activity`,
@@ -347,7 +347,7 @@ export async function logDataAccess(
     : 'internal';
   
   await supabase.from('data_access_logs').insert({
-    tenant_id: tenantId,
+    tenant_id: tenantId ?? null,
     user_id: userId,
     user_type: userType,
     resource_type: resourceType,
@@ -370,7 +370,7 @@ export async function logDataAccess(
     
     if ((count || 0) > 10) {
       await createSecurityIncident({
-        tenant_id: tenantId,
+        tenant_id: tenantId ?? null,
         incident_type: 'unauthorized_access',
         severity: 'medium',
         title: 'Unusual data access pattern detected',
@@ -546,3 +546,4 @@ export async function logAPIKeyUsage(
     })
     .eq('id', apiKeyId);
 }
+

@@ -203,12 +203,16 @@ export async function POST(request: Request) {
           idempotencyKey,
         });
         
-        await auditLogger.logFinancial(
-          user?.id || 'system',
-          'deposit',
-          amount,
-          { entityType, entityId, transactionId: result.id }
-        );
+        await auditLogger.log({
+          userId: user?.id || 'system',
+          actorType: 'user',
+          action: 'deposit',
+          category: 'financial',
+          tableName: entityType,
+          recordId: entityId,
+          description: 'Financial ledger action: deposit',
+          metadata: { entityType, entityId, amount, transactionId: result.id },
+        });
         break;
       }
       
@@ -229,12 +233,16 @@ export async function POST(request: Request) {
           idempotencyKey,
         });
         
-        await auditLogger.logFinancial(
-          user?.id || 'system',
-          'withdrawal',
-          amount,
-          { entityType, entityId, transactionId: result.id }
-        );
+        await auditLogger.log({
+          userId: user?.id || 'system',
+          actorType: 'user',
+          action: 'withdrawal',
+          category: 'financial',
+          tableName: entityType,
+          recordId: entityId,
+          description: 'Financial ledger action: withdrawal',
+          metadata: { entityType, entityId, amount, transactionId: result.id },
+        });
         break;
       }
       
@@ -255,12 +263,16 @@ export async function POST(request: Request) {
           idempotencyKey,
         });
         
-        await auditLogger.logFinancial(
-          user?.id || 'system',
-          'payout',
-          amount,
-          { entityType, entityId, transactionId: result.id }
-        );
+        await auditLogger.log({
+          userId: user?.id || 'system',
+          actorType: 'user',
+          action: 'payout',
+          category: 'financial',
+          tableName: entityType,
+          recordId: entityId,
+          description: 'Financial ledger action: payout',
+          metadata: { entityType, entityId, amount, transactionId: result.id },
+        });
         break;
       }
       
@@ -281,12 +293,16 @@ export async function POST(request: Request) {
           idempotencyKey,
         });
         
-        await auditLogger.logFinancial(
-          user?.id || 'system',
-          'bet',
-          amount,
-          { entityType, entityId, transactionId: result.id }
-        );
+        await auditLogger.log({
+          userId: user?.id || 'system',
+          actorType: 'user',
+          action: 'bet',
+          category: 'financial',
+          tableName: entityType,
+          recordId: entityId,
+          description: 'Financial ledger action: bet',
+          metadata: { entityType, entityId, amount, transactionId: result.id },
+        });
         break;
       }
       
@@ -303,12 +319,16 @@ export async function POST(request: Request) {
         const ledger = getFinancialLedger();
         result = await ledger.reverseTransaction(transactionId, reason, user?.id);
         
-        await auditLogger.logFinancial(
-          user?.id || 'system',
-          'reversal',
-          result.amount,
-          { originalTransactionId: transactionId, reversalId: result.id, reason }
-        );
+        await auditLogger.log({
+          userId: user?.id || 'system',
+          actorType: 'user',
+          action: 'reversal',
+          category: 'financial',
+          tableName: 'ledger_transactions',
+          recordId: transactionId,
+          description: 'Financial ledger action: reversal',
+          metadata: { amount: result.amount, originalTransactionId: transactionId, reversalId: result.id, reason },
+        });
         break;
       }
       
@@ -324,7 +344,8 @@ export async function POST(request: Request) {
           user?.id || 'system',
           'create',
           'balance_snapshot',
-          undefined,
+          date || new Date().toISOString().split('T')[0],
+          'Create daily balance snapshot',
           { date, created }
         );
         break;

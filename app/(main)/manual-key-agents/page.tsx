@@ -31,7 +31,10 @@ interface ManualKeyAgent {
   credit_balance: number;
   share_percent: number;
   parent_agent_id?: string;
-  two_factor_enabled?: boolean;
+parent_user_id?: string;
+downline_count: number;
+total_sales: number;
+two_factor_enabled?: boolean;
   member_count: number;
   created_at: string;
 }

@@ -77,8 +77,8 @@ export default function TenantWebSettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenant_id: user.tenant_id,
           ...settings,
+          tenant_id: user.tenant_id,
         }),
       });
 

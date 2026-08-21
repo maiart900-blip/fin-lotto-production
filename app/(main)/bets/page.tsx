@@ -117,11 +117,21 @@ export default function BetsListPage() {
         return;
       }
 
-      setBets(data || []);
+      // Supabase may infer joined relations as arrays.
+      // Normalize them to the single related object expected by the Bet UI.
+      const normalizedBets: Bet[] = (data || []).map((bet: any) => ({
+        ...bet,
+        lottery: Array.isArray(bet.lottery) ? bet.lottery[0] : bet.lottery,
+        customer: Array.isArray(bet.customer) ? bet.customer[0] : bet.customer,
+        creator: Array.isArray(bet.creator) ? bet.creator[0] : bet.creator,
+        bet_items: Array.isArray(bet.bet_items) ? bet.bet_items : [],
+      }));
+
+      setBets(normalizedBets);
 
       // Get unique admins
       const uniqueAdmins = new Map<string, { id: string; name: string }>();
-      (data || []).forEach((bet: any) => {
+      normalizedBets.forEach((bet) => {
         if (bet.creator?.id) {
           uniqueAdmins.set(bet.creator.id, { 
             id: bet.creator.id, 

@@ -57,7 +57,7 @@ const betTypes: BetType[] = ['3top', '3tod', '2top', '2bot', '1top', '1bot'];
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   
   // Redirect Agent ไป Agent Dashboard
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function DashboardPage() {
       // Check if user is any type of agent (role-based or user_type-based)
       const isAgent = user.role === 'agent' || 
                       user.role === 'agent_key' || 
-                      user.user_type === 'manual_key_agent';
+                      (user.user_type as string | undefined) === 'manual_key_agent';
       if (isAgent) {
         router.replace('/agent-dashboard');
       }

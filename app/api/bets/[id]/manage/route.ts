@@ -16,9 +16,13 @@ export async function POST(
 ) {
   const supabase = await createClient();
   const { id: betId } = await params;
-  
+
   // ตรวจสอบ Authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -30,8 +34,14 @@ export async function POST(
     .eq('id', user.id)
     .single();
 
-  if (!userData || !['super_admin', 'admin', 'manager'].includes(userData.role)) {
-    return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+  if (
+    !userData ||
+    !['super_admin', 'admin', 'manager'].includes(userData.role)
+  ) {
+    return NextResponse.json(
+      { error: 'Permission denied' },
+      { status: 403 }
+    );
   }
 
   try {
@@ -39,11 +49,17 @@ export async function POST(
     const { action, reason } = body;
 
     if (!action || !['refund', 'hold', 'unhold'].includes(action)) {
-      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid action' },
+        { status: 400 }
+      );
     }
 
     if (!reason && action === 'refund') {
-      return NextResponse.json({ error: 'Reason is required for refund' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Reason is required for refund' },
+        { status: 400 }
+      );
     }
 
     // ดึงข้อมูลโพย
@@ -58,7 +74,10 @@ export async function POST(
       .single();
 
     if (betError || !bet) {
-      return NextResponse.json({ error: 'Bet not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Bet not found' },
+        { status: 404 }
+      );
     }
 
     const now = new Date().toISOString();
@@ -66,13 +85,20 @@ export async function POST(
     switch (action) {
       case 'refund': {
         // ตรวจสอบสถานะ (ไม่สามารถคืนโพยที่จ่ายแล้วหรือยกเลิกแล้ว)
-        if (bet.status === 'paid' || bet.status === 'cancelled' || bet.status === 'refunded') {
-          return NextResponse.json({ 
-            error: `ไม่สามารถคืนโพยสถานะ "${bet.status}" ได้` 
-          }, { status: 400 });
+        if (
+          bet.status === 'paid' ||
+          bet.status === 'cancelled' ||
+          bet.status === 'refunded'
+        ) {
+          return NextResponse.json(
+            {
+              error: `ไม่สามารถคืนโพยสถานะ "${bet.status}" ได้`,
+            },
+            { status: 400 }
+          );
         }
 
-        // ATOMIC STATUS UPDATE: อัปเดตสถานะโพยพร้อมกัน double refund protection
+        // ATOMIC STATUS UPDATE
         const { data: updatedBet, error: updateError } = await supabase
           .from('bets')
           .update({
@@ -83,15 +109,18 @@ export async function POST(
             updated_at: now,
           })
           .eq('id', betId)
-          .not('status', 'in', '("paid","cancelled","refunded")') // IDEMPOTENCY: Only if not already processed
+          .not('status', 'in', '("paid","cancelled","refunded")')
           .select('id, status')
           .single();
 
         if (updateError || !updatedBet) {
-          return NextResponse.json({ 
-            error: 'Bet already refunded or modified by another request',
-            code: 'BET_ALREADY_MODIFIED'
-          }, { status: 409 });
+          return NextResponse.json(
+            {
+              error: 'Bet already refunded or modified by another request',
+              code: 'BET_ALREADY_MODIFIED',
+            },
+            { status: 409 }
+          );
         }
 
         // อัปเดต bet_items
@@ -100,14 +129,15 @@ export async function POST(
           .update({ status: 'refunded' })
           .eq('bet_id', betId);
 
-        // ATOMIC CREDIT UPDATE: คืนเงินให้ลูกค้า
+        // คืนเงินให้ลูกค้า
         const customer = bet.customer as any;
-        const refundAmount = bet.total_amount;
-        
+        const refundAmount = Number(bet.total_amount) || 0;
+
         const { data: updatedCustomer, error: creditError } = await supabase
           .from('customers')
           .update({
-            credit_balance: (customer?.credit_balance || 0) + refundAmount,
+            credit_balance:
+              (Number(customer?.credit_balance) || 0) + refundAmount,
             updated_at: now,
           })
           .eq('id', bet.customer_id)
@@ -118,9 +148,18 @@ export async function POST(
           // Rollback bet status if credit update fails
           await supabase
             .from('bets')
-            .update({ status: bet.status, refunded_at: null, refunded_by: null, refund_reason: null })
+            .update({
+              status: bet.status,
+              refunded_at: null,
+              refunded_by: null,
+              refund_reason: null,
+            })
             .eq('id', betId);
-          return NextResponse.json({ error: 'Failed to refund credit' }, { status: 500 });
+
+          return NextResponse.json(
+            { error: 'Failed to refund credit' },
+            { status: 500 }
+          );
         }
 
         const newBalance = updatedCustomer.credit_balance;
@@ -142,18 +181,36 @@ export async function POST(
         // ลดยอด number_risks
         const { data: betItems } = await supabase
           .from('bet_items')
-          .select('number, bet_type, amount_top, amount_bottom, amount_tod')
+          .select(
+            'number, bet_type, amount_top, amount_bottom, amount_tod'
+          )
           .eq('bet_id', betId);
 
         if (betItems) {
           for (const item of betItems) {
-            const totalAmount = (item.amount_top || 0) + (item.amount_bottom || 0) + (item.amount_tod || 0);
-            await supabase.rpc('decrease_number_risk', {
-              p_lottery_id: bet.lottery_id,
-              p_number: item.number,
-              p_bet_type: item.bet_type,
-              p_amount: totalAmount,
-            }).catch(() => {});
+            const totalAmount =
+              (Number(item.amount_top) || 0) +
+              (Number(item.amount_bottom) || 0) +
+              (Number(item.amount_tod) || 0);
+
+            // Supabase query builder ไม่รองรับ .catch() ต่อท้าย
+            const { error: riskError } = await supabase.rpc(
+              'decrease_number_risk',
+              {
+                p_lottery_id: bet.lottery_id,
+                p_number: item.number,
+                p_bet_type: item.bet_type,
+                p_amount: totalAmount,
+              }
+            );
+
+            // ถ้า RPC ไม่มีหรือทำงานไม่ได้ ให้ข้ามไป
+            if (riskError) {
+              console.warn(
+                '[Bet Manage] decrease_number_risk skipped:',
+                riskError.message
+              );
+            }
           }
         }
 
@@ -166,7 +223,10 @@ export async function POST(
           targetId: betId,
           targetType: 'bet',
           oldValues: { status: bet.status },
-          newValues: { status: 'refunded', refund_reason: reason },
+          newValues: {
+            status: 'refunded',
+            refund_reason: reason,
+          },
           details: {
             customer_id: bet.customer_id,
             customer_name: customer?.name,
@@ -188,13 +248,19 @@ export async function POST(
 
       case 'hold': {
         if (bet.status === 'on_hold') {
-          return NextResponse.json({ error: 'โพยถูกพักไว้แล้ว' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'โพยถูกพักไว้แล้ว' },
+            { status: 400 }
+          );
         }
 
         if (['cancelled', 'refunded', 'paid'].includes(bet.status)) {
-          return NextResponse.json({ 
-            error: `ไม่สามารถพักโพยสถานะ "${bet.status}" ได้` 
-          }, { status: 400 });
+          return NextResponse.json(
+            {
+              error: `ไม่สามารถพักโพยสถานะ "${bet.status}" ได้`,
+            },
+            { status: 400 }
+          );
         }
 
         const previousStatus = bet.status;
@@ -211,7 +277,9 @@ export async function POST(
           })
           .eq('id', betId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          throw updateError;
+        }
 
         await auditLogger.log({
           action: 'bet_hold',
@@ -221,7 +289,10 @@ export async function POST(
           targetId: betId,
           targetType: 'bet',
           oldValues: { status: previousStatus },
-          newValues: { status: 'on_hold', hold_reason: reason },
+          newValues: {
+            status: 'on_hold',
+            hold_reason: reason,
+          },
         });
 
         return NextResponse.json({
@@ -235,7 +306,10 @@ export async function POST(
 
       case 'unhold': {
         if (bet.status !== 'on_hold') {
-          return NextResponse.json({ error: 'โพยไม่ได้อยู่ในสถานะพัก' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'โพยไม่ได้อยู่ในสถานะพัก' },
+            { status: 400 }
+          );
         }
 
         const restoreStatus = bet.previous_status || 'confirmed';
@@ -254,7 +328,9 @@ export async function POST(
           })
           .eq('id', betId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          throw updateError;
+        }
 
         await auditLogger.log({
           action: 'bet_unhold',
@@ -277,13 +353,21 @@ export async function POST(
       }
 
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Invalid action' },
+          { status: 400 }
+        );
     }
-
   } catch (error) {
     console.error('Bet management error:', error);
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Internal server error',
+      },
       { status: 500 }
     );
   }

@@ -196,23 +196,26 @@ export default function AgentTreePage() {
   const filterAgents = (agents: Agent[], term: string): Agent[] => {
     if (!term) return agents;
     
-    return agents
-      .map(agent => {
-        const matchesSelf = 
-          agent.name?.toLowerCase().includes(term.toLowerCase()) ||
-          agent.code?.toLowerCase().includes(term.toLowerCase());
-        
-        const filteredChildren = agent.children ? filterAgents(agent.children, term) : [];
-        
-        if (matchesSelf || filteredChildren.length > 0) {
-          return {
+    return agents.flatMap((agent): Agent[] => {
+      const matchesSelf =
+        agent.name?.toLowerCase().includes(term.toLowerCase()) ||
+        agent.code?.toLowerCase().includes(term.toLowerCase());
+
+      const filteredChildren = agent.children
+        ? filterAgents(agent.children, term)
+        : [];
+
+      if (matchesSelf || filteredChildren.length > 0) {
+        return [
+          {
             ...agent,
             children: matchesSelf ? agent.children : filteredChildren,
-          };
-        }
-        return null;
-      })
-      .filter((agent): agent is Agent => agent !== null);
+          },
+        ];
+      }
+
+      return [];
+    });
   };
 
   const filteredTree = filterAgents(agentTree, searchTerm);

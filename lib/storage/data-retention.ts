@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DATA RETENTION SERVICE
  * ======================
  * Manages data lifecycle, archiving, and cleanup
@@ -287,15 +287,13 @@ export async function getRetentionStats(): Promise<{
   
   const { count: betsTotal } = await supabase
     .from('lottery_bets')
-    .select('*', { count: 'exact', head: true })
-    .catch(() => ({ count: 0 }));
+    .select('*', { count: 'exact', head: true });
   
   const { count: betsOld } = await supabase
     .from('lottery_bets')
     .select('*', { count: 'exact', head: true })
     .lt('created_at', betsCutoff.toISOString())
-    .in('status', ['won', 'lost', 'cancelled'])
-    .catch(() => ({ count: 0 }));
+    .in('status', ['won', 'lost', 'cancelled']);
   
   // Storage stats
   const storageStats = await imageOptimizer.getStats();
@@ -365,3 +363,5 @@ export const dataRetention = {
   runFullCleanup,
   DEFAULT_POLICIES,
 };
+
+

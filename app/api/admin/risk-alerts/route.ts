@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest) {
       .from('risk_alerts')
       .update({
         status,
-        reviewed_by: session.id,
+        reviewed_by: session.user.id,
         reviewed_at: new Date().toISOString(),
       })
       .eq('id', id);

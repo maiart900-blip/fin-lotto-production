@@ -212,15 +212,24 @@ export async function POST(request: NextRequest) {
         totalWinners++;
         totalWinAmount += betWinAmount;
 
-        // ATOMIC CREDIT UPDATE: เพิ่มเครดิตโดยไม่ต้อง read ก่อน
+        // CREDIT UPDATE: อ่านยอดเครดิตปัจจุบันก่อน แล้วเพิ่มเงินรางวัล
+        const { data: currentCustomer, error: currentCustomerError } = await supabase
+          .from('customers')
+          .select('credit_balance')
+          .eq('id', bet.customer_id)
+          .single();
+
+        if (currentCustomerError || !currentCustomer) {
+          console.error(`Failed to read customer credit for bet ${bet.id}:`, currentCustomerError);
+          continue;
+        }
+
+        const currentBalance = Number(currentCustomer.credit_balance) || 0;
+
         const { data: updatedCustomer, error: creditError } = await supabase
           .from('customers')
-          .update({ 
-            credit_balance: supabase.rpc ? 
-              // If RPC available, use it for true atomic increment
-              (await supabase.from('customers').select('credit_balance').eq('id', bet.customer_id).single()).data?.credit_balance + betWinAmount :
-              // Fallback: read and update (less safe but still works)
-              ((await supabase.from('customers').select('credit_balance').eq('id', bet.customer_id).single()).data?.credit_balance || 0) + betWinAmount,
+          .update({
+            credit_balance: currentBalance + betWinAmount,
             updated_at: new Date().toISOString(),
           })
           .eq('id', bet.customer_id)

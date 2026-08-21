@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Production Rate Limiting System
  * ================================
  * Uses Upstash Redis for distributed rate limiting across serverless functions.
@@ -106,7 +106,7 @@ function getRateLimiter(type: RateLimitType): Ratelimit {
       type,
       new Ratelimit({
         redis: getRedis(),
-        limiter: Ratelimit.slidingWindow(config.requests, config.window),
+        limiter: Ratelimit.slidingWindow(config.requests, config.window as Parameters<typeof Ratelimit.slidingWindow>[1]),
         prefix: config.prefix,
         analytics: true,
       })
@@ -435,3 +435,4 @@ export async function getRecentViolations(
 // =====================================================
 
 export { RATE_LIMIT_CONFIGS };
+

@@ -52,6 +52,8 @@ export interface Settings {
   id: number;
   site_name: string;
   updated_at: string;
+  turnover_enabled?: boolean;
+  turnover_percentage?: number;
 }
 
 export interface DbUser {
@@ -179,7 +181,11 @@ export function useCustomers() {
 export function useSettings() {
   const { data, error, isLoading, mutate } = useSWR<Settings>('/api/settings', fetcher);
 
-  const updateSettings = async (settings: { siteName: string }) => {
+  const updateSettings = async (settings: {
+  siteName: string;
+  turnover_enabled?: boolean;
+  turnover_percentage?: number;
+}) => {
     const res = await fetch('/api/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

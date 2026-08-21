@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Financial Auto-Pilot System - FIN LOTTO R+
  * 
  * Automated financial processing:
@@ -351,7 +351,7 @@ export async function logToMasterLedger(entry: MasterLedgerEntry): Promise<void>
  * Update financial_summary table (permanent storage)
  */
 async function updateFinancialSummary(
-  type: 'deposit' | 'withdrawal' | 'bet' | 'payout' | 'commission' | 'settlement',
+  type: 'deposit' | 'withdrawal' | 'bet' | 'payout' | 'commission' | 'settlement' | 'adjustment',
   amount: number,
   date: string
 ): Promise<void> {
@@ -529,3 +529,4 @@ export async function reconcileAgentBalance(agentSiteId: string): Promise<{
     status: difference < 1 ? 'matched' : 'discrepancy',
   };
 }
+

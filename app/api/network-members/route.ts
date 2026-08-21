@@ -9,7 +9,7 @@ import { getCustomerScopeForUser, applyCustomerScope } from '@/lib/customer-scop
  * - แมมเบอร์คือคนที่อยู่ใต้สายงานของ Agent
  * - แยกจากลูกค้าออโต้ (auto_customer) และลูกค้าคีย์หวย (manual_key_customer)
  * - ใช้ user_type = 'network_member' และ account_type = 'downline_member'
- * 
+ *
  * SECURITY: Customer scope is enforced based on user's tenant_id and agent downline
  */
 export async function GET(request: NextRequest) {
@@ -17,8 +17,10 @@ export async function GET(request: NextRequest) {
     // Auth guard
     const authResult = await requireAgentOrHigher();
     if (authResult instanceof NextResponse) return authResult;
-    const session = authResult;
-    
+
+    // requireAgentOrHigher() returns { user: AuthenticatedUser }
+    const session = authResult.user;
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -27,7 +29,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const agentId = searchParams.get('agent_id');
     const status = searchParams.get('status');
-    
+
     // Get customer scope for current user
     const scope = await getCustomerScopeForUser({
       id: session.id,
@@ -39,7 +41,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('customers')
       .select('*', { count: 'exact' })
-      .eq('user_type', 'network_member') // Filter for network members only
+      .eq('user_type', 'network_member')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -48,8 +50,14 @@ export async function GET(request: NextRequest) {
 
     // Additional filter by agent_id (only if within user's scope)
     if (agentId) {
-      if (scope.canAccessAll || scope.isAdmin || scope.agentIds.includes(agentId)) {
-        query = query.or(`agent_id.eq.${agentId},parent_agent_id.eq.${agentId},upline_id.eq.${agentId}`);
+      if (
+        scope.canAccessAll ||
+        scope.isAdmin ||
+        scope.agentIds.includes(agentId)
+      ) {
+        query = query.or(
+          `agent_id.eq.${agentId},parent_agent_id.eq.${agentId},upline_id.eq.${agentId}`
+        );
       }
     }
 
@@ -61,21 +69,23 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,username.ilike.%${search}%`);
+      query = query.or(
+        `name.ilike.%${search}%,phone.ilike.%${search}%,username.ilike.%${search}%`
+      );
     }
 
     const { data, error, count } = await query;
-    
+
     if (error) {
       console.error('Network members GET error:', error.message);
       return NextResponse.json({ members: [], total: 0 });
     }
-    
-    return NextResponse.json({ 
-      members: data || [], 
+
+    return NextResponse.json({
+      members: data || [],
       total: count || 0,
       page,
-      limit
+      limit,
     });
   } catch (err) {
     console.error('Network members GET exception:', err);
@@ -87,10 +97,10 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const body = await request.json();
-    
-    const { 
-      name, 
-      phone, 
+
+    const {
+      name,
+      phone,
       username,
       password,
       agent_id,
@@ -98,12 +108,15 @@ export async function POST(request: NextRequest) {
       share_percent,
       commission_rate,
       credit_limit,
-      note
+      note,
     } = body;
 
     // Validate required fields
     if (!name?.trim()) {
-      return NextResponse.json({ error: 'กรุณากรอกชื่อแมมเบอร์' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'กรุณากรอกชื่อแมมเบอร์' },
+        { status: 400 }
+      );
     }
 
     // Check if username exists (if provided)
@@ -113,9 +126,12 @@ export async function POST(request: NextRequest) {
         .select('id')
         .eq('username', username)
         .maybeSingle();
-      
+
       if (existing) {
-        return NextResponse.json({ error: 'ชื่อผู้ใช้นี้มีอยู่แล้ว' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'ชื่อผู้ใช้นี้มีอยู่แล้ว' },
+          { status: 400 }
+        );
       }
     }
 
@@ -132,9 +148,9 @@ export async function POST(request: NextRequest) {
       username: username || null,
       password_hash: passwordHash,
       user_type: 'network_member',
-      customer_source: null, // Network members don't have a customer source
+      customer_source: null,
       account_type: 'downline_member',
-      agent_level: 'member', // Keep for backwards compatibility
+      agent_level: 'member',
       agent_id: agent_id || null,
       parent_agent_id: parent_agent_id || agent_id || null,
       upline_id: agent_id || null,
@@ -154,16 +170,22 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Create network member error:', error);
-      return NextResponse.json({ error: 'ไม่สามารถสร้างแมมเบอร์ได้' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'ไม่สามารถสร้างแมมเบอร์ได้' },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      member: newMember 
+    return NextResponse.json({
+      success: true,
+      member: newMember,
     });
   } catch (err) {
     console.error('Network members POST exception:', err);
-    return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'เกิดข้อผิดพลาด' },
+      { status: 500 }
+    );
   }
 }
 
@@ -174,11 +196,15 @@ export async function PUT(request: NextRequest) {
     const { id, action, ...data } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing member ID' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing member ID' },
+        { status: 400 }
+      );
     }
 
     if (action === 'toggle_status') {
       const { is_active } = data;
+
       const { error } = await supabase
         .from('customers')
         .update({ is_active })
@@ -191,10 +217,16 @@ export async function PUT(request: NextRequest) {
 
     if (action === 'reset_password') {
       const { password } = data;
+
       if (!password) {
-        return NextResponse.json({ error: 'กรุณากรอกรหัสผ่านใหม่' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'กรุณากรอกรหัสผ่านใหม่' },
+          { status: 400 }
+        );
       }
+
       const passwordHash = await bcrypt.hash(password, 10);
+
       const { error } = await supabase
         .from('customers')
         .update({ password_hash: passwordHash })
@@ -207,12 +239,19 @@ export async function PUT(request: NextRequest) {
 
     // Default update
     const updates: Record<string, any> = {};
+
     if (data.name !== undefined) updates.name = data.name;
     if (data.phone !== undefined) updates.phone = data.phone;
     if (data.note !== undefined) updates.note = data.note;
-    if (data.share_percent !== undefined) updates.share_percent = data.share_percent;
-    if (data.commission_rate !== undefined) updates.commission_rate = data.commission_rate;
-    if (data.credit_limit !== undefined) updates.credit_limit = data.credit_limit;
+    if (data.share_percent !== undefined) {
+      updates.share_percent = data.share_percent;
+    }
+    if (data.commission_rate !== undefined) {
+      updates.commission_rate = data.commission_rate;
+    }
+    if (data.credit_limit !== undefined) {
+      updates.credit_limit = data.credit_limit;
+    }
 
     const { data: updated, error } = await supabase
       .from('customers')
@@ -223,9 +262,16 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ success: true, member: updated });
+
+    return NextResponse.json({
+      success: true,
+      member: updated,
+    });
   } catch (err) {
     console.error('Network members PUT exception:', err);
-    return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'เกิดข้อผิดพลาด' },
+      { status: 500 }
+    );
   }
 }

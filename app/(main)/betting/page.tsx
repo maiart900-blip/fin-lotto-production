@@ -238,7 +238,7 @@ export default function BettingDashboard() {
     const priceNum = parseInt(winPrice) || 100;
     
     // Determine correct bet type based on winType and winBetType
-    let actualBetType: string;
+    let actualBetType: TempBet['betType'];
     if (winType === '2') {
       // 2-digit modes
       if (winBetType === 'bon') actualBetType = '2top';

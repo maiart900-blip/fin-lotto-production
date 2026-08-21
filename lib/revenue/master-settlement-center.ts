@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Master Settlement Center
  * Handles settlement cycles, transactions, and automated reconciliation
  */
@@ -376,7 +376,9 @@ export class MasterSettlementCenter {
       .eq('status', 'active')
     
     const subscriptionRevenue = subscriptions?.reduce((sum, s) => {
-      const price = s.price_override || (s.packages as { price_monthly: number })?.price_monthly || 0
+      const packageRelation = s.packages as unknown as { price_monthly: number } | { price_monthly: number }[] | null
+      const packageInfo = Array.isArray(packageRelation) ? packageRelation[0] : packageRelation
+      const price = s.price_override || packageInfo?.price_monthly || 0
       return sum + Number(price)
     }, 0) || 0
     
@@ -612,3 +614,5 @@ export class MasterSettlementCenter {
 }
 
 export default MasterSettlementCenter
+
+
