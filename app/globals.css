@@ -2778,3 +2778,112 @@ input, textarea, select, button:active {
   transform: translateY(0);
 }
 
+/* =========================================================
+   FIN LOTTO R+ LIGHT ADMIN THEME
+   Added as override only - do not remove existing styles
+   ========================================================= */
+
+html,
+body {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+  color-scheme: light;
+}
+
+/* Main working area */
+main,
+[role="main"] {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+}
+
+/* Convert common dark backgrounds to white */
+[class*="bg-black"],
+[class*="bg-slate-950"],
+[class*="bg-slate-900"],
+[class*="bg-gray-950"],
+[class*="bg-gray-900"],
+[class*="bg-zinc-950"],
+[class*="bg-zinc-900"],
+[class*="bg-neutral-950"],
+[class*="bg-neutral-900"] {
+  background-color: #ffffff !important;
+}
+
+/* Main light text -> black */
+[class*="text-white"],
+[class*="text-slate-100"],
+[class*="text-slate-200"],
+[class*="text-gray-100"],
+[class*="text-gray-200"],
+[class*="text-zinc-100"],
+[class*="text-zinc-200"] {
+  color: #111111 !important;
+}
+
+/* Secondary text */
+[class*="text-slate-300"],
+[class*="text-slate-400"],
+[class*="text-gray-300"],
+[class*="text-gray-400"],
+[class*="text-zinc-300"],
+[class*="text-zinc-400"] {
+  color: #6b7280 !important;
+}
+
+/* Inputs */
+input,
+select,
+textarea {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+  border-color: #d1d5db !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+select option {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+}
+
+/* Cards / panels */
+[class*="border-slate-"],
+[class*="border-gray-"],
+[class*="border-zinc-"],
+[class*="border-neutral-"] {
+  border-color: #e5e7eb !important;
+}
+
+/* Tables */
+table,
+thead,
+tbody,
+tr,
+th,
+td {
+  color: #111111;
+}
+
+thead {
+  background-color: #f9fafb !important;
+}
+
+/* Keep FIN LOTTO gold/orange accents */
+[class*="bg-amber-"],
+[class*="bg-yellow-"],
+[class*="bg-orange-"] {
+  color: #111111 !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
