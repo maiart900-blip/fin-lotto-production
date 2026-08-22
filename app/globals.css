@@ -2887,3 +2887,40 @@ thead {
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
 }
+/* =========================================================
+   FIX: ADMIN SIDEBAR TEXT VISIBILITY
+   Keep sidebar dark with readable text
+   ========================================================= */
+
+aside {
+  color: #f8fafc !important;
+}
+
+/* ข้อความเมนูฝั่งซ้าย */
+aside [class*="text-white"],
+aside [class*="text-slate-100"],
+aside [class*="text-slate-200"],
+aside [class*="text-slate-300"],
+aside [class*="text-slate-400"],
+aside [class*="text-gray-100"],
+aside [class*="text-gray-200"],
+aside [class*="text-gray-300"],
+aside [class*="text-gray-400"],
+aside [class*="text-zinc-100"],
+aside [class*="text-zinc-200"],
+aside [class*="text-zinc-300"],
+aside [class*="text-zinc-400"] {
+  color: #e5e7eb !important;
+}
+
+/* เมนูที่เลือก / สีทองของ FIN LOTTO */
+aside [class*="text-amber-"],
+aside [class*="text-yellow-"],
+aside [class*="text-orange-"] {
+  color: #fbbf24 !important;
+}
+
+/* icon ให้ตามสีข้อความ */
+aside svg {
+  color: inherit;
+}
