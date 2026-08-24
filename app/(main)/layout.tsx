@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 // Main layout for authenticated pages - v2
 import { useEffect, useRef } from 'react';
@@ -88,7 +88,7 @@ export default function MainLayout({
   // Toaster          : ระบบแจ้งเตือนแบบ popup (วางนอก Inset ให้ลอยทั่วจอ)
   // ===================================================================
   return (
-    <SidebarProvider>
+    <SidebarProvider className="admin-shell">
       {/* เมนูนำทางด้านซ้าย - แสดงเมนูตามสิทธิ์ผู้ใช้ */}
       <AppSidebar />
 
@@ -108,3 +108,4 @@ export default function MainLayout({
     </SidebarProvider>
   );
 }
+

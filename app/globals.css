@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+﻿@import 'tailwindcss';
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
@@ -2778,149 +2778,358 @@ input, textarea, select, button:active {
   transform: translateY(0);
 }
 
+
 /* =========================================================
-   FIN LOTTO R+ LIGHT ADMIN THEME
-   Added as override only - do not remove existing styles
+   FIN LOTTO V100 - PROFESSIONAL ADMIN SHELL
+   Scoped only to authenticated admin backend.
+   DO NOT use global color overrides here.
    ========================================================= */
 
-html,
-body {
-  background-color: #ffffff !important;
-  color: #111111 !important;
-  color-scheme: light;
+.admin-shell {
+  --v100-canvas: #f6f8fb;
+  --v100-surface: #ffffff;
+  --v100-surface-soft: #f8fafc;
+
+  --v100-sidebar: #0b1220;
+  --v100-sidebar-deep: #070b13;
+
+  --v100-text: #0f172a;
+  --v100-text-secondary: #64748b;
+  --v100-text-sidebar: #cbd5e1;
+
+  --v100-border: #e2e8f0;
+
+  --v100-gold: #d4a72c;
+  --v100-gold-bright: #f5c842;
+  --v100-gold-deep: #a97808;
+
+  --v100-success: #059669;
+  --v100-danger: #dc2626;
+  --v100-info: #2563eb;
+
+  background: var(--v100-canvas);
+  color: var(--v100-text);
 }
 
-/* Main working area */
-main,
-[role="main"] {
-  background-color: #ffffff !important;
-  color: #111111 !important;
-}
 
-/* Convert common dark backgrounds to white */
-[class*="bg-black"],
-[class*="bg-slate-950"],
-[class*="bg-slate-900"],
-[class*="bg-gray-950"],
-[class*="bg-gray-900"],
-[class*="bg-zinc-950"],
-[class*="bg-zinc-900"],
-[class*="bg-neutral-950"],
-[class*="bg-neutral-900"] {
-  background-color: #ffffff !important;
-}
-
-/* Main light text -> black */
-[class*="text-white"],
-[class*="text-slate-100"],
-[class*="text-slate-200"],
-[class*="text-gray-100"],
-[class*="text-gray-200"],
-[class*="text-zinc-100"],
-[class*="text-zinc-200"] {
-  color: #111111 !important;
-}
-
-/* Secondary text */
-[class*="text-slate-300"],
-[class*="text-slate-400"],
-[class*="text-gray-300"],
-[class*="text-gray-400"],
-[class*="text-zinc-300"],
-[class*="text-zinc-400"] {
-  color: #6b7280 !important;
-}
-
-/* Inputs */
-input,
-select,
-textarea {
-  background-color: #ffffff !important;
-  color: #111111 !important;
-  border-color: #d1d5db !important;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: #9ca3af !important;
-}
-
-select option {
-  background-color: #ffffff !important;
-  color: #111111 !important;
-}
-
-/* Cards / panels */
-[class*="border-slate-"],
-[class*="border-gray-"],
-[class*="border-zinc-"],
-[class*="border-neutral-"] {
-  border-color: #e5e7eb !important;
-}
-
-/* Tables */
-table,
-thead,
-tbody,
-tr,
-th,
-td {
-  color: #111111;
-}
-
-thead {
-  background-color: #f9fafb !important;
-}
-
-/* Keep FIN LOTTO gold/orange accents */
-[class*="bg-amber-"],
-[class*="bg-yellow-"],
-[class*="bg-orange-"] {
-  color: #111111 !important;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar-track {
-  background: #f3f4f6;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-}
 /* =========================================================
-   FIX: ADMIN SIDEBAR TEXT VISIBILITY
-   Keep sidebar dark with readable text
+   MAIN APPLICATION CANVAS
    ========================================================= */
 
-aside {
-  color: #f8fafc !important;
+.admin-shell [data-slot="sidebar-inset"] {
+  background: var(--v100-canvas) !important;
+  color: var(--v100-text);
 }
 
-/* ข้อความเมนูฝั่งซ้าย */
-aside [class*="text-white"],
-aside [class*="text-slate-100"],
-aside [class*="text-slate-200"],
-aside [class*="text-slate-300"],
-aside [class*="text-slate-400"],
-aside [class*="text-gray-100"],
-aside [class*="text-gray-200"],
-aside [class*="text-gray-300"],
-aside [class*="text-gray-400"],
-aside [class*="text-zinc-100"],
-aside [class*="text-zinc-200"],
-aside [class*="text-zinc-300"],
-aside [class*="text-zinc-400"] {
-  color: #e5e7eb !important;
+
+/* =========================================================
+   PROFESSIONAL SIDEBAR
+   ========================================================= */
+
+.admin-shell [data-slot="sidebar-inner"] {
+  background:
+    linear-gradient(
+      180deg,
+      var(--v100-sidebar) 0%,
+      var(--v100-sidebar-deep) 100%
+    ) !important;
+
+  color: var(--v100-text-sidebar) !important;
+
+  border-right: 1px solid rgba(212, 167, 44, 0.16);
+
+  box-shadow:
+    8px 0 30px rgba(15, 23, 42, 0.08);
 }
 
-/* เมนูที่เลือก / สีทองของ FIN LOTTO */
-aside [class*="text-amber-"],
-aside [class*="text-yellow-"],
-aside [class*="text-orange-"] {
-  color: #fbbf24 !important;
+
+/* Sidebar header */
+
+.admin-shell [data-sidebar="header"] {
+  background: transparent;
+  border-color: rgba(212, 167, 44, 0.22) !important;
 }
 
-/* icon ให้ตามสีข้อความ */
-aside svg {
-  color: inherit;
+
+/* Sidebar content */
+
+.admin-shell [data-sidebar="content"] {
+  background: transparent;
 }
+
+
+/* Section headings */
+
+.admin-shell [data-sidebar="group-label"] {
+  color: #d8ad3b !important;
+  font-weight: 600;
+  letter-spacing: 0.035em;
+}
+
+
+/* Normal menu */
+
+.admin-shell [data-sidebar="menu-button"] {
+  color: #cbd5e1 !important;
+
+  border-radius: 10px;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+
+/* Menu icon */
+
+.admin-shell [data-sidebar="menu-button"] svg {
+  color: currentColor;
+}
+
+
+/* Hover */
+
+.admin-shell [data-sidebar="menu-button"]:hover {
+  background: rgba(212, 167, 44, 0.09) !important;
+  color: #f4c84a !important;
+}
+
+
+/* Active menu */
+
+.admin-shell [data-sidebar="menu-button"][data-active="true"] {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(212, 167, 44, 0.18),
+      rgba(212, 167, 44, 0.07)
+    ) !important;
+
+  color: #f4c84a !important;
+
+  box-shadow:
+    inset 3px 0 0 #d4a72c,
+    0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+
+/* Ensure nested Link classes never hide sidebar text */
+
+.admin-shell [data-slot="sidebar-inner"] .text-gray-300,
+.admin-shell [data-slot="sidebar-inner"] .text-gray-400,
+.admin-shell [data-slot="sidebar-inner"] .text-gray-500 {
+  color: #cbd5e1 !important;
+}
+
+
+.admin-shell [data-slot="sidebar-inner"] .text-amber-400,
+.admin-shell [data-slot="sidebar-inner"] .text-amber-500 {
+  color: #f4c84a !important;
+}
+
+
+/* Footer */
+
+.admin-shell [data-sidebar="footer"] {
+  background: rgba(2, 6, 23, 0.32);
+  border-color: rgba(212, 167, 44, 0.18) !important;
+}
+
+
+/* =========================================================
+   TOPBAR
+   ========================================================= */
+
+.admin-shell [data-slot="sidebar-inset"] > header {
+  background: rgba(255, 255, 255, 0.94) !important;
+
+  border-bottom: 1px solid #e5e7eb !important;
+
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 4px 18px rgba(15, 23, 42, 0.025);
+
+  backdrop-filter: blur(16px);
+}
+
+
+/* =========================================================
+   DASHBOARD WHITE STAT CARDS
+   replaces old black glass-card-gold only inside admin
+   ========================================================= */
+
+.admin-shell
+[data-slot="sidebar-inset"]
+.glass-card-gold {
+
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #fdfdfd 100%
+    ) !important;
+
+  color: #0f172a !important;
+
+  border: 1px solid #e5e7eb !important;
+
+  backdrop-filter: none !important;
+
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 8px 24px rgba(15, 23, 42, 0.055) !important;
+
+  border-radius: 16px !important;
+}
+
+
+/* Small premium gold edge */
+
+.admin-shell
+[data-slot="sidebar-inset"]
+.glass-card-gold::before {
+
+  height: 2px;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent 5%,
+      rgba(212, 167, 44, 0.55) 50%,
+      transparent 95%
+    );
+}
+
+
+/* Remove old black visual haze */
+
+.admin-shell
+[data-slot="sidebar-inset"]
+.glass-card-gold::after {
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(212, 167, 44, 0.09) 0%,
+      transparent 70%
+    );
+}
+
+
+/* Professional card hover */
+
+.admin-shell
+[data-slot="sidebar-inset"]
+.glass-card-gold:hover {
+
+  border-color: rgba(212, 167, 44, 0.35) !important;
+
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.03),
+    0 12px 32px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(212, 167, 44, 0.04) !important;
+
+  transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   NORMAL CARDS
+   ========================================================= */
+
+.admin-shell [data-slot="sidebar-inset"] [data-slot="card"] {
+  border-radius: 16px;
+}
+
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+.admin-shell [data-slot="sidebar-inset"] table {
+  color: #0f172a;
+}
+
+
+.admin-shell [data-slot="sidebar-inset"] thead {
+  background: #f8fafc;
+}
+
+
+.admin-shell [data-slot="sidebar-inset"] th {
+  color: #475569;
+  font-weight: 600;
+}
+
+
+.admin-shell [data-slot="sidebar-inset"] td {
+  color: #0f172a;
+}
+
+
+/* =========================================================
+   FORM CONTROLS INSIDE ADMIN ONLY
+   ========================================================= */
+
+.admin-shell [data-slot="sidebar-inset"] input,
+.admin-shell [data-slot="sidebar-inset"] select,
+.admin-shell [data-slot="sidebar-inset"] textarea {
+
+  background: #ffffff;
+
+  color: #0f172a;
+
+  border-color: #cbd5e1;
+}
+
+
+.admin-shell [data-slot="sidebar-inset"] input:focus,
+.admin-shell [data-slot="sidebar-inset"] select:focus,
+.admin-shell [data-slot="sidebar-inset"] textarea:focus {
+
+  border-color: #d4a72c;
+
+  box-shadow:
+    0 0 0 3px rgba(212, 167, 44, 0.12);
+}
+
+
+/* =========================================================
+   PROFESSIONAL SCROLLBAR - ADMIN
+   ========================================================= */
+
+.admin-shell [data-sidebar="content"]::-webkit-scrollbar {
+  width: 5px;
+}
+
+
+.admin-shell [data-sidebar="content"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+.admin-shell [data-sidebar="content"]::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.30);
+  border-radius: 999px;
+}
+
+
+.admin-shell [data-sidebar="content"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 167, 44, 0.45);
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+  .admin-shell [data-slot="sidebar-inset"] {
+    min-width: 0;
+  }
+
+}
+
